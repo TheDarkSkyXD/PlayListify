@@ -1,12 +1,19 @@
-import { createRouter, Route, RootRoute } from '@tanstack/react-router';
+import { createRouter, Route, RootRoute, Outlet, redirect } from '@tanstack/react-router';
 import DashboardPage from '../pages/Dashboard/DashboardPage';
 import SettingsPage from '../pages/Settings/SettingsPage';
 import PlaylistViewPage from '../pages/PlaylistView/PlaylistViewPage';
 import React from 'react';
 
-// Create route definitions
-const rootRoute = new RootRoute();
+// Create a root route with a component
+const rootRoute = new RootRoute({
+  component: () => 
+    React.createElement('div', 
+      { className: 'min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white' },
+      React.createElement(Outlet, null)
+    )
+});
 
+// Create route definitions
 const indexRoute = new Route({
   getParentRoute: () => rootRoute,
   path: '/',
@@ -25,11 +32,24 @@ const playlistRoute = new Route({
   component: PlaylistViewPage,
 });
 
+// Catch-all route to redirect to home
+const catchAllRoute = new Route({
+  getParentRoute: () => rootRoute,
+  path: '*',
+  beforeLoad: () => {
+    throw redirect({
+      to: '/',
+      replace: true
+    });
+  },
+});
+
 // Create the route tree
 const routeTree = rootRoute.addChildren([
   indexRoute,
   settingsRoute,
   playlistRoute,
+  catchAllRoute,
 ]);
 
 // Create and export the router

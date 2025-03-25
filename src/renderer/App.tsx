@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { RouterProvider } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from './routes/routes';
@@ -14,11 +14,30 @@ const queryClient = new QueryClient({
 });
 
 const App: React.FC = () => {
+  // Set dark mode based on system preference initially
+  const [isDarkMode, setIsDarkMode] = useState(
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
+
+  useEffect(() => {
+    // Add or remove dark mode class from document
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
+    // Listen for system preference changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const listener = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
+    mediaQuery.addEventListener('change', listener);
+    
+    return () => mediaQuery.removeEventListener('change', listener);
+  }, [isDarkMode]);
+
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
-        <RouterProvider router={router} />
-      </div>
+      <RouterProvider router={router} />
     </QueryClientProvider>
   );
 };

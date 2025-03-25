@@ -8,14 +8,18 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: 'var(--primary)',
-        'primary-dark': 'var(--primary-dark)',
-        background: 'var(--background)',
-        'background-dark': 'var(--background-dark)',
-        text: 'var(--text)',
-        'text-dark': 'var(--text-dark)',
-        secondary: 'var(--secondary)',
-        'secondary-dark': 'var(--secondary-dark)',
+        // YouTube-inspired color palette
+        primary: '#FF0000', // YouTube Red
+        'primary-dark': '#CC0000',
+        'background-light': '#FFFFFF',
+        'background-dark': '#181818',
+        'secondary-light': '#EDEDED',
+        'secondary-dark': '#212121',
+        'tertiary-dark': '#3d3d3d',
+        'text-light': '#212121',
+        'text-dark': '#FFFFFF',
+        'text-secondary-light': '#808080',
+        'text-secondary-dark': '#AAAAAA',
       },
     },
   },
