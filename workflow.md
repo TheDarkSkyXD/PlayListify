@@ -54,6 +54,11 @@ mkdir -p docs
 - [x] Basic project structure creation
 - [x] TypeScript declarations for webpack entries
 - [x] License update to AGPL-3.0
+- [x] Settings management with electron-store
+- [x] File system utilities implementation with fs-extra
+- [x] IPC communication channels setup
+- [x] Type-safe API for renderer process
+- [x] Secure preload script configuration
 
 ### Current Progress
 1. **Project Structure**
@@ -72,19 +77,22 @@ mkdir -p docs
    - [x] Renderer process setup
    - [x] Preload script configuration
    - [x] IPC communication foundation
+   - [x] Settings management with electron-store
+   - [x] File system utilities with fs-extra
+   - [x] Secure IPC communication channels
 
 ### Next Steps
-1. **UI Development**
+1. **UI Development (Phase 2.1)**
    - [ ] Implement base layout components
-   - [ ] Set up routing with TanStack Router
    - [ ] Create playlist management UI
-   - [ ] Implement settings page
+   - [ ] Build playlist creation form
+   - [ ] Implement responsive grid layout for playlists
 
-2. **Core Features**
-   - [ ] YouTube API integration
-   - [ ] Playlist management system
-   - [ ] Download functionality with yt-dlp
-   - [ ] Local storage management
+2. **Core Features (Phase 2)**
+   - [ ] Implement playlist creation and management (Phase 2.1)
+   - [ ] Develop YouTube playlist import with yt-dlp (Phase 2.2)
+   - [ ] Create local storage and state management (Phase 2.3)
+   - [ ] Build playlist display and filtering features (Phase 2.4)
 
 ### Install Required Packages
 
@@ -312,34 +320,82 @@ app.on('activate', () => mainWindow === null && createWindow());
 ### Phase 1.4: Persistent Storage and File System
 
 **Tasks:**
-- [ ] Implement settings management with electron-store
-- [ ] Create file system utilities with fs-extra
+- [x] Implement settings management with electron-store
+- [x] Create file system utilities with fs-extra
 
-**Files to Create:**
-- [ ] `src/main/services/settingsManager.ts` (~150 lines)
-  - Settings storage and retrieval
+**Files Created:**
+- [x] `src/main/services/settingsManager.ts` (~150 lines)
+  - Settings storage and retrieval with TypeScript type safety
   - Default configuration management
-- [ ] `src/main/utils/fileUtils.ts` (~150 lines)
+  - Directory initialization
+  - Account management functions
+- [x] `src/main/utils/fileUtils.ts` (~230 lines)
   - File system operations for playlists and videos
-- [ ] `src/main/ipc/handlers.ts` (~150 lines)
+  - Directory and file management utilities
+  - Playlist metadata handling
+  - File validation functions
+- [x] `src/main/ipc/handlers.ts` (~150 lines)
   - IPC communication between main and renderer processes
+  - Settings IPC handlers
+  - File system operation handlers
+  - Path validation handlers
+- [x] `src/shared/types/appTypes.ts` (~130 lines)
+  - Type definitions for settings, playlists, and videos
+  - API interface for the renderer process
+  - IPC communication types
 
 **Sample Code for `src/main/services/settingsManager.ts`:**
 ```typescript
 import Store from 'electron-store';
+import { app } from 'electron';
+import path from 'path';
+import fs from 'fs-extra';
 
-const store = new Store();
-
-export function getSetting(key: string, defaultValue: any): any {
-  return store.get(key, defaultValue);
+// Define the settings schema type
+interface SettingsSchema {
+  // General settings
+  theme: 'light' | 'dark' | 'system';
+  checkForUpdates: boolean;
+  startAtLogin: boolean;
+  minimizeToTray: boolean;
+  
+  // Download settings
+  downloadLocation: string;
+  concurrentDownloads: number;
+  downloadFormat: 'mp4' | 'webm' | 'mp3' | 'best';
+  maxQuality: '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p';
+  autoConvertToMp3: boolean;
+  
+  // Playlist settings
+  playlistLocation: string;
+  // ...other settings
 }
 
-export function setSetting(key: string, value: any): void {
+const store = new Store<SettingsSchema>({
+  defaults: defaultSettings,
+  name: 'settings',
+});
+
+export function getSetting<K extends keyof SettingsSchema>(
+  key: K,
+  defaultValue?: SettingsSchema[K]
+): SettingsSchema[K] {
+  if (defaultValue !== undefined) {
+    return store.get(key as any, defaultValue);
+  }
+  return store.get(key as any, defaultSettings[key]);
+}
+
+export function setSetting<K extends keyof SettingsSchema>(
+  key: K,
+  value: SettingsSchema[K]
+): void {
+  // If we're setting a path, ensure the directory exists
+  if ((key === 'downloadLocation' || key === 'playlistLocation') && typeof value === 'string') {
+    fs.ensureDirSync(value);
+  }
+  
   store.set(key, value);
-}
-
-export function clearSetting(key: string): void {
-  store.delete(key);
 }
 ```
 
@@ -347,18 +403,76 @@ export function clearSetting(key: string): void {
 ```typescript
 import fs from 'fs-extra';
 import path from 'path';
+import { app } from 'electron';
+import { v4 as uuidv4 } from 'uuid';
 import { getSetting } from '../services/settingsManager';
 
-export async function createPlaylistDir(playlistName: string): Promise<string> {
-  const baseDir = getSetting('playlistLocation', '~/Documents/Playlists');
-  const dir = path.join(baseDir, playlistName);
-  await fs.ensureDir(dir);
-  return dir;
+/**
+ * Creates the playlist directory structure
+ */
+export async function createPlaylistDir(playlistId: string, playlistName: string): Promise<string> {
+  const baseDir = getSetting('playlistLocation');
+  // Use a sanitized version of the playlist name for the folder
+  const sanitizedName = sanitizeFileName(playlistName);
+  // Create a directory with format: playlistId-sanitizedName
+  const playlistDir = path.join(baseDir, `${playlistId}-${sanitizedName}`);
+  
+  try {
+    await ensureDir(playlistDir);
+    // Create subdirectories for metadata and videos
+    await ensureDir(path.join(playlistDir, 'metadata'));
+    await ensureDir(path.join(playlistDir, 'videos'));
+    return playlistDir;
+  } catch (error) {
+    console.error(`Failed to create playlist directory for ${playlistName}:`, error);
+    throw error;
+  }
 }
 
-export async function writeMetadata(playlistName: string, metadata: any): Promise<void> {
-  const dir = await createPlaylistDir(playlistName);
-  await fs.writeJson(path.join(dir, `${playlistName}-info.json`), metadata, { spaces: 2 });
+/**
+ * Writes playlist metadata to JSON file
+ */
+export async function writePlaylistMetadata(
+  playlistId: string,
+  playlistName: string,
+  metadata: any
+): Promise<void> {
+  const baseDir = getSetting('playlistLocation');
+  const sanitizedName = sanitizeFileName(playlistName);
+  const playlistDir = path.join(baseDir, `${playlistId}-${sanitizedName}`);
+  const metadataDir = path.join(playlistDir, 'metadata');
+  const metadataPath = path.join(metadataDir, 'playlist-info.json');
+  
+  try {
+    await ensureDir(metadataDir);
+    await fs.writeJson(metadataPath, metadata, { spaces: 2 });
+  } catch (error) {
+    console.error(`Failed to write metadata for playlist ${playlistName}:`, error);
+    throw error;
+  }
+}
+```
+
+**Sample Code for `src/main/preload.ts` API exposure:**
+```typescript
+// File system API shortcuts
+fs: {
+  selectDirectory: () => {
+    return ipcRenderer.invoke('fs:selectDirectory');
+  },
+  createPlaylistDir: (playlistId: string, playlistName: string) => {
+    return ipcRenderer.invoke('fs:createPlaylistDir', playlistId, playlistName);
+  },
+  writePlaylistMetadata: (playlistId: string, playlistName: string, metadata: any) => {
+    return ipcRenderer.invoke('fs:writePlaylistMetadata', playlistId, playlistName, metadata);
+  },
+  readPlaylistMetadata: (playlistId: string, playlistName: string) => {
+    return ipcRenderer.invoke('fs:readPlaylistMetadata', playlistId, playlistName);
+  },
+  getAllPlaylists: () => {
+    return ipcRenderer.invoke('fs:getAllPlaylists');
+  }
+  // ...other file system functions
 }
 ```
 

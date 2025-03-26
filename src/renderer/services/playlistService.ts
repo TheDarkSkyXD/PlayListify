@@ -13,7 +13,9 @@ const MOCK_PLAYLISTS: Playlist[] = [
         url: 'https://youtube.com/watch?v=abcdef1',
         thumbnail: 'https://i.ytimg.com/vi/abcdef1/hqdefault.jpg',
         duration: 245,
-        status: 'available'
+        status: 'available',
+        downloaded: false,
+        addedAt: '2025-03-20T00:00:00.000Z'
       },
       {
         id: 'vid2',
@@ -21,12 +23,14 @@ const MOCK_PLAYLISTS: Playlist[] = [
         url: 'https://youtube.com/watch?v=abcdef2',
         thumbnail: 'https://i.ytimg.com/vi/abcdef2/hqdefault.jpg',
         duration: 198,
-        status: 'available'
+        status: 'available',
+        downloaded: false,
+        addedAt: '2025-03-20T00:00:00.000Z'
       }
     ],
-    createdAt: new Date('2025-03-20'),
-    updatedAt: new Date('2025-03-22'),
-    thumbnailUrl: 'https://i.ytimg.com/vi/abcdef1/hqdefault.jpg',
+    createdAt: '2025-03-20T00:00:00.000Z',
+    updatedAt: '2025-03-22T00:00:00.000Z',
+    thumbnail: 'https://i.ytimg.com/vi/abcdef1/hqdefault.jpg',
   },
   {
     id: 'pl2',
@@ -39,17 +43,19 @@ const MOCK_PLAYLISTS: Playlist[] = [
         url: 'https://youtube.com/watch?v=abcdef3',
         thumbnail: 'https://i.ytimg.com/vi/abcdef3/hqdefault.jpg',
         duration: 3600,
-        status: 'available'
+        status: 'available',
+        downloaded: false,
+        addedAt: '2025-03-15T00:00:00.000Z'
       }
     ],
-    createdAt: new Date('2025-03-15'),
-    updatedAt: new Date('2025-03-15'),
-    thumbnailUrl: 'https://i.ytimg.com/vi/abcdef3/hqdefault.jpg',
+    createdAt: '2025-03-15T00:00:00.000Z',
+    updatedAt: '2025-03-15T00:00:00.000Z',
+    thumbnail: 'https://i.ytimg.com/vi/abcdef3/hqdefault.jpg',
   }
 ];
 
 // Simulate API request delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Fetches all playlists
@@ -77,8 +83,8 @@ export const createPlaylist = async (playlist: Omit<Playlist, 'id' | 'createdAt'
   const newPlaylist: Playlist = {
     ...playlist,
     id: `pl${Math.random().toString(36).substring(2, 9)}`,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
   
   // In a real app, we would save this to the backend
@@ -100,7 +106,7 @@ export const updatePlaylist = async (id: string, playlist: Partial<Playlist>): P
   const updatedPlaylist: Playlist = {
     ...existingPlaylist,
     ...playlist,
-    updatedAt: new Date(),
+    updatedAt: new Date().toISOString(),
   };
   
   // In a real app, we would update the backend
@@ -122,13 +128,15 @@ export const importPlaylist = async (url: string): Promise<Playlist> => {
   await delay(1000);
   // In a real app, we would call the backend to import from YouTube
   // For now, just return a mock playlist
+  const now = new Date().toISOString();
   return {
     id: `pl${Math.random().toString(36).substring(2, 9)}`,
     name: `Imported Playlist ${new Date().toLocaleString()}`,
     description: 'Imported from YouTube',
     videos: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    url,
+    createdAt: now,
+    updatedAt: now,
+    source: 'youtube',
+    sourceUrl: url,
   };
 }; 

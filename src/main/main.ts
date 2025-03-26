@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
-import { setupIpcHandlers } from './ipc/handlers';
+import { registerIpcHandlers } from './ipc/handlers';
+import { initializeSettings } from './services/settingsManager';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -31,8 +32,14 @@ function createWindow() {
 
 // Initialize the application
 app.whenReady().then(() => {
+  // Initialize settings before creating window
+  initializeSettings();
+  
+  // Create the main window
   createWindow();
-  setupIpcHandlers();
+  
+  // Register IPC handlers
+  registerIpcHandlers();
 
   app.on('activate', () => {
     if (mainWindow === null) {

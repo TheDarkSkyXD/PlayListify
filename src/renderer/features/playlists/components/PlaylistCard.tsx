@@ -7,7 +7,7 @@ interface PlaylistCardProps {
   onDelete?: (id: string) => void;
 }
 
-const PlaylistCard = ({ playlist, onDelete }: PlaylistCardProps): React.ReactElement => {
+const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onDelete }) => {
   const handleDelete = (e: React.MouseEvent<HTMLButtonElement>): void => {
     e.preventDefault();
     e.stopPropagation();
@@ -25,7 +25,7 @@ const PlaylistCard = ({ playlist, onDelete }: PlaylistCardProps): React.ReactEle
   const videoCount: number = playlist.videos.length;
   
   // Get playlist thumbnail or use default
-  const thumbnail: string = playlist.thumbnailUrl || 
+  const thumbnailSrc: string = playlist.thumbnail || 
     playlist.videos[0]?.thumbnail || 
     '/assets/images/playlist-default.jpg';
 
@@ -38,7 +38,7 @@ const PlaylistCard = ({ playlist, onDelete }: PlaylistCardProps): React.ReactEle
       >
         <div className="relative pb-[56.25%] bg-gray-200 dark:bg-gray-700">
           <img 
-            src={thumbnail}
+            src={thumbnailSrc}
             alt={playlist.name}
             className="absolute inset-0 w-full h-full object-cover"
             onError={(e: React.SyntheticEvent<HTMLImageElement>): void => {
