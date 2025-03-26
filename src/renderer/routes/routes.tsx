@@ -1,8 +1,8 @@
 import React from 'react';
 import { createRootRoute, createRoute, Outlet } from '@tanstack/react-router';
-import { DashboardPage } from '../pages/Dashboard/DashboardPage';
-import { SettingsPage } from '../pages/Settings/SettingsPage';
-import { PlaylistViewPage } from '../pages/PlaylistView/PlaylistViewPage';
+import DashboardPage from '../pages/Dashboard/DashboardPage';
+import SettingsPage from '../pages/Settings/SettingsPage';
+import PlaylistViewPage from '../pages/PlaylistView/PlaylistViewPage';
 
 interface PlaylistParams {
   id: string;
