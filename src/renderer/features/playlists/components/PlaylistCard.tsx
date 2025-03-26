@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from '@tanstack/react-router';
 import { Playlist } from '../../../../shared/types/appTypes';
 import CachedImage from '../../../components/CachedImage';
+import { Clock, Trash2, Youtube, Folder, Calendar } from 'lucide-react';
 
 interface PlaylistCardProps {
   playlist: Playlist;
@@ -71,6 +72,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onDelete }) => {
   
   // Source indicator
   const sourceLabel = playlist.source === 'youtube' ? 'YouTube' : 'Local';
+  const SourceIcon = playlist.source === 'youtube' ? Youtube : Folder;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 group">
@@ -86,12 +88,19 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onDelete }) => {
             alt={playlist.name}
             className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-            {sourceLabel}
+          <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+            <SourceIcon className="h-3 w-3" />
+            <span>{sourceLabel}</span>
           </div>
-          <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-            {videoCount} {videoCount === 1 ? 'video' : 'videos'}
-            {getTotalDuration() && ` • ${getTotalDuration()}`}
+          <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+            <span>{videoCount} {videoCount === 1 ? 'video' : 'videos'}</span>
+            {getTotalDuration() && (
+              <>
+                <span className="mx-1">•</span>
+                <Clock className="h-3 w-3" />
+                <span>{getTotalDuration()}</span>
+              </>
+            )}
           </div>
         </div>
         
@@ -105,16 +114,18 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onDelete }) => {
             </p>
           )}
           <div className="flex justify-between items-center mt-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              Updated: {formatDate(playlist.updatedAt)}
+            <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              <span>Updated: {formatDate(playlist.updatedAt)}</span>
             </span>
             {onDelete && (
               <button 
                 onClick={handleDelete}
-                className="text-red-500 hover:text-red-700 text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                className="text-red-500 hover:text-red-700 text-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
                 aria-label="Delete playlist"
               >
-                Delete
+                <Trash2 className="h-4 w-4" />
+                <span>Delete</span>
               </button>
             )}
           </div>

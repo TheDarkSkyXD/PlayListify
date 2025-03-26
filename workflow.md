@@ -92,7 +92,7 @@ mkdir -p docs
    - [x] Implement playlist creation and management (Phase 2.1)
    - [x] Develop YouTube playlist import with yt-dlp (Phase 2.2)
    - [x] Create local storage and state management (Phase 2.3)
-   - [ ] Build playlist display and filtering features (Phase 2.4)
+   - [x] Build playlist display and filtering features (Phase 2.4)
    - [x] Implement rate limiting for API calls (Phase 2.5)
 
 ### Install Required Packages
@@ -577,44 +577,85 @@ export async function importPlaylist(playlistUrl: string, playlistName: string):
 **Tasks:**
 - [x] Implement state management with Zustand
 - [x] Create playlist store structure
+- [x] Implement data persistence strategies
+- [x] Add playlist filtering and sorting capabilities
+- [x] Create actions for CRUD operations
+- [x] Implement error handling and loading states
 
 **Files Created:**
 - [x] `src/renderer/stores/playlistStore.ts` (~150 lines)
-  - Zustand store for playlists
-  - Actions for managing playlist state
-  - Persistent storage with localStorage
-  - Video status tracking functionality
+  - Zustand store with TypeScript interfaces
+  - Actions for creating, updating, and deleting playlists
+  - Synchronization with localStorage for persistence
+  - Video status tracking capabilities
+  - Integration with React Query for data fetching
 - [x] `src/shared/constants/appConstants.ts` (~50 lines)
-  - Application constants and defaults
+  - Application-wide constants and defaults
   - Rate limit configurations
-  - UI and file path constants
+  - UI constants for consistent layout
+  - File path constants and naming conventions
+
+**Implementation Notes:**
+- Used Zustand for state management due to its minimal API and easy integration with React
+- Implemented custom selectors for optimized component renders
+- Created type-safe actions with proper TypeScript interfaces for all operations
+- Added middleware for persistent storage using localStorage
+- Implemented automatic state synchronization with main process data
+- Added derived state for filtering and sorting playlists by various criteria
+- Created a unified error handling strategy for failed operations
+- Used React Query for data fetching with Zustand for UI state
+- Implemented optimistic updates for improved UX during mutations
+- Added debounced search functionality for playlist filtering
+- Created middleware for logging state changes during development
 
 ### Phase 2.4: Display Playlists
 
 **Tasks:**
-- [ ] Create UI components for playlist display
-- [ ] Add search and filtering capabilities
+- [x] Create UI components for playlist display
+- [x] Implement responsive grid layout
+- [x] Add search and filtering capabilities
+- [x] Create skeleton loading states
+- [x] Implement empty and error states
+- [x] Add sorting and filtering functionality
 
-**Files to Create:**
-- [ ] `src/renderer/features/playlists/components/PlaylistCard.tsx` (~150 lines)
-  - Individual playlist display component
-- [ ] `src/renderer/features/playlists/components/PlaylistFilters.tsx` (~150 lines)
-  - Search and filtering UI components
+**Files Created:**
+- [x] `src/renderer/features/playlists/components/PlaylistList.tsx` (~200 lines)
+  - Main component for displaying playlist grid
+  - Integration with playlist store for data
+  - Responsive grid layout with various breakpoints
+  - Filtering and search implementation
+  - Loading, empty, and error states
+- [x] `src/renderer/features/playlists/components/PlaylistCard.tsx` (~150 lines)
+  - Individual playlist card component
+  - Thumbnail display with fallback
+  - Metadata display (title, description, count)
+  - Action buttons with confirmation dialogs
+  - Hover and focus states
+- [x] `src/renderer/features/playlists/components/PlaylistFilters.tsx` (~150 lines)
+  - Search input with debounce
+  - Dropdown filters for playlist attributes
+  - Sort order selection (newest, oldest, alphabetical)
+  - Tag filtering system
+- [x] `src/renderer/features/playlists/components/PlaylistSkeleton.tsx` (~80 lines)
+  - Skeleton loading state for playlists
+  - Animated pulse effect
+  - Responsive design matching the actual content
 
-**Sample Code for `src/renderer/pages/Dashboard/DashboardPage.tsx`:**
-```typescript
-import React from 'react';
-import PlaylistList from '../../features/playlists/components/PlaylistList';
-
-const DashboardPage: React.FC = () => (
-  <div className="container mx-auto">
-    <h1 className="text-3xl font-bold mb-4">YouTube Playlist Manager</h1>
-    <PlaylistList />
-  </div>
-);
-
-export default DashboardPage;
-```
+**Implementation Notes:**
+- Created a responsive grid layout that adapts to different screen sizes (1-4 columns)
+- Implemented search functionality with debouncing to reduce unnecessary renders
+- Used skeleton loading states to improve perceived performance
+- Added empty state with helpful onboarding messages for new users
+- Implemented error states with retry functionality
+- Created consistent card design with hover and focus states for better UX
+- Added async filtering with properly typed filter functions
+- Used CSS Grid with auto-fit and minmax for truly responsive layouts
+- Implemented tag-based filtering with multi-select capability
+- Created a sticky filter bar that remains accessible while scrolling
+- Added keyboard navigation support for grid items
+- Implemented virtual scrolling for performance with large playlist collections
+- Used intersection observer for lazy loading images
+- Added subtle animations for card interactions
 
 ### Phase 2.5: API Rate Limiting
 
@@ -813,6 +854,466 @@ export const useStore = create<DownloadState>((set) => ({
   })),
 }));
 ```
+
+### Phase 3.5: Single Video Management
+
+**Tasks:**
+- [ ] Implement single video download functionality
+- [ ] Create UI for adding individual videos to playlists
+- [ ] Develop video search and import features
+- [ ] Add video metadata editing capabilities 
+
+**Files to Create:**
+- [ ] `src/main/services/singleVideoManager.ts` (~200 lines)
+  - Functions for downloading individual videos
+  - URL validation and metadata extraction
+  - Error handling for invalid URLs
+  
+- [ ] `src/renderer/features/videos/components/AddVideoForm.tsx` (~250 lines)
+  - Form for adding individual videos to playlists
+  - Video URL validation
+  - Video preview with metadata
+  - YouTube search integration
+
+- [ ] `src/renderer/features/videos/components/VideoSearch.tsx` (~200 lines)
+  - Search for YouTube videos
+  - Video results display with thumbnails
+  - Selection and add to playlist functionality
+
+- [ ] `src/renderer/features/videos/components/VideoCard.tsx` (~150 lines)
+  - Individual video display component
+  - Video preview with thumbnail
+  - Action buttons for download, play, and remove
+
+- [ ] `src/renderer/features/playlists/components/VideoList.tsx` (~200 lines)
+  - List of videos in a playlist
+  - Drag and drop reordering
+  - Batch actions (download, remove)
+
+- [ ] `src/main/ipc/videoHandlers.ts` (~150 lines)
+  - IPC handlers for video-specific operations
+  - Single video download
+  - Video metadata extraction
+
+**Sample Code for `src/main/services/singleVideoManager.ts`:**
+```typescript
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import path from 'path';
+import fs from 'fs-extra';
+import { YtDlpWrap } from 'yt-dlp-wrap';
+import { getSetting } from './settingsManager';
+import { v4 as uuidv4 } from 'uuid';
+import { Video } from '../../shared/types/appTypes';
+
+const execAsync = promisify(exec);
+const ytDlp = new YtDlpWrap();
+
+/**
+ * Validates if a URL is a valid YouTube video
+ */
+export async function validateVideoUrl(url: string): Promise<boolean> {
+  try {
+    const result = await ytDlp.getVideoInfo(url);
+    return !!result && !!result.id;
+  } catch (error) {
+    console.error('Error validating video URL:', error);
+    return false;
+  }
+}
+
+/**
+ * Extracts metadata for a YouTube video
+ */
+export async function getVideoMetadata(url: string): Promise<Video> {
+  try {
+    const info = await ytDlp.getVideoInfo(url);
+    
+    return {
+      id: info.id || uuidv4(),
+      title: info.title || 'Unknown Title',
+      url: url,
+      thumbnail: info.thumbnail || '',
+      duration: info.duration ? parseInt(info.duration) : 0,
+      status: 'available',
+      downloaded: false,
+      addedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('Error getting video metadata:', error);
+    throw new Error(`Failed to extract video metadata: ${error.message}`);
+  }
+}
+
+/**
+ * Downloads a single video outside of a playlist context
+ */
+export async function downloadSingleVideo(url: string, outputDir?: string): Promise<string> {
+  try {
+    // Determine output directory
+    const downloadDir = outputDir || getSetting('downloadLocation', path.join(app.getPath('videos'), 'PlayListify'));
+    await fs.ensureDir(downloadDir);
+    
+    // Extract video ID from URL
+    const videoId = new URL(url).searchParams.get('v') || url.split('v=')[1]?.split('&')[0] || 'video';
+    
+    // Set output filename
+    const outputPath = path.join(downloadDir, `${videoId}.mp4`);
+    
+    // Download video
+    await ytDlp.exec([
+      url,
+      '-f', 'bestvideo[height<=1080]+bestaudio/best',
+      '-o', outputPath,
+      '--no-playlist'
+    ]);
+    
+    return outputPath;
+  } catch (error) {
+    console.error('Error downloading single video:', error);
+    throw new Error(`Failed to download video: ${error.message}`);
+  }
+}
+
+/**
+ * Adds a video to an existing playlist
+ */
+export async function addVideoToPlaylist(playlistId: string, videoUrl: string): Promise<Video> {
+  // Get video metadata
+  const videoMetadata = await getVideoMetadata(videoUrl);
+  
+  // Return the video object to be added to the playlist in the store
+  return videoMetadata;
+}
+```
+
+**Sample Code for `src/renderer/features/videos/components/AddVideoForm.tsx`:**
+```typescript
+import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAddVideoToPlaylist } from '../../../services/queryHooks';
+import { Input } from '../../../components/ui/input';
+import { Button } from '../../../components/ui/button';
+import { Label } from '../../../components/ui/label';
+import { Skeleton } from '../../../components/ui/skeleton';
+import { AlertCircle, Youtube, Search, Loader2 } from 'lucide-react';
+import { Video, Playlist } from '../../../../shared/types/appTypes';
+
+interface AddVideoFormProps {
+  playlist: Playlist;
+  onSuccess?: () => void;
+}
+
+export function AddVideoForm({ playlist, onSuccess }: AddVideoFormProps) {
+  const [videoUrl, setVideoUrl] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
+  const [isValid, setIsValid] = useState<boolean | null>(null);
+  const [videoPreview, setVideoPreview] = useState<Video | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  
+  const queryClient = useQueryClient();
+  const addVideoMutation = useAddVideoToPlaylist();
+  
+  // Validate YouTube URL
+  const validateYouTubeUrl = (url: string): boolean => {
+    // Simple regex for YouTube video URLs
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11}/;
+    return youtubeRegex.test(url);
+  };
+  
+  // Handle URL change
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setVideoUrl(url);
+    setIsValid(null);
+    setVideoPreview(null);
+    setError(null);
+  };
+  
+  // Fetch video preview
+  const fetchVideoPreview = async () => {
+    if (!validateYouTubeUrl(videoUrl)) {
+      setIsValid(false);
+      setError('Please enter a valid YouTube video URL');
+      return;
+    }
+    
+    setIsValidating(true);
+    
+    try {
+      // Fetch metadata from the backend
+      const metadata = await window.api.videos.getVideoMetadata(videoUrl);
+      setVideoPreview(metadata);
+      setIsValid(true);
+      setError(null);
+    } catch (err) {
+      setIsValid(false);
+      setError('Failed to get video information. Please check the URL and try again.');
+      console.error('Error fetching video preview:', err);
+    } finally {
+      setIsValidating(false);
+    }
+  };
+  
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!isValid || !videoPreview) {
+      return;
+    }
+    
+    addVideoMutation.mutate(
+      {
+        playlistId: playlist.id,
+        video: videoPreview
+      },
+      {
+        onSuccess: () => {
+          // Clear form and reset state
+          setVideoUrl('');
+          setIsValid(null);
+          setVideoPreview(null);
+          
+          // Invalidate playlist query to refresh the list
+          queryClient.invalidateQueries(['playlist', playlist.id]);
+          
+          // Call onSuccess callback if provided
+          if (onSuccess) {
+            onSuccess();
+          }
+        },
+        onError: (err) => {
+          setError(`Failed to add video: ${err.message}`);
+        }
+      }
+    );
+  };
+  
+  return (
+    <div className="bg-card rounded-lg border p-6">
+      <h3 className="text-lg font-medium mb-4">Add Video to Playlist</h3>
+      
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="videoUrl">YouTube Video URL</Label>
+            <div className="flex mt-1">
+              <Input
+                id="videoUrl"
+                value={videoUrl}
+                onChange={handleUrlChange}
+                placeholder="https://www.youtube.com/watch?v=..."
+                className={`flex-1 ${isValid === false ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="ml-2"
+                onClick={fetchVideoPreview}
+                disabled={isValidating || !videoUrl.trim()}
+              >
+                {isValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              </Button>
+            </div>
+            {error && (
+              <p className="mt-1 text-sm text-destructive flex items-center">
+                <AlertCircle className="h-3 w-3 mr-1" /> {error}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-muted-foreground">
+              Example: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+            </p>
+          </div>
+          
+          {isValidating && (
+            <div className="border rounded-md p-4">
+              <Skeleton className="h-20 w-36 rounded-md" />
+              <Skeleton className="h-5 w-3/4 mt-2" />
+              <Skeleton className="h-4 w-1/2 mt-2" />
+            </div>
+          )}
+          
+          {videoPreview && (
+            <div className="border rounded-md p-4 flex items-center">
+              <div className="h-20 w-36 bg-muted/40 rounded-md overflow-hidden flex-shrink-0">
+                {videoPreview.thumbnail ? (
+                  <img 
+                    src={videoPreview.thumbnail} 
+                    alt={videoPreview.title} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Youtube className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+              <div className="ml-4 flex-1">
+                <h4 className="font-medium">{videoPreview.title}</h4>
+                <p className="text-sm text-muted-foreground line-clamp-1">
+                  {videoPreview.duration ? `${Math.floor(videoPreview.duration / 60)}:${(videoPreview.duration % 60).toString().padStart(2, '0')}` : 'Unknown duration'}
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={!isValid || addVideoMutation.isPending}
+          >
+            {addVideoMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Adding Video...
+              </>
+            ) : (
+              <>
+                <Youtube className="mr-2 h-4 w-4" />
+                Add to Playlist
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+```
+
+**Sample Code for `src/renderer/features/videos/components/VideoSearch.tsx`:**
+```typescript
+import React, { useState } from 'react';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
+import { Video } from '../../../../shared/types/appTypes';
+import { Youtube, Search, Plus, Loader2 } from 'lucide-react';
+
+interface VideoSearchProps {
+  onVideoSelect: (video: Video) => void;
+}
+
+export function VideoSearch({ onVideoSelect }: VideoSearchProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<Video[]>([]);
+  
+  // Handle search query change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+  
+  // Perform search
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    setIsSearching(true);
+    
+    try {
+      // This would call an API to search YouTube videos
+      const results = await window.api.youtube.searchVideos(searchQuery);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Error searching videos:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex">
+        <Input
+          value={searchQuery}
+          onChange={handleSearchChange}
+          placeholder="Search for YouTube videos..."
+          className="flex-1"
+        />
+        <Button 
+          type="button" 
+          onClick={handleSearch}
+          className="ml-2"
+          disabled={isSearching || !searchQuery.trim()}
+        >
+          {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+        </Button>
+      </div>
+      
+      {isSearching && (
+        <div className="text-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <p className="mt-2 text-muted-foreground">Searching YouTube...</p>
+        </div>
+      )}
+      
+      {!isSearching && searchResults.length === 0 && searchQuery.trim() && (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No results found for "{searchQuery}"</p>
+        </div>
+      )}
+      
+      {searchResults.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Search Results</h3>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {searchResults.map((video) => (
+              <div 
+                key={video.id} 
+                className="border rounded-md p-2 flex items-center hover:bg-accent/50 transition-colors"
+              >
+                <div className="h-16 w-28 bg-muted/40 rounded-md overflow-hidden flex-shrink-0">
+                  {video.thumbnail ? (
+                    <img 
+                      src={video.thumbnail} 
+                      alt={video.title} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Youtube className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <div className="ml-3 flex-1">
+                  <h4 className="font-medium text-sm line-clamp-2">{video.title}</h4>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="ml-2 flex-shrink-0"
+                  onClick={() => onVideoSelect(video)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+**Implementation Details:**
+- **Single Video Download**: Implement functionality to download videos directly without adding them to a playlist
+- **Video Adding**: Create UI for adding individual videos to existing playlists, including:
+  - Form for pasting YouTube URLs
+  - Video preview with metadata (title, duration, thumbnail)
+  - Validation to ensure valid YouTube video URLs
+- **Video Search**: Integrate YouTube search to find and add videos by searching instead of pasting URLs
+- **Video Management**: Add the ability to:
+  - Edit video metadata (title, description)
+  - Reorder videos within a playlist
+  - Batch download/remove operations
+- **Optimization**: Implement caching for video metadata to reduce API calls
+- **Error Handling**: Add comprehensive error handling for common issues like:
+  - Invalid URLs
+  - Unavailable videos
+  - Network failures
+  - Permission problems
+- **UI Integration**: Ensure the new features fit seamlessly with the existing UI design
 
 ## Phase 4: Google & YouTube Integration
 
@@ -1412,29 +1913,302 @@ export function startAutoUpdate(): void {
 ### Phase 6.3: UI Polish
 
 **Tasks:**
-- [ ] Add animations and transitions
-- [ ] Implement light/dark theme
+- [ ] Implement responsive design improvements for different screen sizes
+- [ ] Add animations and transitions for UI interactions
+- [ ] Create a comprehensive light/dark theme system
+- [ ] Enhance accessibility features
+- [ ] Implement UI consistency improvements
+- [ ] Add micro-interactions and feedback elements
+- [ ] Create selective glassmorphism components with proper contrast
+- [ ] Implement advanced motion design patterns
+- [ ] Add responsive typography scaling
+- [ ] Create customizable user experience options
 
-**Files to Create:**
+**Files to Create/Update:**
+
 - [ ] `src/renderer/features/theme/components/ThemeToggle.tsx` (~100 lines)
-  - Theme switching component
-- [ ] `src/renderer/components/ErrorBoundary.tsx` (~100 lines)
-  - Error handling for React components
+  - Animated sun/moon toggle for theme switching
+  - Smooth transition between themes with physical momentum
+  - Keyboard controls and proper ARIA labels
+  - User preference persistence
 
-**Sample Code for App.tsx with animations:**
+- [ ] `src/renderer/components/ui/toast.tsx` (~150 lines)
+  - Toast notifications for feedback on actions
+  - Support for different statuses (success, error, info, warning)
+  - Progress bar for timed notifications
+  - Interactive elements for dismissal or actions
+
+- [ ] `src/renderer/components/ui/command.tsx` (~200 lines)
+  - Command palette for advanced keyboard navigation
+  - Fuzzy search for all application actions
+  - Keyboard shortcuts display
+  - Recently used commands tracking
+
+- [ ] `src/renderer/components/Layout/AppShell.tsx` (~180 lines)
+  - Responsive application shell with collapsible sidebar
+  - Support for collapsed navigation on smaller screens
+  - Implementation of responsive header with key actions
+  - Contextual navigation based on current view
+
+- [ ] `src/renderer/components/ui/hover-card.tsx` (~120 lines)
+  - Hover cards for preview information
+  - Video previews when hovering over items
+  - Additional context without requiring clicks
+  - Automatic positioning based on screen edges
+
+- [ ] `src/renderer/styles/animations.css` (~100 lines)
+  - Reusable animations for various UI elements
+  - Subtle microinteractions (button press, hover states)
+  - Loading state animations
+  - Physics-based animation utilities
+
+- [ ] `src/renderer/components/ui/scroll-area.tsx` (~80 lines)
+  - Custom scrollable areas with themed scrollbars
+  - Support for virtualized lists for performance
+  - Consistent scrolling experience across platforms
+  - Scroll-linked animations
+
+- [ ] `src/renderer/components/ui/glassmorphic-card.tsx` (~150 lines)
+  - Selectively applied glassmorphism for visual depth
+  - Configurable blur and transparency levels
+  - Automatic contrast management for accessibility
+  - Fallback solid backgrounds for reduced motion settings
+
+- [ ] `src/renderer/components/ui/dynamic-backgrounds.tsx` (~180 lines)
+  - Subtle background patterns and gradients
+  - Color scheme adaptation based on content
+  - Reduced animation when battery optimization is enabled
+  - Customizable intensity preferences
+
+- [ ] `src/renderer/components/ui/accessibility-controls.tsx` (~140 lines)
+  - User-adjustable contrast and transparency controls
+  - Text size adjustment options
+  - Reduced motion toggle
+  - Screen reader optimized components
+
+**Implementation Details:**
+- Create a design tokens system in Tailwind for consistent UI
+- Implement skeleton loading states with subtle animations
+- Add context menus for common actions
+- Create tooltips for interface elements to improve discoverability
+- Implement keyboard shortcuts and display them in the UI
+- Create consistent focus states and keyboard navigation
+- Add subtle sound effects for important actions (optional, user-configurable)
+- Enhance form validations with inline feedback
+- Implement drag-and-drop for playlist reordering with visual feedback
+- Add scroll animations when navigating between sections
+- Ensure proper heading hierarchy for screen readers
+- Add ARIA attributes to custom components
+- Ensure sufficient color contrast in both themes
+- Add focus indicators that work with keyboard navigation
+- Include skip links for keyboard users
+- Standardize spacing, typography, and color usage
+- Implement consistent animation durations and easing functions
+- Apply selective glassmorphism with high background blur for better readability
+- Implement YouTube-inspired dynamic color accents based on video thumbnails
+- Add physical motion characteristics to animations (spring physics, momentum)
+- Create a cohesive component system with consistent border-radius and elevation
+- Implement progressive reduction (simplify UI for returning users)
+- Add content-aware backgrounds that adapt to playlist thumbnails
+- Create user-adjustable transparency settings for glassmorphic elements
+- Implement subtle parallax effects for depth perception
+- Add haptic feedback for touch devices on important actions
+- Create animated micro-illustrations for empty states and success screens
+
+**Sample Code for selective glassmorphism with accessibility controls:**
 ```typescript
-import React from 'react';
-import { RouterProvider } from '@tanstack/react-router';
-import { router } from './routes/routes';
-import './styles/global.css';
+import React, { useState } from 'react';
+import { cn } from "../../lib/utils";
+import { useSettings } from "../../hooks/useSettings";
 
-const App: React.FC = () => (
-  <div className="min-h-screen bg-gray-100 transition-all duration-300">
-    <RouterProvider router={router} />
-  </div>
-);
+interface GlassmorphicCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+  blurStrength?: 'none' | 'light' | 'medium' | 'strong';
+  transparencyLevel?: 'low' | 'medium' | 'high';
+  hasText?: boolean;
+}
 
-export default App;
+export function GlassmorphicCard({ 
+  children, 
+  blurStrength = 'medium', 
+  transparencyLevel = 'medium',
+  hasText = true,
+  className,
+  ...props 
+}: GlassmorphicCardProps) {
+  const { reducedTransparency, highContrast } = useSettings();
+  
+  // If user prefers reduced transparency or high contrast, avoid glassmorphism
+  const shouldUseGlass = !reducedTransparency && !highContrast;
+  
+  // Map settings to actual CSS values
+  const blurValues = {
+    none: '0',
+    light: '4px',
+    medium: '8px',
+    strong: '16px'
+  };
+  
+  const transparencyValues = {
+    low: '0.85',
+    medium: '0.75',
+    high: '0.65'
+  };
+  
+  // Base styles that are always applied
+  const baseStyles = "rounded-lg border border-border/30 p-4";
+  
+  // Apply glassmorphism conditionally
+  const glassStyles = shouldUseGlass
+    ? `backdrop-blur-[${blurValues[blurStrength]}] bg-background/[${transparencyValues[transparencyLevel]}] backdrop-saturate-150`
+    : "bg-background"; // Solid background fallback
+    
+  // If there's text and we're using glass, ensure it has proper contrast
+  const textContrastStyles = (shouldUseGlass && hasText) 
+    ? "text-foreground drop-shadow-sm" 
+    : "";
+  
+  return (
+    <div
+      className={cn(baseStyles, glassStyles, textContrastStyles, className)}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+**Sample Code for dynamic color extraction from video thumbnails:**
+```typescript
+import { useState, useEffect } from 'react';
+import ColorThief from 'colorthief';
+
+export function useDominantColor(imageUrl: string | null) {
+  const [dominantColor, setDominantColor] = useState<string | null>(null);
+  const [palette, setPalette] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    if (!imageUrl) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    
+    img.onload = () => {
+      try {
+        const colorThief = new ColorThief();
+        
+        // Get dominant color
+        const dominantRgb = colorThief.getColor(img);
+        const dominantHex = rgbToHex(dominantRgb[0], dominantRgb[1], dominantRgb[2]);
+        setDominantColor(dominantHex);
+        
+        // Get color palette (8 colors)
+        const colorPalette = colorThief.getPalette(img, 8);
+        const hexPalette = colorPalette.map(rgb => 
+          rgbToHex(rgb[0], rgb[1], rgb[2])
+        );
+        setPalette(hexPalette);
+        
+        setIsLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Error extracting colors'));
+        setIsLoading(false);
+      }
+    };
+    
+    img.onerror = () => {
+      setError(new Error('Failed to load image'));
+      setIsLoading(false);
+    };
+    
+    img.src = imageUrl;
+  }, [imageUrl]);
+  
+  // Helper function to convert RGB to HEX
+  function rgbToHex(r: number, g: number, b: number): string {
+    return '#' + [r, g, b]
+      .map(x => x.toString(16).padStart(2, '0'))
+      .join('');
+  }
+  
+  return { dominantColor, palette, isLoading, error };
+}
+```
+
+**Sample Code for micro-interactions with spring physics:**
+```typescript
+import { motion, useSpring, useTransform } from 'framer-motion';
+import { MouseEvent, useState } from 'react';
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  children: React.ReactNode;
+}
+
+export function AnimatedButton({ children, ...props }: ButtonProps) {
+  const [isPressed, setIsPressed] = useState(false);
+  
+  // Create a spring animation for the button scale
+  const scaleSpring = useSpring(1, {
+    stiffness: 700,
+    damping: 30
+  });
+  
+  // Transform the spring value to a slightly smaller scale when pressed
+  const scale = useTransform(scaleSpring, [0, 1], [0.95, 1]);
+  
+  // Handle mouse events
+  const handleMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
+    setIsPressed(true);
+    scaleSpring.set(0);
+    
+    // Optional: trigger subtle haptic feedback if available
+    if (navigator.vibrate) {
+      navigator.vibrate(5);
+    }
+    
+    if (props.onMouseDown) {
+      props.onMouseDown(e);
+    }
+  };
+  
+  const handleMouseUp = (e: MouseEvent<HTMLButtonElement>) => {
+    setIsPressed(false);
+    scaleSpring.set(1);
+    
+    if (props.onMouseUp) {
+      props.onMouseUp(e);
+    }
+  };
+  
+  return (
+    <motion.button
+      style={{ scale }}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={() => {
+        if (isPressed) {
+          setIsPressed(false);
+          scaleSpring.set(1);
+        }
+      }}
+      whileHover={{ 
+        backgroundColor: 'var(--hover-bg)',
+        y: -2,
+        transition: { type: 'spring', stiffness: 500 }
+      }}
+      className="px-4 py-2 rounded-md bg-primary text-primary-foreground"
+      {...props}
+    >
+      {children}
+    </motion.button>
+  );
+}
 ```
 
 ### Phase 6.4: Application Auto-Updates
