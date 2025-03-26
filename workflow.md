@@ -2255,6 +2255,84 @@ export function installUpdate(): void {
 }
 ```
 
+### Phase 6.5: YT-DLP Development Setup
+
+**Tasks:**
+- [x] Create automated yt-dlp installation checking for development mode
+- [x] Implement terminal-based installation prompts
+- [x] Add dedicated directory for yt-dlp binary (`ytdlp/`)
+- [x] Integrate with existing yt-dlp manager
+- [x] Remove settings-based yt-dlp path configuration
+
+**Files Created/Updated:**
+- [x] `src/main/services/ytDlpSetup.ts` (~150 lines)
+  - Functions to check if yt-dlp is installed
+  - Terminal-based installation prompts with visual indicators
+  - Download and setup logic for yt-dlp binary
+  - Development environment detection
+- [x] `src/main/main.ts` (updates)
+  - Integration with the startup sequence
+  - Conditional yt-dlp initialization based on setup
+  - Terminal visibility enhancements
+- [x] `src/main/services/ytDlpManager.ts` (updates)
+  - Support for custom binary paths
+  - Removal of settings-based path configuration
+- [x] `src/renderer/pages/Settings/SettingsPage.tsx` (updates)
+  - Removed yt-dlp path configuration from settings UI
+
+**Sample Code for terminal-based setup prompt:**
+```typescript
+export async function promptForInstall(): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    // Force stdout to flush
+    process.stdout.write('\n\n');
+    process.stdout.write('*****************************************************************\n');
+    process.stdout.write('***                                                           ***\n');
+    process.stdout.write('***                  yt-dlp IS NOT INSTALLED                  ***\n');
+    process.stdout.write('***           This tool is needed for YouTube playlists       ***\n');
+    process.stdout.write('***                                                           ***\n');
+    process.stdout.write('*****************************************************************\n\n');
+    
+    // Create readline interface
+    const rl = createReadlineInterface();
+    
+    // Show the prompt and ask for input
+    process.stdout.write('>>> REQUIRED ACTION: Install yt-dlp now? (y/n): ');
+    
+    // Handle user input
+    rl.on('line', (line) => {
+      const input = line.trim().toLowerCase();
+      
+      if (input === 'y' || input === 'yes') {
+        rl.close();
+        process.stdout.write('\n>>> INSTALLING: Starting yt-dlp installation process...\n\n');
+        resolve(true);
+      } else if (input === 'n' || input === 'no') {
+        rl.close();
+        process.stdout.write('\n>>> SKIPPED: Installation skipped by user.\n');
+        process.stdout.write('>>> WARNING: App will have limited functionality without yt-dlp.\n\n');
+        resolve(false);
+      } else {
+        process.stdout.write('>>> ERROR: Invalid input. Please enter y or n: ');
+      }
+    });
+  });
+}
+```
+
+**Implementation Details:**
+- Development mode detection to only run the setup in `npm start` environment
+- Platform-specific binary detection (yt-dlp.exe on Windows, yt-dlp on macOS/Linux)
+- Highly visible terminal prompts with ASCII box indicators
+- Interactive terminal input via readline interface
+- Automatic download from GitHub using `yt-dlp-wrap`'s built-in functionality
+- Setting permissions for executable on Unix systems
+- Integration with the main process startup sequence after window load
+- Creation of a dedicated directory (`ytdlp/`) for the binary
+- Clean terminal-based status reporting
+- Detailed terminal output with attention-grabbing formatting
+- Pure terminal-based interaction with no GUI dialogs
+
 ## Phase 7: Testing & Deployment
 
 ### Phase 7.1: Unit Testing

@@ -1,8 +1,8 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron';
+import { app, BrowserWindow, session } from 'electron';
 import path from 'path';
+import { initYtDlp } from './services/ytDlpManager';
 import { registerIpcHandlers } from './ipc/handlers';
 import { initializeSettings } from './services/settingsManager';
-import { initYtDlp } from './services/ytDlpManager';
 import fs from 'fs-extra';
 
 let mainWindow: BrowserWindow | null = null;
@@ -94,13 +94,19 @@ app.whenReady().then(async () => {
   // Ensure development assets
   await ensureDevAssets();
   
-  // Initialize yt-dlp
+  // Initialize yt-dlp - our setup script has already installed it if needed
   try {
-    await initYtDlp();
-    console.log('yt-dlp initialized successfully');
+    // Check if there's a custom yt-dlp path
+    const customYtDlpPath = path.join(process.cwd(), 'ytdlp', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+    if (fs.existsSync(customYtDlpPath)) {
+      await initYtDlp(customYtDlpPath);
+      console.log('Using custom yt-dlp path:', customYtDlpPath);
+    } else {
+      await initYtDlp();
+      console.log('Using default yt-dlp');
+    }
   } catch (error) {
     console.error('Failed to initialize yt-dlp:', error);
-    // Still continue with the app, we'll show an error to the user if they try to use YouTube features
   }
   
   // Create the main window

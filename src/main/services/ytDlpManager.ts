@@ -17,17 +17,18 @@ let ytDlp: YtDlpWrap;
 /**
  * Initialize the YtDlpWrap instance
  */
-export async function initYtDlp(): Promise<void> {
+export async function initYtDlp(customBinaryPath?: string): Promise<void> {
   try {
-    // Check if custom path is provided in settings
-    const customPath = getSetting('ytDlpPath');
-    
-    if (customPath && await fs.pathExists(customPath)) {
-      ytDlp = new YtDlpWrap(customPath);
-    } else {
-      // Use the default path or let yt-dlp-wrap download it
-      ytDlp = new YtDlpWrap();
+    // If a custom binary path is directly provided, use it
+    if (customBinaryPath && await fs.pathExists(customBinaryPath)) {
+      ytDlp = new YtDlpWrap(customBinaryPath);
+      console.log(`Using custom yt-dlp binary at: ${customBinaryPath}`);
+      return;
     }
+    
+    // In development mode, we'll rely on our setup service to handle yt-dlp
+    // In production, we'll use the default behavior or let yt-dlp-wrap download it
+    ytDlp = new YtDlpWrap();
     
     // Test that yt-dlp is working
     const version = await ytDlp.getVersion();

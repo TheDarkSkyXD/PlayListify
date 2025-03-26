@@ -229,28 +229,6 @@ export default function SettingsPage() {
               <form onSubmit={handleSubmit}>
                 <div className="space-y-6">
                   <div>
-                    <Label htmlFor="ytDlpPath">yt-dlp Path (optional)</Label>
-                    <div className="flex mt-1">
-                      <Input 
-                        id="ytDlpPath"
-                        name="ytDlpPath"
-                        value={settings.ytDlpPath}
-                        onChange={handleChange}
-                        className="flex-1"
-                        placeholder="Leave empty to use bundled version"
-                      />
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        className="ml-2"
-                        onClick={() => handleSelectFolder('ytDlpPath')}
-                      >
-                        <FolderOpen className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div>
                     <Label htmlFor="ffmpegPath">FFmpeg Path (optional)</Label>
                     <div className="flex mt-1">
                       <Input 
