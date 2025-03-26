@@ -56,6 +56,12 @@ const routeTree = rootRoute.addChildren([
 export const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
+  // Fix the basename issue - provide an empty string as basename
+  basepath: '',
+  // Provide a context object with a basename to fix the "Cannot destructure property 'basename'" error
+  context: {
+    basename: ''
+  },
   // Disable features that might cause issues in Electron
   defaultPendingComponent: () => React.createElement('div', null, 'Loading...'),
   defaultPendingMs: 1000,
@@ -67,4 +73,12 @@ declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
   }
-} 
+}
+
+// Custom hook for accessing router context with basename 
+export const useRouterContext = () => {
+  return {
+    basename: '',
+    router
+  };
+}; 

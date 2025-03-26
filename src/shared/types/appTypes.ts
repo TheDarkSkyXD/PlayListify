@@ -150,6 +150,13 @@ export interface Api {
     downloadVideo: (videoUrl: string, outputDir: string, videoId: string, options?: DownloadOptions) => Promise<string>;
   };
   
+  // yt-dlp management API
+  ytDlp: {
+    getStatus: () => Promise<{ available: boolean; errorMessage: string }>;
+    download: () => Promise<{ success: boolean; path: string; error?: string }>;
+    getDownloadProgress: () => Promise<{ isDownloading: boolean; progress: number }>;
+  };
+  
   // Playlist management API
   playlists: {
     create: (name: string, description?: string) => Promise<Playlist>;
@@ -164,9 +171,4 @@ export interface Api {
   };
 }
 
-// Extend the Window interface to include our API
-declare global {
-  interface Window {
-    api: Api;
-  }
-} 
+export type PlaylistSource = 'local' | 'youtube' | 'custom'; 
