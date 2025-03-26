@@ -91,8 +91,9 @@ mkdir -p docs
 2. **Core Features (Phase 2)**
    - [x] Implement playlist creation and management (Phase 2.1)
    - [x] Develop YouTube playlist import with yt-dlp (Phase 2.2)
-   - [ ] Create local storage and state management (Phase 2.3)
+   - [x] Create local storage and state management (Phase 2.3)
    - [ ] Build playlist display and filtering features (Phase 2.4)
+   - [x] Implement rate limiting for API calls (Phase 2.5)
 
 ### Install Required Packages
 
@@ -574,40 +575,19 @@ export async function importPlaylist(playlistUrl: string, playlistName: string):
 ### Phase 2.3: Playlist State Management
 
 **Tasks:**
-- [ ] Implement state management with Zustand
-- [ ] Create playlist store structure
+- [x] Implement state management with Zustand
+- [x] Create playlist store structure
 
-**Files to Create:**
-- [ ] `src/renderer/stores/playlistStore.ts` (~150 lines)
+**Files Created:**
+- [x] `src/renderer/stores/playlistStore.ts` (~150 lines)
   - Zustand store for playlists
   - Actions for managing playlist state
-- [ ] `src/shared/constants/appConstants.ts` (~50 lines)
+  - Persistent storage with localStorage
+  - Video status tracking functionality
+- [x] `src/shared/constants/appConstants.ts` (~50 lines)
   - Application constants and defaults
-
-**Sample Code for `src/renderer/stores/playlistStore.ts`:**
-```typescript
-import { create } from 'zustand';
-import { writeMetadata } from '../../main/utils/fileUtils';
-
-interface Playlist {
-  name: string;
-  videos: { id: string; title: string; url: string }[];
-}
-
-interface PlaylistState {
-  playlists: Playlist[];
-  addPlaylist: (name: string, videos: any[]) => void;
-}
-
-export const useStore = create<PlaylistState>((set) => ({
-  playlists: [],
-  addPlaylist: (name, videos) => {
-    const newPlaylist = { name, videos };
-    writeMetadata(name, newPlaylist);
-    set((state) => ({ playlists: [...state.playlists, newPlaylist] }));
-  },
-}));
-```
+  - Rate limit configurations
+  - UI and file path constants
 
 ### Phase 2.4: Display Playlists
 
@@ -635,6 +615,33 @@ const DashboardPage: React.FC = () => (
 
 export default DashboardPage;
 ```
+
+### Phase 2.5: API Rate Limiting
+
+**Tasks:**
+- [x] Implement rate limiting service for API calls
+- [x] Create YouTube API service with rate limiting
+- [x] Apply rate limiting to yt-dlp operations
+
+**Files Created:**
+- [x] `src/main/services/rateLimiter.ts` (~150 lines)
+  - Generic rate limiting implementation
+  - Configurable limits based on service
+  - Wait and execute patterns
+- [x] `src/main/services/youtubeApiService.ts` (~250 lines)
+  - YouTube API client with rate limiting
+  - Playlist and video data fetching
+  - Type-safe API response handling
+- [x] Updates to `src/main/services/ytDlpManager.ts`
+  - Added rate limiting to all external calls
+  - Throttled API requests to prevent quota issues
+
+**Implementation Notes:**
+- Rate limits are configurable in the app constants
+- YouTube API has a limit of 60 requests per minute
+- yt-dlp operations are limited to prevent network abuse
+- Added cooldown periods between requests for better stability
+- All API calls use a unified rate limiting approach
 
 ## Phase 3: Video Downloading & Playback
 

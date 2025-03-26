@@ -6,6 +6,7 @@ import fs from 'fs-extra';
 import { getSetting } from './settingsManager';
 import * as fileUtils from '../utils/fileUtils';
 import { Playlist, Video } from '../../shared/types/appTypes';
+import { rateLimiter } from './rateLimiter';
 
 // Promisify exec for async/await usage
 const execAsync = promisify(exec);
@@ -47,106 +48,112 @@ export async function getPlaylistInfo(playlistUrl: string): Promise<{
   thumbnailUrl: string;
   videoCount: number;
 }> {
-  try {
-    // Ensure yt-dlp is initialized
-    if (!ytDlp) {
-      await initYtDlp();
+  // Use the rate limiter to execute this function
+  return rateLimiter.execute('yt-dlp', async () => {
+    try {
+      // Ensure yt-dlp is initialized
+      if (!ytDlp) {
+        await initYtDlp();
+      }
+      
+      // Use yt-dlp to get playlist metadata
+      const args = [
+        '--dump-json',
+        '--flat-playlist',
+        playlistUrl
+      ];
+      
+      // Create a temporary file to store the JSON output
+      const tempJsonFile = fileUtils.getTempFilePath('json');
+      
+      // Run yt-dlp with output to the temp file to avoid stdout limitations
+      await ytDlp.execPromise([...args, '-o', tempJsonFile]);
+      
+      // Read the JSON file
+      const jsonStr = await fs.readFile(tempJsonFile, 'utf-8');
+      
+      // Clean up the temp file
+      await fs.remove(tempJsonFile);
+      
+      // Parse the first line to get playlist info
+      const playlistData = JSON.parse(jsonStr.split('\n')[0]);
+      
+      return {
+        id: playlistData.id || '',
+        title: playlistData.title || 'Untitled Playlist',
+        description: playlistData.description || '',
+        thumbnailUrl: playlistData.thumbnail || '',
+        videoCount: playlistData.entries?.length || 0
+      };
+    } catch (error: any) {
+      console.error('Error extracting playlist info:', error);
+      throw new Error(`Failed to extract playlist info: ${error.message}`);
     }
-    
-    // Use yt-dlp to get playlist metadata
-    const args = [
-      '--dump-json',
-      '--flat-playlist',
-      playlistUrl
-    ];
-    
-    // Create a temporary file to store the JSON output
-    const tempJsonFile = fileUtils.getTempFilePath('json');
-    
-    // Run yt-dlp with output to the temp file to avoid stdout limitations
-    await ytDlp.execPromise([...args, '-o', tempJsonFile]);
-    
-    // Read the JSON file
-    const jsonStr = await fs.readFile(tempJsonFile, 'utf-8');
-    
-    // Clean up the temp file
-    await fs.remove(tempJsonFile);
-    
-    // Parse the first line to get playlist info
-    const playlistData = JSON.parse(jsonStr.split('\n')[0]);
-    
-    return {
-      id: playlistData.id || '',
-      title: playlistData.title || 'Untitled Playlist',
-      description: playlistData.description || '',
-      thumbnailUrl: playlistData.thumbnail || '',
-      videoCount: playlistData.entries?.length || 0
-    };
-  } catch (error: any) {
-    console.error('Error extracting playlist info:', error);
-    throw new Error(`Failed to extract playlist info: ${error.message}`);
-  }
+  });
 }
 
 /**
  * Extract video entries from a YouTube playlist
  */
 export async function getPlaylistVideos(playlistUrl: string): Promise<Video[]> {
-  try {
-    // Ensure yt-dlp is initialized
-    if (!ytDlp) {
-      await initYtDlp();
-    }
-    
-    // Get the current date string for addedAt field
-    const currentDate = new Date().toISOString();
-    
-    // Use yt-dlp to get individual video info
-    const args = [
-      '--dump-json',
-      '--no-playlist-metainfo',
-      playlistUrl
-    ];
-    
-    // Create a temporary file to store the JSON output
-    const tempJsonFile = fileUtils.getTempFilePath('json');
-    
-    // Run yt-dlp with output to a temp file
-    await ytDlp.execPromise([...args, '-o', tempJsonFile]);
-    
-    // Read the JSON file
-    const jsonStr = await fs.readFile(tempJsonFile, 'utf-8');
-    
-    // Clean up the temp file
-    await fs.remove(tempJsonFile);
-    
-    // Parse each line as a JSON object for each video
-    const videos: Video[] = [];
-    
-    jsonStr.split('\n').filter(Boolean).forEach(line => {
-      try {
-        const videoInfo = JSON.parse(line);
-        videos.push({
-          id: videoInfo.id,
-          title: videoInfo.title,
-          url: videoInfo.webpage_url,
-          thumbnail: videoInfo.thumbnail,
-          duration: videoInfo.duration,
-          downloaded: false,
-          addedAt: currentDate,
-          status: 'available'
-        });
-      } catch (e) {
-        // Skip lines that can't be parsed
-        console.error('Error parsing video info:', e);
+  // Use the rate limiter to execute this function
+  return rateLimiter.execute('yt-dlp', async () => {
+    try {
+      // Ensure yt-dlp is initialized
+      if (!ytDlp) {
+        await initYtDlp();
       }
-    });
-    
-    return videos;
-  } catch (error: any) {
-    console.error('Error extracting playlist videos:', error);
-    throw new Error(`Failed to extract playlist videos: ${error.message}`);
-  }
+      
+      // Get the current date string for addedAt field
+      const currentDate = new Date().toISOString();
+      
+      // Use yt-dlp to get individual video info
+      const args = [
+        '--dump-json',
+        '--no-playlist-metainfo',
+        playlistUrl
+      ];
+      
+      // Create a temporary file to store the JSON output
+      const tempJsonFile = fileUtils.getTempFilePath('json');
+      
+      // Run yt-dlp with output to a temp file
+      await ytDlp.execPromise([...args, '-o', tempJsonFile]);
+      
+      // Read the JSON file
+      const jsonStr = await fs.readFile(tempJsonFile, 'utf-8');
+      
+      // Clean up the temp file
+      await fs.remove(tempJsonFile);
+      
+      // Parse each line as a JSON object for each video
+      const videos: Video[] = [];
+      
+      jsonStr.split('\n').filter(Boolean).forEach(line => {
+        try {
+          const videoInfo = JSON.parse(line);
+          videos.push({
+            id: videoInfo.id,
+            title: videoInfo.title,
+            url: videoInfo.webpage_url,
+            thumbnail: videoInfo.thumbnail,
+            duration: videoInfo.duration,
+            downloaded: false,
+            addedAt: currentDate,
+            status: 'available'
+          });
+        } catch (e) {
+          // Skip lines that can't be parsed
+          console.error('Error parsing video info:', e);
+        }
+      });
+      
+      return videos;
+    } catch (error: any) {
+      console.error('Error extracting playlist videos:', error);
+      throw new Error(`Failed to extract playlist videos: ${error.message}`);
+    }
+  });
 }
 
 /**
@@ -193,20 +200,23 @@ export async function importYoutubePlaylist(playlistUrl: string): Promise<Playli
  * Check if a YouTube video is still available
  */
 export async function checkVideoStatus(videoUrl: string): Promise<'available' | 'unavailable'> {
-  try {
-    // Ensure yt-dlp is initialized
-    if (!ytDlp) {
-      await initYtDlp();
+  // Use the rate limiter to execute this function
+  return rateLimiter.execute('yt-dlp', async () => {
+    try {
+      // Ensure yt-dlp is initialized
+      if (!ytDlp) {
+        await initYtDlp();
+      }
+      
+      // Try to get the title of the video - if it succeeds, video is available
+      const args = ['--get-title', videoUrl];
+      await ytDlp.execPromise(args);
+      return 'available';
+    } catch (error: any) {
+      console.error(`Video check failed for ${videoUrl}:`, error);
+      return 'unavailable';
     }
-    
-    // Try to get the title of the video - if it succeeds, video is available
-    const args = ['--get-title', videoUrl];
-    await ytDlp.execPromise(args);
-    return 'available';
-  } catch (error: any) {
-    console.error(`Video check failed for ${videoUrl}:`, error);
-    return 'unavailable';
-  }
+  });
 }
 
 /**
@@ -221,73 +231,76 @@ export async function downloadVideo(
     quality?: string;
   } = {}
 ): Promise<string> {
-  try {
-    // Ensure yt-dlp is initialized
-    if (!ytDlp) {
-      await initYtDlp();
-    }
-    
-    // Ensure the output directory exists
-    await fs.ensureDir(outputDir);
-    
-    // Determine format string based on settings
-    const format = options.format || getSetting('downloadFormat');
-    const quality = options.quality || getSetting('maxQuality');
-    
-    let formatString: string;
-    
-    if (format === 'mp3') {
-      formatString = 'bestaudio[ext=m4a]/bestaudio';
-    } else if (format === 'best') {
-      formatString = 'bestvideo+bestaudio/best';
-    } else {
-      // Handle video quality selection
-      switch (quality) {
-        case '360p':
-          formatString = 'bestvideo[height<=360]+bestaudio/best[height<=360]';
-          break;
-        case '480p':
-          formatString = 'bestvideo[height<=480]+bestaudio/best[height<=480]';
-          break;
-        case '720p':
-          formatString = 'bestvideo[height<=720]+bestaudio/best[height<=720]';
-          break;
-        case '1080p':
-          formatString = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]';
-          break;
-        case '1440p':
-          formatString = 'bestvideo[height<=1440]+bestaudio/best[height<=1440]';
-          break;
-        case '2160p':
-          formatString = 'bestvideo[height<=2160]+bestaudio/best[height<=2160]';
-          break;
-        default:
-          formatString = 'bestvideo[height<=1080]+bestaudio/best';
+  // Use the rate limiter to execute this function
+  return rateLimiter.execute('yt-dlp', async () => {
+    try {
+      // Ensure yt-dlp is initialized
+      if (!ytDlp) {
+        await initYtDlp();
       }
+      
+      // Ensure the output directory exists
+      await fs.ensureDir(outputDir);
+      
+      // Determine format string based on settings
+      const format = options.format || getSetting('downloadFormat');
+      const quality = options.quality || getSetting('maxQuality');
+      
+      let formatString: string;
+      
+      if (format === 'mp3') {
+        formatString = 'bestaudio[ext=m4a]/bestaudio';
+      } else if (format === 'best') {
+        formatString = 'bestvideo+bestaudio/best';
+      } else {
+        // Handle video quality selection
+        switch (quality) {
+          case '360p':
+            formatString = 'bestvideo[height<=360]+bestaudio/best[height<=360]';
+            break;
+          case '480p':
+            formatString = 'bestvideo[height<=480]+bestaudio/best[height<=480]';
+            break;
+          case '720p':
+            formatString = 'bestvideo[height<=720]+bestaudio/best[height<=720]';
+            break;
+          case '1080p':
+            formatString = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]';
+            break;
+          case '1440p':
+            formatString = 'bestvideo[height<=1440]+bestaudio/best[height<=1440]';
+            break;
+          case '2160p':
+            formatString = 'bestvideo[height<=2160]+bestaudio/best[height<=2160]';
+            break;
+          default:
+            formatString = 'bestvideo[height<=1080]+bestaudio/best';
+        }
+      }
+      
+      // Construct output filename
+      const outputFile = path.join(outputDir, `${videoId}.${format === 'mp3' ? 'mp3' : 'mp4'}`);
+      
+      // Arguments for yt-dlp
+      const args = [
+        '-f', formatString,
+        '-o', outputFile,
+        '--no-playlist',
+        videoUrl
+      ];
+      
+      // For mp3 format, add post-processing for conversion
+      if (format === 'mp3') {
+        args.push('--extract-audio', '--audio-format', 'mp3');
+      }
+      
+      // Execute the download
+      await ytDlp.execPromise(args);
+      
+      return outputFile;
+    } catch (error: any) {
+      console.error(`Failed to download video ${videoId}:`, error);
+      throw new Error(`Failed to download video: ${error.message}`);
     }
-    
-    // Construct output filename
-    const outputFile = path.join(outputDir, `${videoId}.${format === 'mp3' ? 'mp3' : 'mp4'}`);
-    
-    // Arguments for yt-dlp
-    const args = [
-      '-f', formatString,
-      '-o', outputFile,
-      '--no-playlist',
-      videoUrl
-    ];
-    
-    // For mp3 format, add post-processing for conversion
-    if (format === 'mp3') {
-      args.push('--extract-audio', '--audio-format', 'mp3');
-    }
-    
-    // Execute the download
-    await ytDlp.execPromise(args);
-    
-    return outputFile;
-  } catch (error: any) {
-    console.error(`Download failed for ${videoUrl}:`, error);
-    throw new Error(`Failed to download video: ${error.message}`);
-  }
+  });
 } 
