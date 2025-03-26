@@ -35,11 +35,6 @@ const validInvokeChannels: string[] = [
   'yt:checkVideoStatus',
   'yt:downloadVideo',
   
-  // yt-dlp management channels
-  'ytdlp:getStatus',
-  'ytdlp:download',
-  'ytdlp:getDownloadProgress',
-  
   // Playlist management channels
   'playlist:create',
   'playlist:getAll',
@@ -161,22 +156,6 @@ contextBridge.exposeInMainWorld(
       },
       downloadVideo: (videoUrl: string, outputDir: string, videoId: string, options: any = {}) => {
         return ipcRenderer.invoke('yt:downloadVideo', videoUrl, outputDir, videoId, options);
-      }
-    },
-    
-    // yt-dlp management API shortcuts
-    ytDlp: {
-      getStatus: () => {
-        return ipcRenderer.invoke('ytdlp:getStatus');
-      },
-      download: () => {
-        return ipcRenderer.invoke('ytdlp:download');
-      },
-      getDownloadProgress: () => {
-        return ipcRenderer.invoke('ytdlp:getDownloadProgress');
-      },
-      getVideoInfo: (url: string) => {
-        return ipcRenderer.invoke('ytdlp:getVideoInfo', url);
       }
     },
     

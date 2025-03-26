@@ -128,13 +128,8 @@ export async function addVideoToPlaylist(playlistId: string, videoUrl: string): 
       throw new Error(`Playlist with ID ${playlistId} not found`);
     }
     
-    // Check if yt-dlp is available
-    if (!ytDlpManager.isYtDlpAvailable) {
-      const initialized = await ytDlpManager.initYtDlp();
-      if (!initialized) {
-        throw new Error('Cannot add videos without yt-dlp. Please install it or provide a valid path in settings.');
-      }
-    }
+    // Initialize yt-dlp if needed
+    await ytDlpManager.initYtDlp();
     
     // Use yt-dlp to get video info
     const tempFile = fileUtils.getTempFilePath('json');

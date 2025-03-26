@@ -6,9 +6,8 @@
   "main": ".webpack/main",
   "scripts": {
     "start": "electron-forge start",
-    "prepare-binaries": "node scripts/prepare-binaries.js",
-    "package": "npm run prepare-binaries && electron-forge package",
-    "make": "npm run prepare-binaries && electron-forge make",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\""
   },
@@ -62,7 +61,6 @@
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-popover": "^1.1.6",
-    "@radix-ui/react-progress": "^1.1.2",
     "@radix-ui/react-separator": "^1.1.2",
     "@radix-ui/react-tabs": "^1.1.3",
     "@shadcn/ui": "^0.0.4",
@@ -92,32 +90,5 @@
     "winston": "^3.11.0",
     "yt-dlp-wrap": "^2.3.12",
     "zustand": "^4.5.0"
-  },
-  "build": {
-    "appId": "com.playlistify.app",
-    "productName": "PlayListify",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "out/**/*",
-      "node_modules/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "resources/bin/${os}",
-        "to": "bin",
-        "filter": ["**/*"]
-      }
-    ],
-    "win": {
-      "target": "nsis"
-    },
-    "mac": {
-      "target": "dmg"
-    },
-    "linux": {
-      "target": "AppImage"
-    }
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -7,7 +7,6 @@ import { Separator } from '../../components/ui/separator';
 import { Skeleton } from '../../components/ui/skeleton';
 import { ArrowLeft, Save, FolderOpen, AlertCircle, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Progress } from '../../components/ui/progress';
 
 function SettingsFormSkeleton() {
   return (
@@ -44,11 +43,11 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [downloadError, setDownloadError] = useState('');
   
   // Mock settings
   const [settings, setSettings] = useState({
     downloadLocation: 'C:\\Users\\User\\Videos\\PlayListify',
+    ytDlpPath: '',
     ffmpegPath: '',
     maxConcurrentDownloads: '2',
     defaultVideoQuality: '1080p'
@@ -230,6 +229,28 @@ export default function SettingsPage() {
               <form onSubmit={handleSubmit}>
                 <div className="space-y-6">
                   <div>
+                    <Label htmlFor="ytDlpPath">yt-dlp Path (optional)</Label>
+                    <div className="flex mt-1">
+                      <Input 
+                        id="ytDlpPath"
+                        name="ytDlpPath"
+                        value={settings.ytDlpPath}
+                        onChange={handleChange}
+                        className="flex-1"
+                        placeholder="Leave empty to use bundled version"
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="ml-2"
+                        onClick={() => handleSelectFolder('ytDlpPath')}
+                      >
+                        <FolderOpen className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div>
                     <Label htmlFor="ffmpegPath">FFmpeg Path (optional)</Label>
                     <div className="flex mt-1">
                       <Input 
@@ -275,7 +296,7 @@ export default function SettingsPage() {
               
               <h3 className="text-lg font-medium mt-6 mb-2">Dependencies</h3>
               <ul className="list-disc pl-5 space-y-1 text-sm">
-                <li>yt-dlp: Bundled with application</li>
+                <li>yt-dlp: 2023.12.30</li>
                 <li>FFmpeg: 6.0</li>
                 <li>Electron: 28.0.0</li>
                 <li>React: 18.2.0</li>
