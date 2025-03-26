@@ -481,60 +481,43 @@ fs: {
 ### Phase 2.1: Playlist Creation UI
 
 **Tasks:**
-- [ ] Build UI components for playlist management
-- [ ] Create playlist creation form
+- [x] Build UI components for playlist management
+- [x] Create playlist creation form
 
-**Files to Create:**
-- [ ] `src/renderer/features/playlists/components/PlaylistList.tsx` (~200 lines)
-  - Playlist listing and management component
-- [ ] `src/renderer/features/playlists/components/CreatePlaylistForm.tsx` (~150 lines)
-  - Form for creating new playlists
+**Files Created:**
+- [x] `src/renderer/features/playlists/components/PlaylistList.tsx` (~200 lines)
+  - Implemented responsive playlist grid layout
+  - Added loading, error, and empty states
+  - Implemented sorting functionality (newest, oldest, alphabetical)
+  - Added deletion confirmation with Dialog and ConfirmationModal
+- [x] `src/renderer/features/playlists/components/CreatePlaylistForm.tsx` (~250 lines)
+  - Form for creating new playlists with name and description
+  - YouTube playlist import functionality
+  - Form validation for YouTube URLs
+  - Toggle between create and import modes
+  - Advanced options section with expandable UI
+  - Loading states during form submission
+  - Error handling
 
-**Sample Code for `src/renderer/features/playlists/components/PlaylistList.tsx`:**
-```typescript
-import React, { useState } from 'react';
-import { useStore } from '../../../../stores/playlistStore';
+**Additional Components Created:**
+- [x] `src/renderer/features/playlists/components/PlaylistCard.tsx` (~150 lines)
+  - Individual playlist card with thumbnail and metadata
+  - Hover effects and action buttons
+  - Dynamic styling based on playlist status
+- [x] `src/renderer/components/ConfirmationModal.tsx` (~80 lines)
+  - Reusable confirmation dialog for destructive actions
+  - Customizable title, message and button text
+  - Integrates with shadcn/ui Dialog component
 
-const PlaylistList: React.FC = () => {
-  const [name, setName] = useState('');
-  const addPlaylist = useStore((state) => state.addPlaylist);
-  const playlists = useStore((state) => state.playlists);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (name) {
-      addPlaylist(name, []);
-      setName('');
-    }
-  };
-
-  return (
-    <div className="p-4">
-      <form onSubmit={handleSubmit} className="mb-4">
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="New Playlist Name"
-          className="border p-2 mr-2 rounded"
-        />
-        <button type="submit" className="bg-blue-500 text-white p-2 rounded">
-          Add Playlist
-        </button>
-      </form>
-      <ul className="space-y-2">
-        {playlists.map((pl) => (
-          <li key={pl.name} className="p-2 bg-white rounded shadow">
-            {pl.name}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-};
-
-export default PlaylistList;
-```
+**Implementation Details:**
+- Used React Query for data fetching with proper loading/error states
+- Implemented Zustand store integration for local state management
+- Created responsive grid layout that adapts to different screen sizes
+- Added sorting capabilities for better playlist organization
+- Implemented proper form validation with user feedback
+- Created consistent styling using Tailwind CSS utility classes
+- Used shadcn/ui components for UI elements (Dialog, Select, Button, etc.)
+- Added proper error handling and user feedback
 
 ### Phase 2.2: Import Playlists with yt-dlp
 

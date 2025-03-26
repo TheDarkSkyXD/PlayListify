@@ -3,22 +3,75 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 0 100% 50%; /* YouTube Red */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 215 20.2% 65.1%;
+    --radius: 0.5rem;
+
+    /* YouTube-specific colors */
+    --youtube-red: 0 100% 50%;
+    --youtube-red-dark: 0 100% 40%;
+    --youtube-bg-light: 0 0% 100%;
+    --youtube-bg-dark: 0 0% 9.4%;
+    --youtube-secondary-light: 0 0% 93%;
+    --youtube-secondary-dark: 0 0% 13%;
+  }
+
+  .dark {
+    --background: 0 0% 9.4%; /* YouTube dark background */
+    --foreground: 0 0% 100%;
+    --card: 0 0% 13%; /* YouTube card dark */
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 13%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 0 100% 50%; /* YouTube Red stays the same */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 13%; /* YouTube secondary dark */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 67%;
+    --accent: 0 0% 20%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 0 0% 30%;
+  }
+
   body {
-    @apply antialiased text-gray-900 dark:text-white bg-white dark:bg-gray-900;
+    @apply antialiased bg-background text-foreground;
   }
 }
 
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
   }
   
   .btn-primary {
-    @apply bg-blue-500 text-white hover:bg-blue-600;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
   }
   
   .btn-secondary {
-    @apply bg-gray-500 text-white hover:bg-gray-600;
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
   }
   
   .input {
@@ -28,17 +81,6 @@
   .select {
     @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white;
   }
-}
-
-:root {
-  --primary: #FF0000;
-  --primary-dark: #CC0000;
-  --background: #FFFFFF;
-  --background-dark: #181818;
-  --text: #212121;
-  --text-dark: #FFFFFF;
-  --secondary: #EDEDED;
-  --secondary-dark: #212121;
 }
 
 /* Custom scrollbar styles */
@@ -61,12 +103,10 @@
 }
 
 /* Dark mode scrollbar */
-@media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-thumb {
-    background: #666;
-  }
+.dark ::-webkit-scrollbar-thumb {
+  background: #666;
+}
 
-  ::-webkit-scrollbar-thumb:hover {
-    background: #888;
-  }
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #888;
 } 

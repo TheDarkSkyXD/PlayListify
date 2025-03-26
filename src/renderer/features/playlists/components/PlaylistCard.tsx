@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Playlist } from '../../../../shared/types/appTypes';
 
@@ -8,6 +8,8 @@ interface PlaylistCardProps {
 }
 
 const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onDelete }) => {
+  const [thumbnailError, setThumbnailError] = useState(false);
+  
   const handleDelete = (e: React.MouseEvent<HTMLButtonElement>): void => {
     e.preventDefault();
     e.stopPropagation();
@@ -18,19 +20,63 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onDelete }) => {
 
   // Format the date
   const formatDate = (date: Date | string): string => {
-    return new Date(date).toLocaleDateString();
+    const d = new Date(date);
+    // If less than 24 hours ago, show relative time
+    const now = new Date();
+    const diff = now.getTime() - d.getTime();
+    
+    if (diff < 24 * 60 * 60 * 1000) {
+      const hours = Math.floor(diff / (60 * 60 * 1000));
+      if (hours < 1) {
+        const minutes = Math.floor(diff / (60 * 1000));
+        return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+      }
+      return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    }
+    
+    // Otherwise, format as date
+    return d.toLocaleDateString(undefined, { 
+      month: 'short', 
+      day: 'numeric',
+      year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    });
   };
 
   // Get video count
   const videoCount: number = playlist.videos.length;
   
+  // Calculate total duration if available
+  const getTotalDuration = (): string | null => {
+    if (!playlist.videos.some(video => video.duration)) return null;
+    
+    const totalSeconds = playlist.videos.reduce((acc, video) => {
+      return acc + (video.duration || 0);
+    }, 0);
+    
+    if (totalSeconds === 0) return null;
+    
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes} min`;
+  };
+  
   // Get playlist thumbnail or use default
-  const thumbnailSrc: string = playlist.thumbnail || 
+  const defaultThumbnail = '/assets/images/playlist-default.jpg';
+  const thumbnailSrc: string = !thumbnailError ? (
+    playlist.thumbnail || 
     playlist.videos[0]?.thumbnail || 
-    '/assets/images/playlist-default.jpg';
+    defaultThumbnail
+  ) : defaultThumbnail;
+  
+  // Source indicator
+  const sourceLabel = playlist.source === 'youtube' ? 'YouTube' : 'Local';
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 group">
       <Link
         to="/playlist/$playlistId"
         params={{ playlistId: playlist.id }}
@@ -42,12 +88,15 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onDelete }) => {
             alt={playlist.name}
             className="absolute inset-0 w-full h-full object-cover"
             onError={(e: React.SyntheticEvent<HTMLImageElement>): void => {
-              const target = e.currentTarget;
-              target.src = '/assets/images/playlist-default.jpg';
+              setThumbnailError(true);
             }}
           />
+          <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+            {sourceLabel}
+          </div>
           <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
             {videoCount} {videoCount === 1 ? 'video' : 'videos'}
+            {getTotalDuration() && ` • ${getTotalDuration()}`}
           </div>
         </div>
         
@@ -67,7 +116,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onDelete }) => {
             {onDelete && (
               <button 
                 onClick={handleDelete}
-                className="text-red-500 hover:text-red-700 text-sm"
+                className="text-red-500 hover:text-red-700 text-sm opacity-0 group-hover:opacity-100 transition-opacity"
                 aria-label="Delete playlist"
               >
                 Delete

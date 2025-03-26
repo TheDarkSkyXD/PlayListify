@@ -20,7 +20,15 @@
     "noImplicitThis": true,
     "alwaysStrict": true,
     "paths": {
-      "*": ["node_modules/*"]
+      "*": ["node_modules/*"],
+      "@/*": ["src/*"],
+      "@/components/*": ["src/renderer/components/*"],
+      "@/utils/*": ["src/renderer/utils/*"],
+      "@/styles/*": ["src/renderer/styles/*"],
+      "@/features/*": ["src/renderer/features/*"],
+      "@/services/*": ["src/renderer/services/*"],
+      "@/stores/*": ["src/renderer/stores/*"],
+      "@/shared/*": ["src/shared/*"]
     },
     "typeRoots": [
       "node_modules/@types",
