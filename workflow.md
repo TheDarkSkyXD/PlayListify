@@ -89,8 +89,8 @@ mkdir -p docs
    - [ ] Implement responsive grid layout for playlists
 
 2. **Core Features (Phase 2)**
-   - [ ] Implement playlist creation and management (Phase 2.1)
-   - [ ] Develop YouTube playlist import with yt-dlp (Phase 2.2)
+   - [x] Implement playlist creation and management (Phase 2.1)
+   - [x] Develop YouTube playlist import with yt-dlp (Phase 2.2)
    - [ ] Create local storage and state management (Phase 2.3)
    - [ ] Build playlist display and filtering features (Phase 2.4)
 
@@ -521,16 +521,29 @@ fs: {
 
 ### Phase 2.2: Import Playlists with yt-dlp
 
-**Tasks:**
-- [ ] Implement yt-dlp integration for fetching playlist metadata
-- [ ] Create wrapper functions for yt-dlp commands
+**Completed Tasks:**
+- [x] Implement yt-dlp integration for fetching playlist metadata
+- [x] Create wrapper functions for yt-dlp commands
+- [x] Fixed CSP issues for loading YouTube thumbnails
+- [x] Implemented fallback mechanism for image loading
+- [x] Added development asset handling for static files
 
-**Files to Create:**
-- [ ] `src/main/services/ytDlpManager.ts` (~200 lines)
+**Files Created/Updated:**
+- [x] `src/main/services/ytDlpManager.ts`
   - Wrapper for yt-dlp commands
   - Playlist metadata extraction functions
-- [ ] `src/main/services/playlistManager.ts` (~200 lines)
-  - Playlist creation and management logic
+- [x] `src/main/main.ts`
+  - Added CSP configuration to allow YouTube image domains
+  - Implemented development asset management function
+- [x] `src/renderer/components/CachedImage.tsx`
+  - Enhanced with robust image fallback mechanism
+  - Added hardcoded placeholder for when all else fails
+
+**Implementation Notes:**
+- Fixed Content Security Policy to properly allow loading external images from YouTube
+- Created a function to ensure development assets are copied to the correct locations
+- Enhanced CachedImage component with multiple fallback levels and error handling
+- Added base64 encoded placeholder image as final fallback option
 
 **Sample Code for `src/main/services/ytDlpManager.ts`:**
 ```typescript

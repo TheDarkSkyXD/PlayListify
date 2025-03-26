@@ -21,7 +21,30 @@ const validInvokeChannels: string[] = [
   'fs:videoExists',
   'fs:getFileSize',
   'fs:getFreeDiskSpace',
-  'fs:validatePath'
+  'fs:validatePath',
+  
+  // Image utilities
+  'image:cache',
+  'image:getLocalPath',
+  'image:clearCache',
+  
+  // YouTube channels
+  'yt:getPlaylistInfo',
+  'yt:getPlaylistVideos',
+  'yt:importPlaylist',
+  'yt:checkVideoStatus',
+  'yt:downloadVideo',
+  
+  // Playlist management channels
+  'playlist:create',
+  'playlist:getAll',
+  'playlist:getById',
+  'playlist:delete',
+  'playlist:update',
+  'playlist:addVideo',
+  'playlist:removeVideo',
+  'playlist:downloadVideo',
+  'playlist:refresh'
 ];
 
 // Expose protected methods that allow the renderer process to use
@@ -101,6 +124,69 @@ contextBridge.exposeInMainWorld(
       },
       validatePath: (dirPath: string) => {
         return ipcRenderer.invoke('fs:validatePath', dirPath);
+      }
+    },
+    
+    // Image utilities
+    images: {
+      cacheImage: (url: string) => {
+        return ipcRenderer.invoke('image:cache', url);
+      },
+      getLocalPath: (url: string, downloadIfMissing: boolean = true) => {
+        return ipcRenderer.invoke('image:getLocalPath', url, downloadIfMissing);
+      },
+      clearCache: (maxAgeDays: number = 30) => {
+        return ipcRenderer.invoke('image:clearCache', maxAgeDays);
+      }
+    },
+    
+    // YouTube API shortcuts
+    youtube: {
+      getPlaylistInfo: (playlistUrl: string) => {
+        return ipcRenderer.invoke('yt:getPlaylistInfo', playlistUrl);
+      },
+      getPlaylistVideos: (playlistUrl: string) => {
+        return ipcRenderer.invoke('yt:getPlaylistVideos', playlistUrl);
+      },
+      importPlaylist: (playlistUrl: string) => {
+        return ipcRenderer.invoke('yt:importPlaylist', playlistUrl);
+      },
+      checkVideoStatus: (videoUrl: string) => {
+        return ipcRenderer.invoke('yt:checkVideoStatus', videoUrl);
+      },
+      downloadVideo: (videoUrl: string, outputDir: string, videoId: string, options: any = {}) => {
+        return ipcRenderer.invoke('yt:downloadVideo', videoUrl, outputDir, videoId, options);
+      }
+    },
+    
+    // Playlist management API shortcuts
+    playlists: {
+      create: (name: string, description?: string) => {
+        return ipcRenderer.invoke('playlist:create', name, description);
+      },
+      getAll: () => {
+        return ipcRenderer.invoke('playlist:getAll');
+      },
+      getById: (playlistId: string) => {
+        return ipcRenderer.invoke('playlist:getById', playlistId);
+      },
+      delete: (playlistId: string) => {
+        return ipcRenderer.invoke('playlist:delete', playlistId);
+      },
+      update: (playlistId: string, updates: any) => {
+        return ipcRenderer.invoke('playlist:update', playlistId, updates);
+      },
+      addVideo: (playlistId: string, videoUrl: string) => {
+        return ipcRenderer.invoke('playlist:addVideo', playlistId, videoUrl);
+      },
+      removeVideo: (playlistId: string, videoId: string) => {
+        return ipcRenderer.invoke('playlist:removeVideo', playlistId, videoId);
+      },
+      downloadVideo: (playlistId: string, videoId: string, options?: any) => {
+        return ipcRenderer.invoke('playlist:downloadVideo', playlistId, videoId, options);
+      },
+      refresh: (playlistId: string) => {
+        return ipcRenderer.invoke('playlist:refresh', playlistId);
       }
     }
   }

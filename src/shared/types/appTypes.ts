@@ -90,6 +90,15 @@ export interface PathValidationResult {
   error?: string;
 }
 
+// Download options for videos
+export interface DownloadOptions {
+  format?: 'mp4' | 'webm' | 'mp3' | 'best';
+  quality?: '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p';
+}
+
+// Playlist update options
+export type PlaylistUpdateOptions = Partial<Omit<Playlist, 'id' | 'videos' | 'createdAt'>>;
+
 // API exposed to renderer via preload script
 export interface Api {
   send: (channel: string, data: any) => void;
@@ -117,6 +126,41 @@ export interface Api {
     getFileSize: (filePath: string) => Promise<number>;
     getFreeDiskSpace: () => Promise<number>;
     validatePath: (dirPath: string) => Promise<PathValidationResult>;
+  };
+  
+  // Image utilities
+  images: {
+    cacheImage: (url: string) => Promise<string>;
+    getLocalPath: (url: string, downloadIfMissing?: boolean) => Promise<string>;
+    clearCache: (maxAgeDays?: number) => Promise<boolean>;
+  };
+  
+  // YouTube API
+  youtube: {
+    getPlaylistInfo: (playlistUrl: string) => Promise<{
+      id: string;
+      title: string;
+      description: string;
+      thumbnailUrl: string;
+      videoCount: number;
+    }>;
+    getPlaylistVideos: (playlistUrl: string) => Promise<Video[]>;
+    importPlaylist: (playlistUrl: string) => Promise<Playlist>;
+    checkVideoStatus: (videoUrl: string) => Promise<'available' | 'unavailable'>;
+    downloadVideo: (videoUrl: string, outputDir: string, videoId: string, options?: DownloadOptions) => Promise<string>;
+  };
+  
+  // Playlist management API
+  playlists: {
+    create: (name: string, description?: string) => Promise<Playlist>;
+    getAll: () => Promise<Playlist[]>;
+    getById: (playlistId: string) => Promise<Playlist | null>;
+    delete: (playlistId: string) => Promise<boolean>;
+    update: (playlistId: string, updates: PlaylistUpdateOptions) => Promise<Playlist>;
+    addVideo: (playlistId: string, videoUrl: string) => Promise<Playlist>;
+    removeVideo: (playlistId: string, videoId: string) => Promise<Playlist>;
+    downloadVideo: (playlistId: string, videoId: string, options?: DownloadOptions) => Promise<string>;
+    refresh: (playlistId: string) => Promise<Playlist>;
   };
 }
 

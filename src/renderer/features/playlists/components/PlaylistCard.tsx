@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from '@tanstack/react-router';
 import { Playlist } from '../../../../shared/types/appTypes';
+import CachedImage from '../../../components/CachedImage';
 
 interface PlaylistCardProps {
   playlist: Playlist;
@@ -8,8 +9,6 @@ interface PlaylistCardProps {
 }
 
 const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onDelete }) => {
-  const [thumbnailError, setThumbnailError] = useState(false);
-  
   const handleDelete = (e: React.MouseEvent<HTMLButtonElement>): void => {
     e.preventDefault();
     e.stopPropagation();
@@ -64,13 +63,11 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onDelete }) => {
     return `${minutes} min`;
   };
   
-  // Get playlist thumbnail or use default
+  // Get appropriate thumbnail source
   const defaultThumbnail = '/assets/images/playlist-default.jpg';
-  const thumbnailSrc: string = !thumbnailError ? (
-    playlist.thumbnail || 
-    playlist.videos[0]?.thumbnail || 
-    defaultThumbnail
-  ) : defaultThumbnail;
+  const thumbnailSrc = playlist.thumbnail || 
+    (playlist.videos.length > 0 && playlist.videos[0]?.thumbnail) || 
+    defaultThumbnail;
   
   // Source indicator
   const sourceLabel = playlist.source === 'youtube' ? 'YouTube' : 'Local';
@@ -83,13 +80,11 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onDelete }) => {
         className="block h-full"
       >
         <div className="relative pb-[56.25%] bg-gray-200 dark:bg-gray-700">
-          <img 
+          <CachedImage 
             src={thumbnailSrc}
+            fallbackSrc={defaultThumbnail}
             alt={playlist.name}
             className="absolute inset-0 w-full h-full object-cover"
-            onError={(e: React.SyntheticEvent<HTMLImageElement>): void => {
-              setThumbnailError(true);
-            }}
           />
           <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
             {sourceLabel}

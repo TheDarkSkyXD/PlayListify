@@ -1,6 +1,9 @@
 import { ipcMain, dialog, IpcMainInvokeEvent } from 'electron';
 import * as settingsManager from '../services/settingsManager';
 import * as fileUtils from '../utils/fileUtils';
+import * as ytDlpManager from '../services/ytDlpManager';
+import * as playlistManager from '../services/playlistManager';
+import * as imageUtils from '../utils/imageUtils';
 import path from 'path';
 import fs from 'fs-extra';
 
@@ -80,6 +83,79 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('fs:getFreeDiskSpace', async () => {
     return await fileUtils.getFreeDiskSpace();
+  });
+
+  // Image utilities
+  ipcMain.handle('image:cache', async (_: IpcMainInvokeEvent, url: string) => {
+    return await imageUtils.downloadImage(url);
+  });
+
+  ipcMain.handle('image:getLocalPath', async (_: IpcMainInvokeEvent, url: string, downloadIfMissing: boolean = true) => {
+    return await imageUtils.getLocalImagePath(url, downloadIfMissing);
+  });
+
+  ipcMain.handle('image:clearCache', async (_: IpcMainInvokeEvent, maxAgeDays: number = 30) => {
+    await imageUtils.clearOldCachedImages(maxAgeDays);
+    return true;
+  });
+
+  // YouTube and playlist handlers
+  ipcMain.handle('yt:getPlaylistInfo', async (_: IpcMainInvokeEvent, playlistUrl: string) => {
+    return await ytDlpManager.getPlaylistInfo(playlistUrl);
+  });
+
+  ipcMain.handle('yt:getPlaylistVideos', async (_: IpcMainInvokeEvent, playlistUrl: string) => {
+    return await ytDlpManager.getPlaylistVideos(playlistUrl);
+  });
+
+  ipcMain.handle('yt:importPlaylist', async (_: IpcMainInvokeEvent, playlistUrl: string) => {
+    return await playlistManager.importYoutubePlaylist(playlistUrl);
+  });
+
+  ipcMain.handle('yt:checkVideoStatus', async (_: IpcMainInvokeEvent, videoUrl: string) => {
+    return await ytDlpManager.checkVideoStatus(videoUrl);
+  });
+
+  ipcMain.handle('yt:downloadVideo', async (_: IpcMainInvokeEvent, videoUrl: string, outputDir: string, videoId: string, options: any) => {
+    return await ytDlpManager.downloadVideo(videoUrl, outputDir, videoId, options);
+  });
+
+  // Playlist management handlers
+  ipcMain.handle('playlist:create', async (_: IpcMainInvokeEvent, name: string, description?: string) => {
+    return await playlistManager.createEmptyPlaylist(name, description);
+  });
+
+  ipcMain.handle('playlist:getAll', async () => {
+    return await playlistManager.getAllPlaylists();
+  });
+
+  ipcMain.handle('playlist:getById', async (_: IpcMainInvokeEvent, playlistId: string) => {
+    return await playlistManager.getPlaylistById(playlistId);
+  });
+
+  ipcMain.handle('playlist:delete', async (_: IpcMainInvokeEvent, playlistId: string) => {
+    await playlistManager.deletePlaylist(playlistId);
+    return true;
+  });
+
+  ipcMain.handle('playlist:update', async (_: IpcMainInvokeEvent, playlistId: string, updates: any) => {
+    return await playlistManager.updatePlaylist(playlistId, updates);
+  });
+
+  ipcMain.handle('playlist:addVideo', async (_: IpcMainInvokeEvent, playlistId: string, videoUrl: string) => {
+    return await playlistManager.addVideoToPlaylist(playlistId, videoUrl);
+  });
+
+  ipcMain.handle('playlist:removeVideo', async (_: IpcMainInvokeEvent, playlistId: string, videoId: string) => {
+    return await playlistManager.removeVideoFromPlaylist(playlistId, videoId);
+  });
+
+  ipcMain.handle('playlist:downloadVideo', async (_: IpcMainInvokeEvent, playlistId: string, videoId: string, options?: any) => {
+    return await playlistManager.downloadPlaylistVideo(playlistId, videoId, options);
+  });
+
+  ipcMain.handle('playlist:refresh', async (_: IpcMainInvokeEvent, playlistId: string) => {
+    return await playlistManager.refreshYoutubePlaylist(playlistId);
   });
 
   // Filesystem validation
