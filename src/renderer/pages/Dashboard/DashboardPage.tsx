@@ -1,7 +1,12 @@
 import React from 'react';
 import { Link } from '@tanstack/react-router';
+import PlaylistList from '../../features/playlists/components/PlaylistList';
+import CreatePlaylistForm from '../../features/playlists/components/CreatePlaylistForm';
+import usePlaylistStore from '../../stores/playlistStore';
 
 const DashboardPage: React.FC = () => {
+  const { isLoading, error } = usePlaylistStore();
+
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8 bg-white dark:bg-gray-800 shadow rounded-lg p-6">
@@ -23,48 +28,55 @@ const DashboardPage: React.FC = () => {
       </nav>
       
       <main>
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Playlist cards */}
-          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        {/* Error display */}
+        {error && (
+          <div className="bg-red-100 dark:bg-red-900 border border-red-400 text-red-700 dark:text-red-200 px-4 py-3 rounded relative mb-4">
+            <strong className="font-bold">Error:</strong>
+            <span className="block sm:inline"> {error}</span>
+          </div>
+        )}
+        
+        {/* Create new playlist form */}
+        <CreatePlaylistForm />
+        
+        <div className="grid grid-cols-1 gap-6">
+          <section>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               Your Playlists
             </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              No playlists yet. Create your first playlist to get started!
-            </p>
-            <button className="mt-4 btn btn-primary bg-primary hover:bg-primary-dark">
-              Create Playlist
-            </button>
-          </div>
+            <PlaylistList />
+          </section>
           
-          {/* Recent Activity */}
-          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Recent Activity
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Your recent activity will appear here.
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            {/* Recent Activity */}
+            <section className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Recent Activity
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Your recent activity will appear here.
+              </p>
+            </section>
+            
+            {/* Quick Actions */}
+            <section className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Quick Actions
+              </h2>
+              <div className="space-y-2">
+                <button className="w-full text-left p-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
+                  Import from YouTube
+                </button>
+                <button className="w-full text-left p-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
+                  Download All
+                </button>
+                <button className="w-full text-left p-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
+                  Sync Playlists
+                </button>
+              </div>
+            </section>
           </div>
-          
-          {/* Quick Actions */}
-          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Quick Actions
-            </h2>
-            <div className="space-y-2">
-              <button className="w-full text-left p-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
-                Import from YouTube
-              </button>
-              <button className="w-full text-left p-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
-                Download All
-              </button>
-              <button className="w-full text-left p-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
-                Sync Playlists
-              </button>
-            </div>
-          </div>
-        </section>
+        </div>
       </main>
     </div>
   );

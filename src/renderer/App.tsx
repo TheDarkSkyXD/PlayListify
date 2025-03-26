@@ -13,9 +13,8 @@ const queryClient = new QueryClient({
   },
 });
 
-const App: React.FC = () => {
-  // Set dark mode based on system preference initially
-  const [isDarkMode, setIsDarkMode] = useState(
+function App() {
+  const [isDarkMode, setIsDarkMode] = useState(() => 
     window.matchMedia('(prefers-color-scheme: dark)').matches
   );
 
@@ -29,10 +28,17 @@ const App: React.FC = () => {
 
     // Listen for system preference changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const listener = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
-    mediaQuery.addEventListener('change', listener);
     
-    return () => mediaQuery.removeEventListener('change', listener);
+    // Using direct property assignment with destructuring to avoid parameter typing issues
+    const originalOnChange = mediaQuery.onchange;
+    mediaQuery.onchange = function handleThemeChange({ matches }) {
+      setIsDarkMode(matches);
+    };
+    
+    // Cleanup function to restore original handler
+    return () => {
+      mediaQuery.onchange = originalOnChange;
+    };
   }, [isDarkMode]);
 
   return (
@@ -40,6 +46,6 @@ const App: React.FC = () => {
       <RouterProvider router={router} />
     </QueryClientProvider>
   );
-};
+}
 
 export default App; 
