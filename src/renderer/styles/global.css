@@ -142,6 +142,15 @@
     @apply bg-[#272727] text-white font-medium !important;
   }
   
+  /* Make sidebar navigation icons white in dark mode - more specific rule */
+  .dark nav.flex.flex-col .sidebar-nav-item svg,
+  .dark nav.flex.flex-col .sidebar-nav-active svg,
+  .dark button.sidebar-nav-item svg,
+  .dark .sidebar-nav-item svg[class*="lucide"],
+  .dark .sidebar-nav-active svg[class*="lucide"] {
+    color: white !important;
+  }
+  
   /* Dark mode hover override - make text white */
   .dark .sidebar-nav-item:hover:not(.sidebar-nav-active) {
     @apply bg-[rgb(51,51,51)] text-white !important;
@@ -153,8 +162,14 @@
   }
   
   /* Dark mode button overrides */
-  .dark button {
+  .dark button:not(.sidebar-nav-item) {
     @apply border-muted;
+    background-color: #272727 !important;
+  }
+  
+  /* Ensure sidebar buttons aren't affected by the button color change */
+  .dark button.sidebar-nav-item {
+    background-color: transparent !important;
   }
 }
 
