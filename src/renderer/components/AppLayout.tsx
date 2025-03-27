@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from '@tanstack/react-router';
 import { Button } from './ui/button';
-import { Home, Settings, Youtube, Library, PlusCircle } from 'lucide-react';
+import { Home, Settings, Youtube, Library } from 'lucide-react';
 import SidebarNav from './SidebarNav';
 import { cn } from '../lib/utils';
 
@@ -46,19 +46,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
         </div>
         
         <SidebarNav items={navItems} />
-        
-        <div className="mt-auto pt-4 border-t">
-          <Button 
-            asChild 
-            className="w-full justify-start" 
-            variant="outline"
-          >
-            <Link to="/">
-              <PlusCircle className="mr-2 h-5 w-5 text-[#FF0000]" />
-              New Playlist
-            </Link>
-          </Button>
-        </div>
       </div>
       
       {/* Main content */}
