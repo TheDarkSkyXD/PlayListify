@@ -35,10 +35,10 @@ const c = {
   }
 };
 
-let mainWindow: BrowserWindow | null = null;
+export let mainWindow: BrowserWindow | null = null;
 
 // Ensure static assets folder for development
-async function ensureDevAssets() {
+export async function ensureDevAssets() {
   if (process.env.NODE_ENV === 'development') {
     // Create assets directory for development server - try multiple possible locations
     const devAssetsDirs = [
@@ -75,7 +75,7 @@ async function ensureDevAssets() {
   }
 }
 
-function createWindow() {
+export function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,

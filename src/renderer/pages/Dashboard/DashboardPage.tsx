@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from '@tanstack/react-router';
 import PlaylistList, { PlaylistSkeleton } from '../../features/playlists/components/PlaylistList';
-import CreatePlaylistForm from '../../features/playlists/components/CreatePlaylistForm';
+import { CreatePlaylistForm } from '../../features/playlists/components/CreatePlaylistForm';
 import { usePlaylists } from '../../services/queryHooks';
 import { 
   Home, 

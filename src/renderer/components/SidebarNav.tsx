@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useRouter } from '@tanstack/react-router';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
 
@@ -14,8 +14,8 @@ interface SidebarNavProps {
 }
 
 function SidebarNav({ items }: SidebarNavProps) {
-  const location = useLocation();
-  const currentPath = location.pathname;
+  const router = useRouter();
+  const currentPath = router.state.location.pathname;
   
   return (
     <nav className="flex flex-col space-y-1">

@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import PlaylistCard from './PlaylistCard';
 import PlaylistFilters, { FilterOptions } from './PlaylistFilters';
 import { usePlaylists, useDeletePlaylist } from '../../../services/queryHooks';
-import ConfirmationModal from '../../../components/ConfirmationModal';
 import { Playlist } from '../../../../shared/types/appTypes';
 import {
   Select,
@@ -11,10 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-} from '../../../components/ui/dialog';
 import { Button } from '../../../components/ui/button';
 import { SortAsc, Clock, AlignJustify, Search, AlertCircle, Music, Plus, Youtube, Trash2, Play } from 'lucide-react';
 import { useRouter } from '@tanstack/react-router';
@@ -36,10 +31,6 @@ const PlaylistList: React.FC<PlaylistListProps> = ({ playlists = [] }) => {
   // Ensure playlists is always an array
   const playlistsArray = Array.isArray(playlists) ? playlists : [];
   
-  // State for deletion confirmation
-  const [playlistToDelete, setPlaylistToDelete] = useState<string | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  
   // State for sorting and filtering
   const [sortOption, setSortOption] = useState<SortOption>('newest');
   const [filters, setFilters] = useState<FilterOptions>({
@@ -49,21 +40,7 @@ const PlaylistList: React.FC<PlaylistListProps> = ({ playlists = [] }) => {
   });
   
   const handleDeletePlaylist = (id: string) => {
-    setPlaylistToDelete(id);
-    setIsDeleteModalOpen(true);
-  };
-  
-  const confirmDelete = () => {
-    if (playlistToDelete) {
-      deletePlaylistMutation.mutate(playlistToDelete);
-      setIsDeleteModalOpen(false);
-      setPlaylistToDelete(null);
-    }
-  };
-  
-  const cancelDelete = () => {
-    setIsDeleteModalOpen(false);
-    setPlaylistToDelete(null);
+    deletePlaylistMutation.mutate(id);
   };
   
   // Collect all available tags from playlists
@@ -328,20 +305,6 @@ const PlaylistList: React.FC<PlaylistListProps> = ({ playlists = [] }) => {
           ))}
         </div>
       )}
-
-      <Dialog open={isDeleteModalOpen} onOpenChange={(open) => !open && cancelDelete()}>
-        <DialogContent>
-          <ConfirmationModal
-            title="Delete Playlist"
-            message="Are you sure you want to delete this playlist? This action cannot be undone."
-            confirmText="Delete"
-            cancelText="Cancel"
-            confirmAction={confirmDelete}
-            cancelAction={cancelDelete}
-            isDestructive={true}
-          />
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

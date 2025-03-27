@@ -12,6 +12,9 @@ import { rateLimiter } from './rateLimiter';
 // Promisify exec for async/await usage
 const execAsync = promisify(exec);
 
+// Default max buffer size for yt-dlp commands (increased to 100MB)
+const MAX_BUFFER_SIZE = 100 * 1024 * 1024; // 100MB
+
 // Initialize YtDlpWrap
 let ytDlp: YtDlpWrap;
 
@@ -56,32 +59,48 @@ export async function initYtDlp(customBinaryPath?: string): Promise<void> {
     if (customBinaryPath && await fs.pathExists(customBinaryPath)) {
       ytDlp = new YtDlpWrap(customBinaryPath);
       console.log(`Using custom yt-dlp binary at: ${customBinaryPath}`);
-      return;
-    }
-    
+    } 
     // Check if the setting for ytDlpPath exists
-    const settingsPath = getSetting('ytDlpPath');
-    if (settingsPath && await fs.pathExists(settingsPath)) {
-      ytDlp = new YtDlpWrap(settingsPath);
-      console.log(`Using yt-dlp from settings at: ${settingsPath}`);
-      return;
+    else if (getSetting('ytDlpPath')) {
+      const settingsPath = getSetting('ytDlpPath') as string;
+      if (await fs.pathExists(settingsPath)) {
+        ytDlp = new YtDlpWrap(settingsPath);
+        console.log(`Using yt-dlp from settings at: ${settingsPath}`);
+      }
     }
-    
     // Check for bundled binary in production mode
-    const bundledPath = getBundledYtDlpPath();
-    if (await fs.pathExists(bundledPath)) {
+    else if (await fs.pathExists(getBundledYtDlpPath())) {
+      const bundledPath = getBundledYtDlpPath();
       ytDlp = new YtDlpWrap(bundledPath);
       console.log(`Using bundled yt-dlp binary at: ${bundledPath}`);
-      return;
+    }
+    // If all else fails, let yt-dlp-wrap try to find or download it
+    else {
+      console.log('No existing yt-dlp binary found, letting yt-dlp-wrap handle it...');
+      ytDlp = new YtDlpWrap();
     }
     
-    // If all else fails, let yt-dlp-wrap try to find or download it
-    console.log('No existing yt-dlp binary found, letting yt-dlp-wrap handle it...');
-    ytDlp = new YtDlpWrap();
-    
-    // Test that yt-dlp is working
+    // Test that yt-dlp is working and log version info
     const version = await ytDlp.getVersion();
     console.log(`yt-dlp initialized, version: ${version}`);
+    
+    // Log available commands 
+    try {
+      const { stdout } = await execAsync(`"${getBundledYtDlpPath()}" --help`, {
+        maxBuffer: MAX_BUFFER_SIZE
+      });
+      console.log('Available yt-dlp commands:', 
+        stdout.split('\n')
+             .filter(line => line.includes('--'))
+             .slice(0, 5)
+             .join('\n  ') + 
+        '\n  ... (truncated)'
+      );
+    } catch (e) {
+      console.log('Could not retrieve yt-dlp help information');
+    }
+    
+    return;
   } catch (error: any) {
     console.error('Failed to initialize yt-dlp:', error);
     throw new Error('Failed to initialize yt-dlp. Please check if it is installed correctly.');
@@ -106,27 +125,24 @@ export async function getPlaylistInfo(playlistUrl: string): Promise<{
         await initYtDlp();
       }
       
-      // Use yt-dlp to get playlist metadata
-      const args = [
-        '--dump-json',
-        '--flat-playlist',
-        playlistUrl
-      ];
+      console.log(`Getting playlist info for: ${playlistUrl}`);
       
-      // Create a temporary file to store the JSON output
-      const tempJsonFile = fileUtils.getTempFilePath('json');
+      // Direct method - capture stdout directly with increased maxBuffer
+      const { stdout } = await execAsync(`"${getBundledYtDlpPath()}" --dump-json --flat-playlist "${playlistUrl}"`, {
+        maxBuffer: MAX_BUFFER_SIZE
+      });
       
-      // Run yt-dlp with output to the temp file to avoid stdout limitations
-      await ytDlp.execPromise([...args, '-o', tempJsonFile]);
+      if (!stdout || stdout.trim() === '') {
+        throw new Error('No data returned from yt-dlp');
+      }
       
-      // Read the JSON file
-      const jsonStr = await fs.readFile(tempJsonFile, 'utf-8');
-      
-      // Clean up the temp file
-      await fs.remove(tempJsonFile);
+      const lines = stdout.split('\n').filter(line => line.trim() !== '');
+      if (lines.length === 0) {
+        throw new Error('No valid JSON data in response');
+      }
       
       // Parse the first line to get playlist info
-      const playlistData = JSON.parse(jsonStr.split('\n')[0]);
+      const playlistData = JSON.parse(lines[0]);
       
       return {
         id: playlistData.id || '',
@@ -145,7 +161,7 @@ export async function getPlaylistInfo(playlistUrl: string): Promise<{
 /**
  * Extract video entries from a YouTube playlist
  */
-export async function getPlaylistVideos(playlistUrl: string): Promise<Video[]> {
+export async function getPlaylistVideos(playlistUrl: string, progressCallback?: (currentCount: number) => void): Promise<Video[]> {
   // Use the rate limiter to execute this function
   return rateLimiter.execute('yt-dlp', async () => {
     try {
@@ -157,51 +173,80 @@ export async function getPlaylistVideos(playlistUrl: string): Promise<Video[]> {
       // Get the current date string for addedAt field
       const currentDate = new Date().toISOString();
       
-      // Use yt-dlp to get individual video info
-      const args = [
-        '--dump-json',
-        '--no-playlist-metainfo',
-        playlistUrl
-      ];
+      console.log(`Getting playlist videos for: ${playlistUrl}`);
       
-      // Create a temporary file to store the JSON output
-      const tempJsonFile = fileUtils.getTempFilePath('json');
+      // Define a timeout for the yt-dlp command (2 minutes)
+      const TIMEOUT_MS = 2 * 60 * 1000;
       
-      // Run yt-dlp with output to a temp file
-      await ytDlp.execPromise([...args, '-o', tempJsonFile]);
+      // Create a promise that rejects after the timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Operation timed out after 2 minutes')), TIMEOUT_MS);
+      });
       
-      // Read the JSON file
-      const jsonStr = await fs.readFile(tempJsonFile, 'utf-8');
+      // Create the actual command promise - using flat-playlist for faster loading
+      const commandPromise = execAsync(`"${getBundledYtDlpPath()}" --dump-json --flat-playlist "${playlistUrl}"`, { 
+        maxBuffer: MAX_BUFFER_SIZE 
+      });
       
-      // Clean up the temp file
-      await fs.remove(tempJsonFile);
+      // Race the command against the timeout
+      console.log(`Executing yt-dlp command with ${TIMEOUT_MS}ms timeout...`);
+      const { stdout } = await Promise.race([commandPromise, timeoutPromise]) as { stdout: string };
+      
+      console.log('Command completed, processing results...');
+      
+      if (!stdout || stdout.trim() === '') {
+        console.error('No data returned from yt-dlp command');
+        throw new Error('No data returned from yt-dlp');
+      }
       
       // Parse each line as a JSON object for each video
       const videos: Video[] = [];
+      const lines = stdout.split('\n').filter(Boolean);
       
-      jsonStr.split('\n').filter(Boolean).forEach(line => {
+      console.log(`Found ${lines.length} video entries to process`);
+      
+      lines.forEach((line, index) => {
         try {
           const videoInfo = JSON.parse(line);
           videos.push({
             id: videoInfo.id,
-            title: videoInfo.title,
-            url: videoInfo.webpage_url,
-            thumbnail: videoInfo.thumbnail,
-            duration: videoInfo.duration,
+            title: videoInfo.title || `Video ${index + 1}`,
+            url: videoInfo.url || `https://www.youtube.com/watch?v=${videoInfo.id}`,
+            thumbnail: videoInfo.thumbnail || '', // thumbnails may not be available in flat-playlist mode
+            duration: videoInfo.duration || 0, // duration may not be available in flat-playlist mode
             downloaded: false,
             addedAt: currentDate,
             status: 'available'
           });
+          progressCallback?.(index + 1);
         } catch (e) {
           // Skip lines that can't be parsed
           console.error('Error parsing video info:', e);
         }
       });
       
+      console.log(`Successfully processed ${videos.length} videos from playlist`);
+      
+      // Handle if we got no videos but no error was thrown
+      if (videos.length === 0) {
+        console.error('No videos could be processed from the playlist');
+        throw new Error('Failed to extract videos from playlist. The playlist might be private, empty, or invalid.');
+      }
+      
       return videos;
     } catch (error: any) {
       console.error('Error extracting playlist videos:', error);
-      throw new Error(`Failed to extract playlist videos: ${error.message}`);
+      
+      // Provide more helpful error messages
+      if (error.message.includes('timed out')) {
+        throw new Error('The playlist import timed out. This could be because the playlist is too large or YouTube is throttling requests.');
+      } else if (error.message.includes('Private video')) {
+        throw new Error('This playlist contains private videos that cannot be accessed.');
+      } else if (error.message.includes('sign in')) {
+        throw new Error('This playlist requires you to sign in to YouTube.');
+      } else {
+        throw new Error(`Failed to extract playlist videos: ${error.message}`);
+      }
     }
   });
 }
@@ -209,15 +254,52 @@ export async function getPlaylistVideos(playlistUrl: string): Promise<Video[]> {
 /**
  * Import a YouTube playlist and save it locally
  */
-export async function importYoutubePlaylist(playlistUrl: string): Promise<Playlist> {
+export async function importYoutubePlaylist(playlistUrl: string, progressCallback?: (status: string, count?: number, total?: number) => void): Promise<Playlist> {
   try {
+    // Report starting status
+    progressCallback?.('Starting playlist import...');
+    console.log(`Starting import for playlist: ${playlistUrl}`);
+    
     // Get playlist general info
-    const playlistInfo = await getPlaylistInfo(playlistUrl);
+    progressCallback?.('Retrieving playlist information...');
+    let playlistInfo: any;
+    
+    try {
+      console.log('Fetching playlist info...');
+      playlistInfo = await getPlaylistInfo(playlistUrl);
+      console.log(`Found playlist: "${playlistInfo.title}" with ${playlistInfo.videoCount} videos`);
+    } catch (error: any) {
+      console.error('Error retrieving playlist info:', error);
+      progressCallback?.(`Error: ${error.message}`);
+      throw new Error(`Failed to retrieve playlist info: ${error.message}`);
+    }
+    
+    // Report playlist found
+    progressCallback?.(`Found playlist: ${playlistInfo.title} (${playlistInfo.videoCount} videos)`);
     
     // Get all videos in the playlist
-    const videos = await getPlaylistVideos(playlistUrl);
+    progressCallback?.('Retrieving videos...', 0, playlistInfo.videoCount);
+    let videos: Video[] = [];
+    
+    try {
+      console.log('Fetching videos from playlist...');
+      videos = await getPlaylistVideos(playlistUrl, (currentCount) => {
+        progressCallback?.('Retrieving videos...', currentCount, playlistInfo.videoCount);
+        console.log(`Processed ${currentCount} of approximately ${playlistInfo.videoCount} videos`);
+      });
+      console.log(`Successfully retrieved ${videos.length} videos`);
+    } catch (error: any) {
+      console.error('Error retrieving playlist videos:', error);
+      progressCallback?.(`Error: ${error.message}`);
+      throw new Error(`Failed to retrieve playlist videos: ${error.message}`);
+    }
+    
+    // Report videos retrieved
+    progressCallback?.(`Retrieved ${videos.length} videos`, videos.length, playlistInfo.videoCount);
     
     // Create a new playlist object
+    progressCallback?.('Creating playlist...');
+    console.log('Creating playlist in local database...');
     const currentDate = new Date().toISOString();
     const playlistId = fileUtils.createPlaylistId();
     
@@ -234,14 +316,29 @@ export async function importYoutubePlaylist(playlistUrl: string): Promise<Playli
     };
     
     // Create a directory for the playlist
-    await fileUtils.createPlaylistDir(playlistId, playlist.name);
+    progressCallback?.('Saving playlist metadata...');
+    console.log(`Creating directory for playlist ID: ${playlistId}`);
     
-    // Save playlist metadata
-    await fileUtils.writePlaylistMetadata(playlistId, playlist.name, playlist);
+    try {
+      await fileUtils.createPlaylistDir(playlistId, playlist.name);
+      console.log('Playlist directory created successfully');
+      
+      // Save playlist metadata
+      console.log('Saving playlist metadata...');
+      await fileUtils.writePlaylistMetadata(playlistId, playlist.name, playlist);
+      console.log('Playlist metadata saved successfully');
+    } catch (error: any) {
+      console.error('Error saving playlist:', error);
+      progressCallback?.(`Error: ${error.message}`);
+      throw new Error(`Failed to save playlist: ${error.message}`);
+    }
     
+    progressCallback?.('Import complete!', videos.length, videos.length);
+    console.log(`Playlist "${playlist.name}" imported successfully with ${videos.length} videos`);
     return playlist;
   } catch (error: any) {
     console.error('Error importing YouTube playlist:', error);
+    progressCallback?.(`Error: ${error.message}`);
     throw new Error(`Failed to import YouTube playlist: ${error.message}`);
   }
 }

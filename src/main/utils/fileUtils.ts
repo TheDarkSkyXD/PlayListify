@@ -180,7 +180,22 @@ export function sanitizeFileName(fileName: string): string {
 export function getTempFilePath(extension: string = 'tmp'): string {
   const tempDir = app.getPath('temp');
   const tempFileName = `playlistify-${uuidv4()}.${extension}`;
-  return path.join(tempDir, tempFileName);
+  
+  // Ensure temp directory exists
+  fs.ensureDirSync(tempDir);
+  
+  // Generate the full path
+  const tempFilePath = path.join(tempDir, tempFileName);
+  
+  // Validate the path
+  if (!tempFilePath || tempFilePath.length === 0) {
+    throw new Error('Failed to generate a valid temporary file path');
+  }
+  
+  // For debugging
+  console.log(`Generated temp file path: ${tempFilePath}`);
+  
+  return tempFilePath;
 }
 
 /**

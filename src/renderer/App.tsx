@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { RouterProvider } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from './routes/routes';
+import { Toaster } from './components/ui/use-toast';
+import { ImportProgress } from './components/ImportProgress';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -43,7 +45,14 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      {/* Router for main app routes */}
       <RouterProvider router={router} />
+      
+      {/* Background import progress indicator */}
+      <ImportProgress />
+      
+      {/* Toast notifications */}
+      <Toaster />
     </QueryClientProvider>
   );
 }

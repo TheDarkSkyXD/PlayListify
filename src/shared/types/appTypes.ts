@@ -148,6 +148,7 @@ export interface Api {
     importPlaylist: (playlistUrl: string) => Promise<Playlist>;
     checkVideoStatus: (videoUrl: string) => Promise<'available' | 'unavailable'>;
     downloadVideo: (videoUrl: string, outputDir: string, videoId: string, options?: DownloadOptions) => Promise<string>;
+    onImportProgress: (callback: (data: { status: string, count?: number, total?: number }) => void) => (() => void);
   };
   
   // Playlist management API

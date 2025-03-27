@@ -4,6 +4,7 @@ import { Playlist, Video } from '../../shared/types/appTypes';
 import fs from 'fs-extra';
 import path from 'path';
 import { getSetting } from './settingsManager';
+import { IpcMainInvokeEvent } from 'electron';
 
 /**
  * Create a new empty playlist
@@ -39,9 +40,14 @@ export async function createEmptyPlaylist(name: string, description?: string): P
 /**
  * Import a YouTube playlist
  */
-export async function importYoutubePlaylist(playlistUrl: string): Promise<Playlist> {
+export async function importYoutubePlaylist(playlistUrl: string, event?: IpcMainInvokeEvent): Promise<Playlist> {
   try {
-    return await ytDlpManager.importYoutubePlaylist(playlistUrl);
+    return await ytDlpManager.importYoutubePlaylist(playlistUrl, (status, count, total) => {
+      // Send progress updates via a separate channel if event is provided
+      if (event?.sender) {
+        event.sender.send('yt:importProgress', { status, count, total });
+      }
+    });
   } catch (error: any) {
     console.error('Error importing YouTube playlist:', error);
     throw new Error(`Failed to import YouTube playlist: ${error.message}`);

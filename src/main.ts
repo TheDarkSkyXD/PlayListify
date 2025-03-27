@@ -1,11 +1,28 @@
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
 import { registerIpcHandlers } from './main/ipc/handlers';
+import { initializeSettings } from './main/services/settingsManager';
+import { initYtDlp } from './main/services/ytDlpManager';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
 }
+
+// Initialize application services
+const initializeApp = async () => {
+  try {
+    // Initialize settings first (creates necessary directories)
+    initializeSettings();
+    
+    // Initialize yt-dlp
+    await initYtDlp();
+    
+    console.log('Application services initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize application services:', error);
+  }
+};
 
 const createWindow = (): void => {
   // Create the browser window.
@@ -37,7 +54,13 @@ registerIpcHandlers();
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.on('ready', async () => {
+  // Initialize application services before creating the window
+  await initializeApp();
+  
+  // Create the main window
+  createWindow();
+});
 
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {

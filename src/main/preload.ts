@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 // Define valid channels for security
 const validSendChannels: string[] = ['toMain'];
-const validReceiveChannels: string[] = ['fromMain'];
+const validReceiveChannels: string[] = ['fromMain', 'yt:importProgress'];
 const validInvokeChannels: string[] = [
   // Settings channels
   'settings:get',
@@ -156,6 +156,13 @@ contextBridge.exposeInMainWorld(
       },
       downloadVideo: (videoUrl: string, outputDir: string, videoId: string, options: any = {}) => {
         return ipcRenderer.invoke('yt:downloadVideo', videoUrl, outputDir, videoId, options);
+      },
+      onImportProgress: (callback: (data: { status: string, count?: number, total?: number }) => void) => {
+        const listener = (_: any, data: any) => callback(data);
+        ipcRenderer.on('yt:importProgress', listener);
+        return () => {
+          ipcRenderer.removeListener('yt:importProgress', listener);
+        };
       }
     },
     

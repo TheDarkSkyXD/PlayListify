@@ -6,6 +6,7 @@ import * as playlistManager from '../services/playlistManager';
 import * as imageUtils from '../utils/imageUtils';
 import path from 'path';
 import fs from 'fs-extra';
+import { v4 as uuidv4 } from 'uuid';
 
 // Define type for settings keys
 type SettingsKey = keyof ReturnType<typeof settingsManager.getAllSettings>;
@@ -108,8 +109,8 @@ export function registerIpcHandlers(): void {
     return await ytDlpManager.getPlaylistVideos(playlistUrl);
   });
 
-  ipcMain.handle('yt:importPlaylist', async (_: IpcMainInvokeEvent, playlistUrl: string) => {
-    return await playlistManager.importYoutubePlaylist(playlistUrl);
+  ipcMain.handle('yt:importPlaylist', async (event: IpcMainInvokeEvent, playlistUrl: string) => {
+    return await playlistManager.importYoutubePlaylist(playlistUrl, event);
   });
 
   ipcMain.handle('yt:checkVideoStatus', async (_: IpcMainInvokeEvent, videoUrl: string) => {
@@ -184,6 +185,67 @@ export function registerIpcHandlers(): void {
       }
     } catch (error) {
       return { valid: false, error: 'Invalid path' };
+    }
+  });
+
+  // Import YouTube playlist
+  ipcMain.handle('import-youtube-playlist', async (_event, url: string, progressCallback?: (current: number, total: number) => void) => {
+    try {
+      console.log(`Starting YouTube playlist import for: ${url}`);
+      
+      // First get the playlist info (title, etc)
+      const playlistInfo = await ytDlpManager.getPlaylistInfo(url);
+      console.log(`Found playlist: "${playlistInfo.title}" with ${playlistInfo.videoCount} videos`);
+      
+      // Then extract all videos
+      const videos = await ytDlpManager.getPlaylistVideos(url, (current: number) => {
+        // Report progress back to renderer
+        if (progressCallback) {
+          progressCallback(current, playlistInfo.videoCount);
+        }
+      });
+      
+      console.log(`Successfully extracted ${videos.length} videos from playlist`);
+      
+      return {
+        playlistInfo,
+        videos
+      };
+    } catch (error) {
+      console.error('Error importing YouTube playlist:', error);
+      throw error;
+    }
+  });
+
+  // Create a new playlist
+  ipcMain.handle('create-playlist', async (_event, playlist: { name: string, videos: any[] }) => {
+    try {
+      console.log(`Creating new playlist: ${playlist.name} with ${playlist.videos.length} videos`);
+      
+      // Generate a unique ID
+      const playlistId = fileUtils.createPlaylistId();
+      
+      // Create the full playlist object
+      const newPlaylist = {
+        id: playlistId,
+        ...playlist,
+        source: 'local',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Create the playlist directory
+      await fileUtils.createPlaylistDir(playlistId, playlist.name);
+      
+      // Save the playlist metadata
+      await fileUtils.writePlaylistMetadata(playlistId, playlist.name, newPlaylist);
+      
+      console.log(`Playlist "${playlist.name}" created successfully with ID: ${playlistId}`);
+      
+      return newPlaylist;
+    } catch (error) {
+      console.error('Error creating playlist:', error);
+      throw error;
     }
   });
 } 
