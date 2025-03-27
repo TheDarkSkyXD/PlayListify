@@ -18,18 +18,41 @@ function SidebarNav({ items }: SidebarNavProps) {
   const currentPath = router.state.location.pathname;
   
   return (
-    <nav className="flex flex-col space-y-1">
+    <nav className="flex flex-col space-y-1 dark:bg-[#0F0F0F]">
       {items.map((item) => {
         const isActive = currentPath === item.href || 
-                        (item.href !== '/dashboard' && currentPath.startsWith(item.href));
+                        (currentPath.startsWith(item.href) && item.href !== '/');
+        
+        if (item.href === '/') {
+          const isDashboardActive = currentPath === '/';
+          
+          return (
+            <Button
+              key={item.href}
+              variant="ghost"
+              className={cn(
+                "sidebar-nav-item",
+                isDashboardActive ? "sidebar-nav-active" : "",
+                "dark:hover:bg-muted dark:hover:text-white hover:bg-[#EDEDED] hover:text-[#0F0F0F]"
+              )}
+              asChild
+            >
+              <Link to={item.href} className="flex items-center">
+                {item.icon}
+                {item.title}
+              </Link>
+            </Button>
+          );
+        }
         
         return (
           <Button
             key={item.href}
-            variant={isActive ? "secondary" : "ghost"}
+            variant="ghost"
             className={cn(
-              "justify-start",
-              isActive ? "bg-secondary font-medium" : "font-normal"
+              "sidebar-nav-item",
+              isActive ? "sidebar-nav-active" : "",
+              "dark:hover:bg-muted dark:hover:text-white hover:bg-[#EDEDED] hover:text-[#0F0F0F]"
             )}
             asChild
           >

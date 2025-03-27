@@ -4,8 +4,9 @@ import { Button } from '../../../components/ui/button';
 import { Download, Trash2, Youtube, Clock, Check, AlertCircle } from 'lucide-react';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { formatDuration } from '../../../utils/formatters';
-import { useDownloadVideo, useRemoveVideoFromPlaylist } from '../../../services/queryHooks';
+import { useDownloadVideo, useRemoveVideoFromPlaylist, useDeletePlaylist, useDownloadPlaylist } from '../../../services/queryHooks';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../../../components/ui/alert-dialog';
+import { Link } from '@tanstack/react-router';
 
 interface PlaylistDetailsProps {
   playlist: Playlist;
@@ -64,6 +65,8 @@ export function PlaylistDetailsSkeleton() {
 export default function PlaylistDetails({ playlist, isLoading = false }: PlaylistDetailsProps) {
   const downloadVideoMutation = useDownloadVideo();
   const removeVideoMutation = useRemoveVideoFromPlaylist();
+  const deletePlaylistMutation = useDeletePlaylist();
+  const downloadPlaylistMutation = useDownloadPlaylist();
   
   if (isLoading) {
     return <PlaylistDetailsSkeleton />;
@@ -81,6 +84,14 @@ export default function PlaylistDetails({ playlist, isLoading = false }: Playlis
       playlistId: playlist.id,
       videoId
     });
+  };
+  
+  const handleDeletePlaylist = () => {
+    deletePlaylistMutation.mutate(playlist.id);
+  };
+  
+  const handleDownloadPlaylist = () => {
+    downloadPlaylistMutation.mutate(playlist.id);
   };
   
   const getVideoStatusIcon = (video: Video) => {
@@ -115,14 +126,47 @@ export default function PlaylistDetails({ playlist, isLoading = false }: Playlis
           )}
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleDownloadPlaylist}
+            disabled={downloadPlaylistMutation.isPending || playlist.videos.length === 0}
+          >
             <Download className="h-4 w-4 mr-2" />
             Download All
           </Button>
-          <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
-            <Trash2 className="h-4 w-4" />
-            <span className="sr-only">Delete Playlist</span>
-          </Button>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Playlist
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Playlist</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete the playlist "{playlist.name}"? 
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDeletePlaylist}
+                  className="bg-destructive hover:bg-destructive/90"
+                  asChild
+                >
+                  <Link to="/">Delete</Link>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
       

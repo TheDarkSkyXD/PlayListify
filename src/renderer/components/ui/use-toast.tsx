@@ -6,6 +6,7 @@ import { cn } from "../../lib/utils"
 
 const TOAST_LIMIT = 5
 const TOAST_REMOVE_DELAY = 3000
+const TOAST_AUTO_CLOSE_DELAY = 5000
 
 type ToastActionElement = React.ReactElement
 
@@ -16,6 +17,7 @@ export type Toast = {
   action?: ToastActionElement
   variant?: "default" | "destructive" | "success"
   duration?: number
+  open?: boolean
 }
 
 const actionTypes = {
@@ -65,7 +67,7 @@ const reducer = (state: State, action: Action): State => {
         ...state,
         toasts: [
           ...state.toasts,
-          { id: genId(), ...action.toast },
+          { id: genId(), ...action.toast, open: true },
         ].slice(-TOAST_LIMIT),
       }
 
@@ -124,7 +126,8 @@ function dispatch(action: Action) {
 type Toast2 = Omit<Toast, "id"> & { id?: string };
 
 function toast(props: Toast2) {
-  const id = genId()
+  const id = props.id || genId()
+  const duration = props.duration || TOAST_AUTO_CLOSE_DELAY
 
   const update = (props: Toast2) =>
     dispatch({
@@ -139,8 +142,16 @@ function toast(props: Toast2) {
     toast: {
       ...props,
       id,
+      open: true,
     } as Toast,
   })
+
+  // Set auto-dismiss timeout
+  if (duration) {
+    setTimeout(() => {
+      dismiss()
+    }, duration)
+  }
 
   return {
     id,
@@ -161,6 +172,19 @@ function useToast() {
       }
     }
   }, [state])
+
+  // Set up cleanup of dismissed toasts
+  React.useEffect(() => {
+    state.toasts.forEach((toast) => {
+      if (toast.open === false && !toastTimeouts.has(toast.id)) {
+        const timeout = setTimeout(() => {
+          dispatch({ type: actionTypes.REMOVE_TOAST, toastId: toast.id })
+        }, TOAST_REMOVE_DELAY)
+        
+        toastTimeouts.set(toast.id, timeout)
+      }
+    })
+  }, [state.toasts])
 
   return {
     ...state,
@@ -197,21 +221,19 @@ export function Toast({
       {...props}
     >
       <div className="flex-1">{children}</div>
-      {onClose && (
-        <button
-          onClick={() => {
-            onClose();
-            onOpenChange?.(false);
-          }}
-          className={cn(
-            "rounded-md p-1",
-            variant === "default" && "text-muted-foreground hover:bg-secondary",
-            variant === "destructive" && "text-destructive-foreground/80 hover:text-destructive-foreground hover:bg-destructive-foreground/20"
-          )}
-        >
-          <X className="h-4 w-4" />
-        </button>
-      )}
+      <button
+        onClick={() => {
+          if (onClose) onClose();
+          onOpenChange?.(false);
+        }}
+        className={cn(
+          "rounded-md p-1",
+          variant === "default" && "text-muted-foreground hover:bg-secondary",
+          variant === "destructive" && "text-destructive-foreground/80 hover:text-destructive-foreground hover:bg-destructive-foreground/20"
+        )}
+      >
+        <X className="h-4 w-4" />
+      </button>
     </div>
   )
 }
@@ -229,7 +251,7 @@ export function ToastDescription({ className, ...props }: ToastDescriptionProps)
 }
 
 export function Toaster() {
-  const { toasts } = useToast()
+  const { toasts, dismiss } = useToast()
 
   return (
     <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2 w-full max-w-md">
@@ -238,7 +260,10 @@ export function Toaster() {
           key={id}
           variant={variant}
           {...props}
-          onClose={() => dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id })}
+          onClose={() => dismiss(id)}
+          onOpenChange={(open) => {
+            if (!open) dismiss(id);
+          }}
         >
           <div className="grid gap-1">
             {title && <ToastTitle>{title}</ToastTitle>}

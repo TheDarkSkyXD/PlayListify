@@ -4,56 +4,56 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Light Mode - YouTube Colors */
+    --background: 0 0% 100%; /* #FFFFFF */
+    --foreground: 0 0% 13%; /* Near-black: #212121 */
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 0 0% 13%; /* #212121 */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 0 100% 50%; /* YouTube Red */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 0 0% 13%;
+    --primary: 0 0% 6%; /* Dark button: #0F0F0F */
+    --primary-foreground: 0 0% 100%; /* White text on dark button */
+    --secondary: 0 0% 95%; /* Very light gray: #F2F2F2 */
+    --secondary-foreground: 0 0% 13%;
+    --muted: 0 0% 90%; /* Light gray for disabled */
+    --muted-foreground: 0 0% 45%; /* Medium gray for secondary text */
+    --accent: 0 100% 50%; /* YouTube Red: #FF0000 */
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 215 20.2% 65.1%;
+    --border: 0 0% 89%; /* Light gray borders */
+    --input: 0 0% 89%;
+    --ring: 0 0% 6%; /* Dark ring: #0F0F0F */
     --radius: 0.5rem;
-
-    /* YouTube-specific colors */
-    --youtube-red: 0 100% 50%;
-    --youtube-red-dark: 0 100% 40%;
-    --youtube-bg-light: 0 0% 100%;
-    --youtube-bg-dark: 0 0% 9.4%;
-    --youtube-secondary-light: 0 0% 93%;
-    --youtube-secondary-dark: 0 0% 13%;
+    
+    /* Custom sidebar nav colors */
+    --sidebar-hover: 0 0% 93%; /* Light mode hover: #EDEDED */
   }
 
   .dark {
-    --background: 0 0% 9.4%; /* YouTube dark background */
-    --foreground: 0 0% 100%;
-    --card: 0 0% 13%; /* YouTube card dark */
+    /* Dark Mode - YouTube Colors */
+    --background: 0 0% 6%; /* YouTube dark background: #0F0F0F */
+    --foreground: 0 0% 100%; /* White text */
+    --card: 0 0% 13%; /* Elevated elements: rgb(33, 33, 33) */
     --card-foreground: 0 0% 100%;
     --popover: 0 0% 13%;
     --popover-foreground: 0 0% 100%;
-    --primary: 0 100% 50%; /* YouTube Red stays the same */
+    --primary: 0 0% 30%; /* Dark mode buttons: rgb(77, 77, 77) */
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 13%; /* YouTube secondary dark */
+    --secondary: 0 0% 16%; /* Slightly lighter background: rgb(40, 40, 40) */
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 67%;
-    --accent: 0 0% 20%;
+    --muted: 0 0% 24%; /* Medium gray: rgb(60, 60, 60) */
+    --muted-foreground: 0 0% 67%; /* Light gray for secondary text */
+    --accent: 0 100% 50%; /* YouTube Red: #FF0000 */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 0 0% 30%;
+    --border: 0 0% 18%; /* Very dark gray borders */
+    --input: 0 0% 18%;
+    --ring: 0 0% 30%; /* Medium gray ring: rgb(77, 77, 77) */
+    
+    /* Custom sidebar nav colors */
+    --sidebar-hover: 0 0% 20%; /* Dark mode hover: rgb(51, 51, 51) */
   }
 
   body {
@@ -67,19 +67,89 @@
   }
   
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+    @apply bg-[#0F0F0F] text-white hover:bg-[#0F0F0F]/90;
   }
   
   .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+    @apply bg-[#0F0F0F] text-white hover:bg-[#0F0F0F]/80;
+  }
+  
+  /* Force all buttons to have dark background in light mode */
+  button {
+    @apply bg-[#0F0F0F] text-white;
+  }
+  
+  /* Ensure button hover state works correctly */
+  button:hover {
+    @apply bg-[#0F0F0F]/90;
   }
   
   .input {
-    @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white;
+    @apply mt-1 block w-full rounded-md border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary;
   }
   
   .select {
-    @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white;
+    @apply mt-1 block w-full rounded-md border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary;
+  }
+  
+  /* Custom sidebar navigation hover styling */
+  .sidebar-nav-item {
+    @apply w-full justify-start transition-colors;
+  }
+  
+  /* Make hover styles more specific to override button defaults */
+  .sidebar-nav-item:hover {
+    @apply bg-[hsl(var(--sidebar-hover))] text-[#0F0F0F] !important;
+  }
+  
+  /* Ghost button hover override for sidebar */
+  button[class*="ghost"].sidebar-nav-item:hover {
+    @apply bg-[hsl(var(--sidebar-hover))] text-[#0F0F0F] !important;
+  }
+  
+  /* Specific light mode hover styling */
+  :not(.dark) .sidebar-nav-item:hover {
+    @apply bg-[#EDEDED] text-[#0F0F0F] !important;
+  }
+  
+  /* Ensure all sidebar nav items in light mode have proper hover behavior */
+  :not(.dark) button[class*="ghost"].sidebar-nav-item:hover {
+    @apply bg-[#EDEDED] text-[#0F0F0F] !important;
+  }
+  
+  /* Default sidebar nav active styling */
+  .sidebar-nav-active {
+    @apply bg-primary text-primary-foreground font-medium;
+  }
+  
+  /* Light mode overrides for sidebar navigation */
+  :not(.dark) .sidebar-nav-active {
+    @apply bg-[#EDEDED] text-[#0F0F0F] font-medium !important;
+  }
+  
+  /* Ensure the icons remain red in light mode active items */
+  :not(.dark) .sidebar-nav-active svg {
+    @apply text-[#FF0000] !important;
+  }
+  
+  /* Dark mode overrides for sidebar navigation */
+  .dark .sidebar-nav-active {
+    @apply bg-[#272727] text-white font-medium !important;
+  }
+  
+  /* Dark mode hover override - make text white */
+  .dark .sidebar-nav-item:hover:not(.sidebar-nav-active) {
+    @apply bg-[rgb(51,51,51)] text-white !important;
+  }
+  
+  /* Hover effect for active items - slightly lighter background */
+  .dark .sidebar-nav-active:hover {
+    @apply bg-[#323232] text-white !important;
+  }
+  
+  /* Dark mode button overrides */
+  .dark button {
+    @apply border-muted;
   }
 }
 
@@ -94,19 +164,164 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
+  @apply bg-muted;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  @apply bg-muted-foreground;
 }
 
 /* Dark mode scrollbar */
 .dark ::-webkit-scrollbar-thumb {
-  background: #666;
+  @apply bg-muted;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #888;
+  @apply bg-muted-foreground;
+}
+
+/* Additional focus and active state overrides */
+.dark *:focus-visible {
+  outline-color: hsl(0, 0%, 30%);
+}
+
+.dark a {
+  color: hsl(0, 0%, 80%);
+}
+
+.dark a:focus {
+  color: hsl(0, 0%, 100%);
+}
+
+/* Additional overrides to remove blue focus/active colors in dark mode */
+.dark {
+  --tw-ring-color: hsl(0, 0%, 30%) !important;
+}
+
+.dark *:focus {
+  outline-color: hsl(0, 0%, 30%) !important;
+}
+
+.dark a:focus,
+.dark button:focus,
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: hsl(0, 0%, 30%) !important;
+  outline-color: hsl(0, 0%, 30%) !important;
+  box-shadow: 0 0 0 2px hsla(0, 0%, 30%, 0.4) !important;
+}
+
+.dark [data-active],
+.dark [aria-selected="true"] {
+  background-color: rgb(40, 40, 40) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Override specific elements with blue backgrounds */
+.dark [class*="bg-slate"],
+.dark [class*="bg-gray"],
+.dark [class*="bg-blue"],
+.dark [class*="from-"],
+.dark [class*="to-"],
+.dark [class*="via-"] {
+  background-color: rgb(33, 33, 33) !important;
+  background-image: none !important;
+}
+
+/* Target specific dashboard components that might have hardcoded colors */
+.dark [class*="dashboard"],
+.dark [class*="card"],
+.dark [class*="playlist"],
+.dark [class*="panel"],
+.dark [class*="content"],
+.dark [class*="header"],
+.dark [class*="footer"] {
+  background-color: rgb(33, 33, 33) !important;
+}
+
+/* Direct color override for specific blue shade */
+.dark *[style*="background-color: #1D2936"],
+.dark *[style*="background: #1D2936"],
+.dark *[style*="background-color:#1D2936"],
+.dark *[style*="background:#1D2936"] {
+  background-color: rgb(33, 33, 33) !important;
+}
+
+/* Override nested elements */
+.dark div > div, 
+.dark section > div {
+  background-color: inherit;
+}
+
+/* Target main containers and layout elements */
+.dark main,
+.dark [role="main"],
+.dark .bg-background,
+.dark .min-h-screen,
+.dark .flex.min-h-screen {
+  background-color: #0F0F0F !important;
+}
+
+/* Override card containers specifically on dashboard */
+.dark div[class*="rounded-lg"],
+.dark div[class*="shadow"],
+.dark div[class*="border"] {
+  background-color: rgb(33, 33, 33) !important;
+  border-color: rgb(40, 40, 40) !important;
+}
+
+/* YouTube icon styling */
+.text-youtube-red {
+  color: #FF0000 !important;
+}
+
+/* Light mode icon styling */
+svg[class*="lucide"] {
+  color: #0F0F0F;
+}
+
+/* Specific override for YouTube logo icon */
+div.flex.items-center svg[class*="lucide-youtube"] {
+  color: #FF0000 !important;
+}
+
+/* Dark mode icon styling */
+.dark svg[class*="lucide"] {
+  color: #EDEDED;
+}
+
+/* Dark mode override for YouTube logo icon */
+.dark div.flex.items-center svg[class*="lucide-youtube"] {
+  color: #FF0000 !important;
+}
+
+/* Selected nav item should maintain icon colors based on mode */
+.sidebar-nav-active svg {
+  color: #0F0F0F !important;
+}
+
+.dark .sidebar-nav-active svg {
+  color: #EDEDED !important;
+}
+
+/* Hover state icon colors */
+.sidebar-nav-item:hover svg {
+  color: #0F0F0F !important;
+}
+
+.dark .sidebar-nav-item:hover svg {
+  color: #EDEDED !important;
+}
+
+/* Override sidebar background in dark mode */
+.dark [class*="md:flex"][class*="flex-col"][class*="w-64"] {
+  background-color: #0F0F0F !important;
+}
+
+/* Ensure sidebar container and all children maintain the dark background */
+.dark nav.flex.flex-col,
+.dark div.flex.flex-col.w-64 {
+  background-color: #0F0F0F !important;
 } 
