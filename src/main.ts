@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
+import { registerIpcHandlers } from './main/ipc/handlers';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -12,7 +13,8 @@ const createWindow = (): void => {
     height: 800,
     width: 1200,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      // Use the CommonJS preload script instead of the webpack-bundled one
+      preload: path.join(app.getAppPath(), 'src', 'preload-commonjs.js'),
       nodeIntegration: false,
       contextIsolation: true,
     },
@@ -28,6 +30,9 @@ const createWindow = (): void => {
     mainWindow.webContents.openDevTools();
   }
 };
+
+// Register all IPC handlers
+registerIpcHandlers();
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

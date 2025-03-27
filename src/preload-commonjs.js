@@ -1,44 +1,43 @@
-import { contextBridge, ipcRenderer } from 'electron';
-import type { Api, AppSettings } from './shared/types/appTypes';
+const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld(
   'api', {
     // General message passing
-    send: (channel: string, data: any) => {
+    send: (channel, data) => {
       // whitelist channels
       const validChannels = ['toMain'];
       if (validChannels.includes(channel)) {
         ipcRenderer.send(channel, data);
       }
     },
-    receive: (channel: string, func: Function) => {
+    receive: (channel, func) => {
       const validChannels = ['fromMain', 'download-progress', 'playlist-download-progress'];
       if (validChannels.includes(channel)) {
         // Deliberately strip event as it includes `sender` 
         ipcRenderer.on(channel, (event, ...args) => func(...args));
       }
     },
-    invoke: (channel: string, ...args: any[]) => {
+    invoke: (channel, ...args) => {
       return ipcRenderer.invoke(channel, ...args);
     },
-    on: (channel: string, func: Function) => {
+    on: (channel, func) => {
       ipcRenderer.on(channel, (event, ...args) => func(...args));
     },
-    off: (channel: string, func: Function) => {
-      ipcRenderer.removeListener(channel, func as any);
+    off: (channel, func) => {
+      ipcRenderer.removeListener(channel, func);
     },
 
     // Settings API
     settings: {
-      get: <K extends keyof AppSettings>(key: K) => 
+      get: (key) => 
         ipcRenderer.invoke('settings:get', key),
-      set: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => 
+      set: (key, value) => 
         ipcRenderer.invoke('settings:set', key, value),
       getAll: () => 
         ipcRenderer.invoke('settings:getAll'),
-      reset: <K extends keyof AppSettings>(key: K) => 
+      reset: (key) => 
         ipcRenderer.invoke('settings:reset', key),
       resetAll: () => 
         ipcRenderer.invoke('settings:resetAll')
@@ -48,31 +47,31 @@ contextBridge.exposeInMainWorld(
     fs: {
       selectDirectory: () => 
         ipcRenderer.invoke('fs:selectDirectory'),
-      createPlaylistDir: (playlistId: string, playlistName: string) => 
+      createPlaylistDir: (playlistId, playlistName) => 
         ipcRenderer.invoke('fs:createPlaylistDir', playlistId, playlistName),
-      writePlaylistMetadata: (playlistId: string, playlistName: string, metadata: any) => 
+      writePlaylistMetadata: (playlistId, playlistName, metadata) => 
         ipcRenderer.invoke('fs:writePlaylistMetadata', playlistId, playlistName, metadata),
-      readPlaylistMetadata: (playlistId: string, playlistName: string) => 
+      readPlaylistMetadata: (playlistId, playlistName) => 
         ipcRenderer.invoke('fs:readPlaylistMetadata', playlistId, playlistName),
       getAllPlaylists: () => 
         ipcRenderer.invoke('fs:getAllPlaylists'),
-      deletePlaylist: (playlistId: string, playlistName: string) => 
+      deletePlaylist: (playlistId, playlistName) => 
         ipcRenderer.invoke('fs:deletePlaylist', playlistId, playlistName),
-      videoExists: (playlistId: string, playlistName: string, videoId: string, format: string) => 
+      videoExists: (playlistId, playlistName, videoId, format) => 
         ipcRenderer.invoke('fs:videoExists', playlistId, playlistName, videoId, format),
-      getFileSize: (filePath: string) => 
+      getFileSize: (filePath) => 
         ipcRenderer.invoke('fs:getFileSize', filePath),
       getFreeDiskSpace: () => 
         ipcRenderer.invoke('fs:getFreeDiskSpace'),
-      validatePath: (dirPath: string) => 
+      validatePath: (dirPath) => 
         ipcRenderer.invoke('fs:validatePath', dirPath)
     },
     
     // Image utilities
     images: {
-      cacheImage: (url: string) => 
+      cacheImage: (url) => 
         ipcRenderer.invoke('image:cache', url),
-      getLocalPath: (url: string, downloadIfMissing = true) => 
+      getLocalPath: (url, downloadIfMissing = true) => 
         ipcRenderer.invoke('image:getLocalPath', url, downloadIfMissing),
       clearCache: (maxAgeDays = 30) => 
         ipcRenderer.invoke('image:clearCache', maxAgeDays)
@@ -80,38 +79,38 @@ contextBridge.exposeInMainWorld(
     
     // YouTube API
     youtube: {
-      getPlaylistInfo: (playlistUrl: string) => 
+      getPlaylistInfo: (playlistUrl) => 
         ipcRenderer.invoke('yt:getPlaylistInfo', playlistUrl),
-      getPlaylistVideos: (playlistUrl: string) => 
+      getPlaylistVideos: (playlistUrl) => 
         ipcRenderer.invoke('yt:getPlaylistVideos', playlistUrl),
-      importPlaylist: (playlistUrl: string) => 
+      importPlaylist: (playlistUrl) => 
         ipcRenderer.invoke('yt:importPlaylist', playlistUrl),
-      checkVideoStatus: (videoUrl: string) => 
+      checkVideoStatus: (videoUrl) => 
         ipcRenderer.invoke('yt:checkVideoStatus', videoUrl),
-      downloadVideo: (videoUrl: string, outputDir: string, videoId: string, options?: any) => 
+      downloadVideo: (videoUrl, outputDir, videoId, options) => 
         ipcRenderer.invoke('yt:downloadVideo', videoUrl, outputDir, videoId, options)
     },
     
     // Playlist management API
     playlists: {
-      create: (name: string, description?: string) => 
+      create: (name, description) => 
         ipcRenderer.invoke('playlist:create', name, description),
       getAll: () => 
         ipcRenderer.invoke('playlist:getAll'),
-      getById: (playlistId: string) => 
+      getById: (playlistId) => 
         ipcRenderer.invoke('playlist:getById', playlistId),
-      delete: (playlistId: string) => 
+      delete: (playlistId) => 
         ipcRenderer.invoke('playlist:delete', playlistId),
-      update: (playlistId: string, updates: any) => 
+      update: (playlistId, updates) => 
         ipcRenderer.invoke('playlist:update', playlistId, updates),
-      addVideo: (playlistId: string, videoUrl: string) => 
+      addVideo: (playlistId, videoUrl) => 
         ipcRenderer.invoke('playlist:addVideo', playlistId, videoUrl),
-      removeVideo: (playlistId: string, videoId: string) => 
+      removeVideo: (playlistId, videoId) => 
         ipcRenderer.invoke('playlist:removeVideo', playlistId, videoId),
-      downloadVideo: (playlistId: string, videoId: string, options?: any) => 
+      downloadVideo: (playlistId, videoId, options) => 
         ipcRenderer.invoke('playlist:downloadVideo', playlistId, videoId, options),
-      refresh: (playlistId: string) => 
+      refresh: (playlistId) => 
         ipcRenderer.invoke('playlist:refresh', playlistId)
     }
-  } as Api
+  }
 ); 

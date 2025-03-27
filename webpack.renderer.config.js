@@ -36,4 +36,9 @@ module.exports = {
     },
   },
   devtool: 'source-map',
+  // Set proper node environment to handle globals like __dirname
+  node: {
+    __dirname: false,
+    __filename: false
+  },
 };

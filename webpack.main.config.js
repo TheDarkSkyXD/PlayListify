@@ -1,4 +1,5 @@
 const path = require('path');
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   /**
@@ -6,8 +7,8 @@ module.exports = {
    * that runs in the main process.
    */
   entry: {
-    index: './src/main.ts',
-    preload: './src/preload.ts'
+    index: './src/main.ts'
+    // Remove preload from webpack bundling
   },
   // Put your normal webpack config below here
   module: {
@@ -32,4 +33,19 @@ module.exports = {
   output: {
     filename: '[name].js',
   },
+  // Add Node.js environment settings to ensure __dirname works in preload
+  node: {
+    __dirname: false,
+    __filename: false
+  },
+  // Tell webpack that we're building for Electron
+  target: 'electron-main',
+  // Add plugins to copy the preload-commonjs.js file to the output directory
+  plugins: [
+    new CopyPlugin({
+      patterns: [
+        { from: 'src/preload-commonjs.js', to: 'preload-commonjs.js' }
+      ],
+    }),
+  ],
 };
