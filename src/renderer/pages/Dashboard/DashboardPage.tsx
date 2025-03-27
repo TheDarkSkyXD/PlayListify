@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import PlaylistList, { PlaylistSkeleton } from '../../features/playlists/components/PlaylistList';
 import { CreatePlaylistForm } from '../../features/playlists/components/CreatePlaylistForm';
@@ -11,22 +11,47 @@ import {
   Download, 
   RefreshCw,
   Youtube,
-  Layout
+  Layout,
+  Plus
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import AppLayout from '../../components/AppLayout';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../../components/ui/dialog';
 
 const DashboardPage: React.FC = () => {
   const { data: playlists, isLoading, error } = usePlaylists();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   return (
     <AppLayout>
       <div className="container px-4 py-8">
         <header className="mb-8 bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
-            <Home className="mr-3 h-8 w-8 text-primary" />
-            Dashboard
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
+              <Home className="mr-3 h-8 w-8 text-primary" />
+              Dashboard
+            </h1>
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Playlist
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Create New Playlist</DialogTitle>
+                </DialogHeader>
+                <CreatePlaylistForm onSuccess={() => setCreateDialogOpen(false)} inModal={true} />
+              </DialogContent>
+            </Dialog>
+          </div>
           <p className="mt-2 text-gray-600 dark:text-gray-300">
             Manage your YouTube playlists and downloads
           </p>
@@ -43,9 +68,6 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
           )}
-          
-          {/* Create new playlist form */}
-          <CreatePlaylistForm />
           
           <div className="grid grid-cols-1 gap-6">
             <section className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">

@@ -13,7 +13,12 @@ function isValidYoutubeUrl(url: string): boolean {
   return url.includes('youtube.com/') || url.includes('youtu.be/');
 }
 
-export function CreatePlaylistForm() {
+interface CreatePlaylistFormProps {
+  onSuccess?: () => void;
+  inModal?: boolean;
+}
+
+export function CreatePlaylistForm({ onSuccess, inModal = true }: CreatePlaylistFormProps) {
   // Form state
   const [name, setName] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -76,6 +81,9 @@ export function CreatePlaylistForm() {
           // Reset form
           resetForm();
           
+          // Call onSuccess if provided
+          if (onSuccess) onSuccess();
+          
           // No toast needed here as the importService shows toasts
         } catch (error: any) {
           toast({
@@ -100,6 +108,9 @@ export function CreatePlaylistForm() {
         
         // Reset form
         resetForm();
+        
+        // Call onSuccess if provided
+        if (onSuccess) onSuccess();
       }
     } catch (error: any) {
       toast({
@@ -112,6 +123,51 @@ export function CreatePlaylistForm() {
       setIsSubmitting(false);
     }
   };
+
+  // Conditional rendering based on whether component is in a modal or standalone
+  if (inModal) {
+    return (
+      <div className="px-4 py-2">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Playlist Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="My Awesome Playlist"
+            />
+            {nameError && <p className="text-sm text-red-500">{nameError}</p>}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="youtubeUrl">YouTube Playlist URL (optional)</Label>
+            <Input
+              id="youtubeUrl"
+              value={youtubeUrl}
+              onChange={(e) => setYoutubeUrl(e.target.value)}
+              placeholder="https://www.youtube.com/playlist?list=..."
+            />
+            <p className="text-sm text-muted-foreground">
+              Import videos from a YouTube playlist
+            </p>
+            {urlError && <p className="text-sm text-red-500">{urlError}</p>}
+          </div>
+          
+          <Button type="submit" disabled={isSubmitting} className="w-full">
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>Create Playlist</>
+            )}
+          </Button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <Card>

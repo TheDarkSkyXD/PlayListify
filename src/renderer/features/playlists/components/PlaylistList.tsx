@@ -159,12 +159,8 @@ const PlaylistList: React.FC<PlaylistListProps> = ({ playlists = [] }) => {
             No Playlists Yet
           </h2>
           <p className="text-muted-foreground mb-6 max-w-sm">
-            Create your first playlist or import from YouTube to get started.
+            Use the "Create New Playlist" form above to get started or import playlists from YouTube.
           </p>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Playlist
-          </Button>
         </div>
       </div>
     );
