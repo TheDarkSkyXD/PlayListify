@@ -1,79 +1,6 @@
 import { Playlist, Video } from '../../shared/types/appTypes';
 import { v4 as uuidv4 } from 'uuid';
 
-// Create a mutable array to store playlists so changes persist during the session
-let MOCK_PLAYLISTS: Playlist[] = [
-  {
-    id: 'pl1',
-    name: 'Favorite Music',
-    description: 'My favorite music collection',
-    videos: [
-      {
-        id: 'vid1',
-        title: 'Awesome Song 1',
-        url: 'https://youtube.com/watch?v=abcdef1',
-        thumbnail: 'https://i.ytimg.com/vi/abcdef1/hqdefault.jpg',
-        duration: 245,
-        status: 'available',
-        downloaded: false,
-        addedAt: '2025-03-20T00:00:00.000Z'
-      },
-      {
-        id: 'vid2',
-        title: 'Awesome Song 2',
-        url: 'https://youtube.com/watch?v=abcdef2',
-        thumbnail: 'https://i.ytimg.com/vi/abcdef2/hqdefault.jpg',
-        duration: 198,
-        status: 'available',
-        downloaded: false,
-        addedAt: '2025-03-20T00:00:00.000Z'
-      }
-    ],
-    createdAt: '2025-03-20T00:00:00.000Z',
-    updatedAt: '2025-03-22T00:00:00.000Z',
-    thumbnail: 'https://i.ytimg.com/vi/abcdef1/hqdefault.jpg',
-  },
-  {
-    id: 'pl2',
-    name: 'Programming Tutorials',
-    description: 'Helpful programming tutorials',
-    videos: [
-      {
-        id: 'vid3',
-        title: 'Learn React in 1 Hour',
-        url: 'https://youtube.com/watch?v=abcdef3',
-        thumbnail: 'https://i.ytimg.com/vi/abcdef3/hqdefault.jpg',
-        duration: 3600,
-        status: 'available',
-        downloaded: false,
-        addedAt: '2025-03-15T00:00:00.000Z'
-      }
-    ],
-    createdAt: '2025-03-15T00:00:00.000Z',
-    updatedAt: '2025-03-15T00:00:00.000Z',
-    thumbnail: 'https://i.ytimg.com/vi/abcdef3/hqdefault.jpg',
-  }
-];
-
-// Try to load any previously created playlists from localStorage
-try {
-  const storedPlaylists = localStorage.getItem('playlistify-playlists');
-  if (storedPlaylists) {
-    MOCK_PLAYLISTS = JSON.parse(storedPlaylists);
-  }
-} catch (e) {
-  console.error('Failed to load playlists from localStorage:', e);
-}
-
-// Function to save playlists to localStorage
-const savePlaylists = () => {
-  try {
-    localStorage.setItem('playlistify-playlists', JSON.stringify(MOCK_PLAYLISTS));
-  } catch (e) {
-    console.error('Failed to save playlists to localStorage:', e);
-  }
-};
-
 // Helper function to simulate API request delay (for development)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -91,15 +18,12 @@ export const playlistService = {
         const playlists = await window.api.playlists.getAll();
         return playlists;
       } else {
-        // Fall back to mock data if IPC bridge is not available
-        console.warn('IPC bridge not available, falling back to mock data');
-        await delay(500); // Simulate API delay
-        return MOCK_PLAYLISTS;
+        console.error('IPC bridge not available');
+        return [];
       }
     } catch (error) {
       console.error('Error fetching playlists:', error);
-      // Fall back to mock data in case of error
-      return MOCK_PLAYLISTS;
+      return [];
     }
   },
 
@@ -113,15 +37,12 @@ export const playlistService = {
         const playlist = await window.api.playlists.getById(id);
         return playlist;
       } else {
-        // Fall back to mock data if IPC bridge is not available
-        console.warn('IPC bridge not available, falling back to mock data');
-        await delay(500); // Simulate API delay
-        return MOCK_PLAYLISTS.find(p => p.id === id) || null;
+        console.error('IPC bridge not available');
+        return null;
       }
     } catch (error) {
       console.error(`Error fetching playlist ${id}:`, error);
-      // Fall back to mock data in case of error
-      return MOCK_PLAYLISTS.find(p => p.id === id) || null;
+      return null;
     }
   },
 
@@ -130,9 +51,6 @@ export const playlistService = {
    */
   async createPlaylist(playlistData: Omit<Playlist, 'id' | 'createdAt' | 'updatedAt'>): Promise<Playlist> {
     try {
-      // For development simulation
-      await delay(500);
-
       if (window.api && window.api.playlists) {
         const playlist = await window.api.playlists.create(
           playlistData.name, 
@@ -149,47 +67,18 @@ export const playlistService = {
           }
           
           // Fetch the updated playlist with videos
-          return await window.api.playlists.getById(playlist.id) as Playlist;
+          const updatedPlaylist = await window.api.playlists.getById(playlist.id);
+          return updatedPlaylist || playlist;
         }
         
         return playlist;
       } else {
-        // Fall back to mock data if IPC bridge is not available
-        console.warn('IPC bridge not available, falling back to mock data');
-        
-        const newPlaylist: Playlist = {
-          id: `pl${MOCK_PLAYLISTS.length + 1}`,
-          name: playlistData.name,
-          description: playlistData.description || '',
-          videos: playlistData.videos || [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          thumbnail: playlistData.videos?.[0]?.thumbnail || '',
-        };
-        
-        MOCK_PLAYLISTS.push(newPlaylist);
-        savePlaylists();
-        
-        return newPlaylist;
+        console.error('IPC bridge not available');
+        throw new Error('IPC bridge not available');
       }
     } catch (error) {
       console.error('Error creating playlist:', error);
-      
-      // Fall back to mock implementation
-      const newPlaylist: Playlist = {
-        id: `pl${MOCK_PLAYLISTS.length + 1}`,
-        name: playlistData.name,
-        description: playlistData.description || '',
-        videos: playlistData.videos || [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        thumbnail: playlistData.videos?.[0]?.thumbnail || '',
-      };
-      
-      MOCK_PLAYLISTS.push(newPlaylist);
-      savePlaylists();
-      
-      return newPlaylist;
+      throw error;
     }
   },
 
@@ -198,9 +87,6 @@ export const playlistService = {
    */
   async updatePlaylist(playlist: Playlist): Promise<Playlist> {
     try {
-      // For development simulation
-      await delay(500);
-      
       if (window.api && window.api.playlists) {
         const { id, name, description, thumbnail, source, sourceUrl, tags } = playlist;
         
@@ -215,74 +101,29 @@ export const playlistService = {
         
         return updatedPlaylist;
       } else {
-        // Fall back to mock data if IPC bridge is not available
-        console.warn('IPC bridge not available, falling back to mock data');
-        
-        const index = MOCK_PLAYLISTS.findIndex(p => p.id === playlist.id);
-        if (index === -1) {
-          throw new Error(`Playlist with ID ${playlist.id} not found`);
-        }
-        
-        MOCK_PLAYLISTS[index] = {
-          ...MOCK_PLAYLISTS[index],
-          ...playlist,
-          updatedAt: new Date().toISOString()
-        };
-        
-        savePlaylists();
-        return MOCK_PLAYLISTS[index];
+        console.error('IPC bridge not available');
+        throw new Error('IPC bridge not available');
       }
     } catch (error) {
       console.error(`Error updating playlist ${playlist.id}:`, error);
-      
-      // Fall back to mock implementation
-      const index = MOCK_PLAYLISTS.findIndex(p => p.id === playlist.id);
-      if (index === -1) {
-        throw new Error(`Playlist with ID ${playlist.id} not found`);
-      }
-      
-      MOCK_PLAYLISTS[index] = {
-        ...MOCK_PLAYLISTS[index],
-        ...playlist,
-        updatedAt: new Date().toISOString()
-      };
-      
-      savePlaylists();
-      return MOCK_PLAYLISTS[index];
+      throw error;
     }
   },
 
   /**
-   * Delete a playlist
+   * Delete a playlist by ID
    */
   async deletePlaylist(id: string): Promise<void> {
     try {
-      // For development simulation
-      await delay(500);
-      
       if (window.api && window.api.playlists) {
         await window.api.playlists.delete(id);
       } else {
-        // Fall back to mock data if IPC bridge is not available
-        console.warn('IPC bridge not available, falling back to mock data');
-        
-        const index = MOCK_PLAYLISTS.findIndex(p => p.id === id);
-        if (index === -1) {
-          throw new Error(`Playlist with ID ${id} not found`);
-        }
-        
-        MOCK_PLAYLISTS.splice(index, 1);
-        savePlaylists();
+        console.error('IPC bridge not available');
+        throw new Error('IPC bridge not available');
       }
     } catch (error) {
       console.error(`Error deleting playlist ${id}:`, error);
-      
-      // Fall back to mock implementation in case of error
-      const index = MOCK_PLAYLISTS.findIndex(p => p.id === id);
-      if (index !== -1) {
-        MOCK_PLAYLISTS.splice(index, 1);
-        savePlaylists();
-      }
+      throw error;
     }
   },
 
@@ -291,76 +132,16 @@ export const playlistService = {
    */
   async importPlaylist(url: string): Promise<Playlist> {
     try {
-      // For development simulation
-      await delay(1000);
-      
       if (window.api && window.api.youtube) {
         const playlist = await window.api.youtube.importPlaylist(url);
         return playlist;
       } else {
-        // Fall back to mock data if IPC bridge is not available
-        console.warn('IPC bridge not available, falling back to mock data');
-        
-        // Create a mock imported playlist
-        const newPlaylist: Playlist = {
-          id: `pl${MOCK_PLAYLISTS.length + 1}`,
-          name: `Imported Playlist ${Math.floor(Math.random() * 1000)}`,
-          description: `Imported from ${url}`,
-          videos: [
-            {
-              id: `vid${Math.floor(Math.random() * 1000)}`,
-              title: 'Sample Imported Video',
-              url: url,
-              thumbnail: 'https://i.ytimg.com/vi/sample/hqdefault.jpg',
-              duration: 180,
-              status: 'available',
-              downloaded: false,
-              addedAt: new Date().toISOString()
-            }
-          ],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          thumbnail: 'https://i.ytimg.com/vi/sample/hqdefault.jpg',
-          source: 'youtube',
-          sourceUrl: url
-        };
-        
-        MOCK_PLAYLISTS.push(newPlaylist);
-        savePlaylists();
-        
-        return newPlaylist;
+        console.error('IPC bridge not available');
+        throw new Error('IPC bridge not available');
       }
     } catch (error) {
-      console.error('Error importing playlist:', error);
-      
-      // Fall back to mock implementation in case of error
-      const newPlaylist: Playlist = {
-        id: `pl${MOCK_PLAYLISTS.length + 1}`,
-        name: `Imported Playlist ${Math.floor(Math.random() * 1000)}`,
-        description: `Imported from ${url}`,
-        videos: [
-          {
-            id: `vid${Math.floor(Math.random() * 1000)}`,
-            title: 'Sample Imported Video',
-            url: url,
-            thumbnail: 'https://i.ytimg.com/vi/sample/hqdefault.jpg',
-            duration: 180,
-            status: 'available',
-            downloaded: false,
-            addedAt: new Date().toISOString()
-          }
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        thumbnail: 'https://i.ytimg.com/vi/sample/hqdefault.jpg',
-        source: 'youtube',
-        sourceUrl: url
-      };
-      
-      MOCK_PLAYLISTS.push(newPlaylist);
-      savePlaylists();
-      
-      return newPlaylist;
+      console.error(`Error importing playlist from ${url}:`, error);
+      throw error;
     }
   },
 
@@ -369,73 +150,27 @@ export const playlistService = {
    */
   async addVideoToPlaylist(playlistId: string, video: Omit<Video, 'id'>): Promise<Playlist> {
     try {
-      if (!video.url) {
-        throw new Error('Video URL is required');
-      }
-      
-      // For development simulation
-      await delay(500);
-      
       if (window.api && window.api.playlists) {
-        // Add the video to the playlist
-        const updatedPlaylist = await window.api.playlists.addVideo(playlistId, video.url);
-        return updatedPlaylist;
-      } else {
-        // Fall back to mock data if IPC bridge is not available
-        console.warn('IPC bridge not available, falling back to mock data');
-        
-        // Find the playlist
-        const index = MOCK_PLAYLISTS.findIndex(p => p.id === playlistId);
-        if (index === -1) {
-          throw new Error(`Playlist with ID ${playlistId} not found`);
+        // We need the URL to add a video
+        if (!video.url) {
+          throw new Error('Video URL is required');
         }
         
-        // Create a mock video
-        const mockVideo: Video = {
-          id: `vid${Math.floor(Math.random() * 10000)}`,
-          title: video.title || 'Video from ' + video.url,
-          url: video.url,
-          thumbnail: video.thumbnail || 'https://i.ytimg.com/vi/sample/hqdefault.jpg',
-          duration: video.duration || 180,
-          status: 'available',
-          downloaded: false,
-          addedAt: new Date().toISOString()
-        };
+        await window.api.playlists.addVideo(playlistId, video.url);
         
-        // Add the video to the playlist
-        MOCK_PLAYLISTS[index].videos.push(mockVideo);
-        MOCK_PLAYLISTS[index].updatedAt = new Date().toISOString();
-        
-        savePlaylists();
-        return MOCK_PLAYLISTS[index];
+        // Fetch the updated playlist
+        const updatedPlaylist = await window.api.playlists.getById(playlistId);
+        if (!updatedPlaylist) {
+          throw new Error(`Playlist ${playlistId} not found after adding video`);
+        }
+        return updatedPlaylist;
+      } else {
+        console.error('IPC bridge not available');
+        throw new Error('IPC bridge not available');
       }
     } catch (error) {
       console.error(`Error adding video to playlist ${playlistId}:`, error);
-      
-      // Fall back to mock implementation
-      const index = MOCK_PLAYLISTS.findIndex(p => p.id === playlistId);
-      if (index === -1) {
-        throw new Error(`Playlist with ID ${playlistId} not found`);
-      }
-      
-      // Create a mock video
-      const mockVideo: Video = {
-        id: `vid${Math.floor(Math.random() * 10000)}`,
-        title: video.title || 'Video from ' + video.url,
-        url: video.url,
-        thumbnail: video.thumbnail || 'https://i.ytimg.com/vi/sample/hqdefault.jpg',
-        duration: video.duration || 180,
-        status: 'available',
-        downloaded: false,
-        addedAt: new Date().toISOString()
-      };
-      
-      // Add the video to the playlist
-      MOCK_PLAYLISTS[index].videos.push(mockVideo);
-      MOCK_PLAYLISTS[index].updatedAt = new Date().toISOString();
-      
-      savePlaylists();
-      return MOCK_PLAYLISTS[index];
+      throw error;
     }
   },
 
@@ -444,61 +179,27 @@ export const playlistService = {
    */
   async removeVideoFromPlaylist(playlistId: string, videoId: string): Promise<Playlist> {
     try {
-      // For development simulation
-      await delay(500);
-      
       if (window.api && window.api.playlists) {
-        // Remove the video from the playlist
-        const updatedPlaylist = await window.api.playlists.removeVideo(playlistId, videoId);
+        await window.api.playlists.removeVideo(playlistId, videoId);
+        
+        // Fetch the updated playlist
+        const updatedPlaylist = await window.api.playlists.getById(playlistId);
+        if (!updatedPlaylist) {
+          throw new Error(`Playlist ${playlistId} not found after removing video`);
+        }
         return updatedPlaylist;
       } else {
-        // Fall back to mock data if IPC bridge is not available
-        console.warn('IPC bridge not available, falling back to mock data');
-        
-        // Find the playlist
-        const index = MOCK_PLAYLISTS.findIndex(p => p.id === playlistId);
-        if (index === -1) {
-          throw new Error(`Playlist with ID ${playlistId} not found`);
-        }
-        
-        // Find the video
-        const videoIndex = MOCK_PLAYLISTS[index].videos.findIndex(v => v.id === videoId);
-        if (videoIndex === -1) {
-          throw new Error(`Video with ID ${videoId} not found in playlist ${playlistId}`);
-        }
-        
-        // Remove the video
-        MOCK_PLAYLISTS[index].videos.splice(videoIndex, 1);
-        MOCK_PLAYLISTS[index].updatedAt = new Date().toISOString();
-        
-        savePlaylists();
-        return MOCK_PLAYLISTS[index];
+        console.error('IPC bridge not available');
+        throw new Error('IPC bridge not available');
       }
     } catch (error) {
       console.error(`Error removing video ${videoId} from playlist ${playlistId}:`, error);
-      
-      // Fall back to mock implementation
-      const index = MOCK_PLAYLISTS.findIndex(p => p.id === playlistId);
-      if (index === -1) {
-        throw new Error(`Playlist with ID ${playlistId} not found`);
-      }
-      
-      // Find the video
-      const videoIndex = MOCK_PLAYLISTS[index].videos.findIndex(v => v.id === videoId);
-      if (videoIndex !== -1) {
-        // Remove the video
-        MOCK_PLAYLISTS[index].videos.splice(videoIndex, 1);
-        MOCK_PLAYLISTS[index].updatedAt = new Date().toISOString();
-        
-        savePlaylists();
-      }
-      
-      return MOCK_PLAYLISTS[index];
+      throw error;
     }
   },
 
   /**
-   * Download a video
+   * Download a video from a playlist
    */
   async downloadVideo(
     playlistId: string, 
@@ -506,82 +207,77 @@ export const playlistService = {
     onProgress: (progress: number) => void
   ): Promise<string> {
     try {
-      // Get the playlist and video
-      const playlist = await this.getPlaylist(playlistId);
-      if (!playlist) {
-        throw new Error('Playlist not found');
+      if (window.api && window.api.playlists) {
+        // Register progress handler
+        const progressHandler = (_event: any, progress: number) => {
+          onProgress(progress);
+        };
+        
+        window.api.receive(`download-progress-${videoId}`, progressHandler);
+        
+        // Start the download
+        const filePath = await window.api.playlists.downloadVideo(playlistId, videoId);
+        
+        return filePath;
+      } else {
+        console.error('IPC bridge not available');
+        throw new Error('IPC bridge not available');
       }
-      
-      const video = playlist.videos.find(v => v.id === videoId);
-      if (!video) {
-        throw new Error('Video not found in playlist');
-      }
-      
-      // Set up a progress event listener
-      const progressHandler = (_event: any, progress: number) => {
-        onProgress(progress);
-      };
-      
-      // Register the handler for download progress
-      window.api.receive(`download-progress-${videoId}`, progressHandler);
-      
-      // Start the download
-      const downloadPath = await window.api.playlists.downloadVideo(playlistId, videoId);
-      
-      // Clean up the event listener
-      // Note: In a real implementation, you'd need a way to remove listeners
-      
-      return downloadPath;
     } catch (error) {
       console.error(`Error downloading video ${videoId} from playlist ${playlistId}:`, error);
-      throw new Error('Failed to download video');
+      throw error;
     }
   },
-
+  
   /**
-   * Download all videos in a playlist
+   * Download an entire playlist
    */
   async downloadPlaylist(
     playlistId: string, 
     onProgress: (completed: number, total: number) => void
   ): Promise<string[]> {
     try {
-      // Get the playlist
-      const playlist = await this.getPlaylist(playlistId);
-      if (!playlist) {
-        throw new Error('Playlist not found');
-      }
-      
-      const videos = playlist.videos;
-      const total = videos.length;
-      const downloadPaths: string[] = [];
-      
-      // Download each video sequentially
-      for (let i = 0; i < videos.length; i++) {
-        const video = videos[i];
-        
-        try {
-          // Skip already downloaded videos
-          if (video.downloaded) {
-            onProgress(i + 1, total);
-            continue;
-          }
-          
-          const downloadPath = await window.api.playlists.downloadVideo(playlistId, video.id);
-          downloadPaths.push(downloadPath);
-          
-          // Update progress after each video
-          onProgress(i + 1, total);
-        } catch (videoError) {
-          console.error(`Error downloading video ${video.id}:`, videoError);
-          // Continue with next video instead of failing the whole operation
+      if (window.api && window.api.playlists) {
+        // Get the playlist to find out how many videos are in it
+        const playlist = await window.api.playlists.getById(playlistId);
+        if (!playlist) {
+          throw new Error(`Playlist ${playlistId} not found`);
         }
+        
+        const videos = playlist.videos;
+        const total = videos.length;
+        const downloadPaths: string[] = [];
+        
+        // Download each video sequentially
+        for (let i = 0; i < videos.length; i++) {
+          const video = videos[i];
+          
+          try {
+            // Skip already downloaded videos
+            if (video.downloaded) {
+              onProgress(i + 1, total);
+              continue;
+            }
+            
+            const downloadPath = await window.api.playlists.downloadVideo(playlistId, video.id);
+            downloadPaths.push(downloadPath);
+            
+            // Update progress after each video
+            onProgress(i + 1, total);
+          } catch (videoError) {
+            console.error(`Error downloading video ${video.id}:`, videoError);
+            // Continue with next video instead of failing the whole operation
+          }
+        }
+        
+        return downloadPaths;
+      } else {
+        console.error('IPC bridge not available');
+        throw new Error('IPC bridge not available');
       }
-      
-      return downloadPaths;
     } catch (error) {
       console.error(`Error downloading playlist ${playlistId}:`, error);
-      throw new Error('Failed to download playlist');
+      throw error;
     }
   }
 }; 
