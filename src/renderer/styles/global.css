@@ -79,6 +79,11 @@
     @apply bg-[#0F0F0F] text-white;
   }
   
+  /* Ensure button SVG icons are white in light mode */
+  button svg {
+    @apply text-white;
+  }
+  
   /* Ensure button hover state works correctly */
   button:hover {
     @apply bg-[#0F0F0F]/90;
@@ -277,42 +282,41 @@
   color: #FF0000 !important;
 }
 
-/* Light mode icon styling */
+/* Light mode icon styling - set all Lucide icons to dark by default */
 svg[class*="lucide"] {
   color: #0F0F0F;
 }
 
-/* Specific override for YouTube logo icon */
+/* Button icons in light mode - ensure they're white by default */
+:not(.dark) button svg {
+  color: white !important;
+}
+
+/* Sidebar navigation - keep icons dark in light mode */
+:not(.dark) .sidebar-nav-item svg,
+:not(.dark) .sidebar-nav-active svg {
+  color: #0F0F0F !important;
+}
+
+/* Light variants (ghost, outline) in sidebar should also keep dark icons */
+:not(.dark) .sidebar-nav-item[class*="ghost"] svg,
+:not(.dark) .sidebar-nav-item[class*="outline"] svg,
+:not(.dark) .sidebar-nav-item[class*="link"] svg {
+  color: #0F0F0F !important;
+}
+
+/* Dark mode - make ALL icons white by default */
+.dark svg[class*="lucide"] {
+  color: white !important;
+}
+
+/* Specific override for YouTube logo icon - always red in both modes */
 div.flex.items-center svg[class*="lucide-youtube"] {
   color: #FF0000 !important;
 }
 
-/* Dark mode icon styling */
-.dark svg[class*="lucide"] {
-  color: #EDEDED;
-}
-
-/* Dark mode override for YouTube logo icon */
 .dark div.flex.items-center svg[class*="lucide-youtube"] {
   color: #FF0000 !important;
-}
-
-/* Selected nav item should maintain icon colors based on mode */
-.sidebar-nav-active svg {
-  color: #0F0F0F !important;
-}
-
-.dark .sidebar-nav-active svg {
-  color: #EDEDED !important;
-}
-
-/* Hover state icon colors */
-.sidebar-nav-item:hover svg {
-  color: #0F0F0F !important;
-}
-
-.dark .sidebar-nav-item:hover svg {
-  color: #EDEDED !important;
 }
 
 /* Override sidebar background in dark mode */
