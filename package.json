@@ -10,7 +10,13 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "echo \"No linting configured\""
+    "lint": "echo \"No linting configured\"",
+    "install:ytdlp": "node scripts/windows-installer/install-events.js",
+    "uninstall:ytdlp": "node scripts/windows-installer/uninstall-events.js",
+    "install:ytdlp:mac": "bash scripts/macos-installer/postinstall.sh",
+    "uninstall:ytdlp:mac": "bash scripts/macos-installer/preuninstall.sh",
+    "install:ytdlp:linux": "bash scripts/linux-installer/postinst.sh",
+    "uninstall:ytdlp:linux": "bash scripts/linux-installer/prerm.sh"
   },
   "keywords": [],
   "author": {

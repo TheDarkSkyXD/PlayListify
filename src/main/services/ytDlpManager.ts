@@ -3,6 +3,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs-extra';
+import { app } from 'electron';
 import { getSetting } from './settingsManager';
 import * as fileUtils from '../utils/fileUtils';
 import { Playlist, Video } from '../../shared/types/appTypes';
@@ -13,6 +14,38 @@ const execAsync = promisify(exec);
 
 // Initialize YtDlpWrap
 let ytDlp: YtDlpWrap;
+
+/**
+ * Get the path to the bundled yt-dlp binary in production mode
+ */
+function getBundledYtDlpPath(): string {
+  // Determine the expected path based on the platform
+  let binaryName: string;
+  if (process.platform === 'win32') {
+    binaryName = 'yt-dlp.exe';
+  } else if (process.platform === 'darwin') {
+    binaryName = 'yt-dlp';
+  } else {
+    // Linux
+    binaryName = 'yt-dlp';
+  }
+
+  // In development
+  if (process.env.NODE_ENV === 'development') {
+    return path.join(process.cwd(), 'ytdlp', binaryName);
+  }
+
+  // In production
+  let resourcesPath: string;
+  if (process.env.NODE_ENV === 'production') {
+    resourcesPath = process.resourcesPath;
+  } else {
+    // Fallback for testing or other environments
+    resourcesPath = path.join(app.getAppPath(), '..', 'resources');
+  }
+
+  return path.join(resourcesPath, 'ytdlp', binaryName);
+}
 
 /**
  * Initialize the YtDlpWrap instance
@@ -26,8 +59,24 @@ export async function initYtDlp(customBinaryPath?: string): Promise<void> {
       return;
     }
     
-    // In development mode, we'll rely on our setup service to handle yt-dlp
-    // In production, we'll use the default behavior or let yt-dlp-wrap download it
+    // Check if the setting for ytDlpPath exists
+    const settingsPath = getSetting('ytDlpPath');
+    if (settingsPath && await fs.pathExists(settingsPath)) {
+      ytDlp = new YtDlpWrap(settingsPath);
+      console.log(`Using yt-dlp from settings at: ${settingsPath}`);
+      return;
+    }
+    
+    // Check for bundled binary in production mode
+    const bundledPath = getBundledYtDlpPath();
+    if (await fs.pathExists(bundledPath)) {
+      ytDlp = new YtDlpWrap(bundledPath);
+      console.log(`Using bundled yt-dlp binary at: ${bundledPath}`);
+      return;
+    }
+    
+    // If all else fails, let yt-dlp-wrap try to find or download it
+    console.log('No existing yt-dlp binary found, letting yt-dlp-wrap handle it...');
     ytDlp = new YtDlpWrap();
     
     // Test that yt-dlp is working
