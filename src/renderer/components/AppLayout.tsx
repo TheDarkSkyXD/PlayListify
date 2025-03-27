@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Button } from './ui/button';
-import { Home, Settings, Youtube, Library, Sun, Moon } from 'lucide-react';
+import { Home, Settings, Youtube, Library, Sun, Moon, Download, History, Clock } from 'lucide-react';
 import SidebarNav from './SidebarNav';
 import { cn } from '../lib/utils';
 import { STORAGE_KEYS } from '../../shared/constants/appConstants';
@@ -44,14 +44,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
       icon: <Home className="mr-2 h-5 w-5 text-[#0F0F0F] dark:text-white" />
     },
     {
-      title: "Playlists",
+      title: "My Playlists",
       href: "/playlists",
       icon: <Library className="mr-2 h-5 w-5 text-[#0F0F0F] dark:text-white" />
     },
     {
-      title: "Import",
-      href: "/import",
-      icon: <Youtube className="mr-2 h-5 w-5 text-[#0F0F0F] dark:text-white" />
+      title: "Downloads",
+      href: "/downloads",
+      icon: <Download className="mr-2 h-5 w-5 text-[#0F0F0F] dark:text-white" />
+    },
+    {
+      title: "History",
+      href: "/history",
+      icon: <History className="mr-2 h-5 w-5 text-[#0F0F0F] dark:text-white" />
     },
     {
       title: "Settings",

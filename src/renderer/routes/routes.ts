@@ -2,6 +2,9 @@ import { createRouter, Route, RootRoute, Outlet, redirect } from '@tanstack/reac
 import DashboardPage from '../pages/Dashboard/DashboardPage';
 import SettingsPage from '../pages/Settings/SettingsPage';
 import PlaylistViewPage from '../pages/PlaylistView/PlaylistViewPage';
+import DownloadsPage from '../pages/Downloads/DownloadsPage';
+import HistoryPage from '../pages/History/HistoryPage';
+import PlaylistsPage from '../pages/Playlists/PlaylistsPage';
 import React from 'react';
 
 // Create a root route with a component
@@ -32,6 +35,24 @@ const playlistRoute = new Route({
   component: PlaylistViewPage,
 });
 
+const playlistsRoute = new Route({
+  getParentRoute: () => rootRoute,
+  path: '/playlists',
+  component: PlaylistsPage,
+});
+
+const downloadsRoute = new Route({
+  getParentRoute: () => rootRoute,
+  path: '/downloads',
+  component: DownloadsPage,
+});
+
+const historyRoute = new Route({
+  getParentRoute: () => rootRoute,
+  path: '/history',
+  component: HistoryPage,
+});
+
 // Catch-all route to redirect to home
 const catchAllRoute = new Route({
   getParentRoute: () => rootRoute,
@@ -49,6 +70,9 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   settingsRoute,
   playlistRoute,
+  playlistsRoute,
+  downloadsRoute,
+  historyRoute,
   catchAllRoute,
 ]);
 
