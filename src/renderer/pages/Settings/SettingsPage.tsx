@@ -229,21 +229,6 @@ export default function SettingsPage() {
                   
                   <div className="space-y-6">
                     <div>
-                      <Label htmlFor="theme">Theme</Label>
-                      <select 
-                        id="theme"
-                        name="theme" 
-                        className="w-full mt-1 px-3 py-2 bg-background border border-input rounded-md"
-                        value={settings.theme || 'system'}
-                        onChange={handleChange}
-                      >
-                        <option value="system">System Default</option>
-                        <option value="light">Light</option>
-                        <option value="dark">Dark</option>
-                      </select>
-                    </div>
-                    
-                    <div>
                       <Label htmlFor="downloadLocation">Download Location</Label>
                       <div className="flex mt-1">
                         <Input 

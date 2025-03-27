@@ -127,9 +127,9 @@
     @apply bg-[#EDEDED] text-[#0F0F0F] font-medium !important;
   }
   
-  /* Ensure the icons remain red in light mode active items */
+  /* Ensure the icons are #0F0F0F in light mode active items */
   :not(.dark) .sidebar-nav-active svg {
-    @apply text-[#FF0000] !important;
+    @apply text-[#0F0F0F] !important;
   }
   
   /* Dark mode overrides for sidebar navigation */
@@ -194,7 +194,7 @@
   color: hsl(0, 0%, 100%);
 }
 
-/* Additional overrides to remove blue focus/active colors in dark mode */
+/* Additional focus/active colors in dark mode */
 .dark {
   --tw-ring-color: hsl(0, 0%, 30%) !important;
 }
@@ -324,4 +324,15 @@ div.flex.items-center svg[class*="lucide-youtube"] {
 .dark nav.flex.flex-col,
 .dark div.flex.flex-col.w-64 {
   background-color: #0F0F0F !important;
+}
+
+/* Theme toggle button icons are always red regardless of mode */
+button[class*="rounded-full"] svg[class*="lucide-moon"],
+button[class*="rounded-full"] svg[class*="lucide-sun"] {
+  color: #FF0000 !important;
+}
+
+/* Ensure YouTube icon is always red */
+svg[class*="lucide-youtube"].h-8 {
+  color: #FF0000 !important;
 } 

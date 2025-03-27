@@ -17,48 +17,23 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     // Try to get theme from localStorage
     const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME);
     
-    if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
-      return savedTheme as 'light' | 'dark' | 'system';
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      return savedTheme as 'light' | 'dark';
     }
-    return 'system';
-  });
-
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (theme === 'dark') return true;
-    if (theme === 'light') return false;
-    
-    const systemDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return systemDarkMode;
+    // Default to dark if not set, based on system preference
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   // Effect to apply dark/light mode
   useEffect(() => {
-    if (isDarkMode) {
+    if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
-
-  // Effect to handle theme changes
-  useEffect(() => {
-    if (theme === 'system') {
-      // Listen for system preference changes
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      setIsDarkMode(mediaQuery.matches);
-      
-      const handleChange = (e: MediaQueryListEvent) => {
-        setIsDarkMode(e.matches);
-      };
-      
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    } else {
-      setIsDarkMode(theme === 'dark');
     }
   }, [theme]);
 
@@ -66,15 +41,15 @@ function App() {
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEYS.THEME && e.newValue) {
-        if (['light', 'dark', 'system'].includes(e.newValue)) {
-          setTheme(e.newValue as 'light' | 'dark' | 'system');
+        if (e.newValue === 'light' || e.newValue === 'dark') {
+          setTheme(e.newValue as 'light' | 'dark');
         }
       }
     };
     
     // Listen for custom theme change event (for same-tab updates)
     const handleThemeChange = (e: CustomEvent) => {
-      if (e.detail && ['light', 'dark', 'system'].includes(e.detail)) {
+      if (e.detail === 'light' || e.detail === 'dark') {
         setTheme(e.detail);
       }
     };
