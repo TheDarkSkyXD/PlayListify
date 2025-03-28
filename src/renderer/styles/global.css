@@ -1,7 +1,13 @@
+/* ============================================ */
+/*                BASE STYLES                   */
+/* ============================================ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================ */
+/*               THEME VARIABLES                */
+/* ============================================ */
 @layer base {
   :root {
     /* Light Mode - YouTube Colors */
@@ -61,297 +67,768 @@
   }
 }
 
+/* ============================================ */
+/*                 BUTTON STYLES                */
+/* ============================================ */
 @layer components {
-  .btn {
+  /* Base button styles */
+  .btn-base {
     @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
   }
   
+  /* Legacy class support */
+  .btn {
+    @apply btn-base;
+  }
+  
+  /* Primary button variants */
   .btn-primary {
     @apply bg-[#0F0F0F] text-white hover:bg-[#0F0F0F]/90;
   }
   
+  /* Secondary button variants */
   .btn-secondary {
     @apply bg-[#0F0F0F] text-white hover:bg-[#0F0F0F]/80;
   }
   
-  /* Force all buttons to have dark background in light mode */
+  /* Light mode button */
+  .btn-light {
+    @apply bg-[#0F0F0F] text-white;
+  }
+  
+  /* Dark mode button */
+  .btn-dark {
+    background-color: #3e3e3e !important;
+    color: white !important;
+  }
+  
+  /* Default button styling - for backward compatibility */
   button {
     @apply bg-[#0F0F0F] text-white;
   }
   
-  /* Ensure button SVG icons are white in light mode */
+  /* Button icon styles */
+  .btn-icon-light {
+    @apply text-white;
+  }
+  
+  /* Default button icon - for backward compatibility */
   button svg {
     @apply text-white;
   }
   
-  /* Ensure button hover state works correctly */
+  /* Button hover styles */
+  .btn-hover-light {
+    @apply bg-[#0F0F0F]/90;
+  }
+  
+  /* Default button hover - for backward compatibility */
   button:hover {
     @apply bg-[#0F0F0F]/90;
   }
   
+  /* Dark mode standard button styling */
+  .dark .btn-standard {
+    background-color: #3e3e3e !important;
+    color: white !important;
+  }
+  
+  /* Dark mode default buttons - for backward compatibility */
+  .dark button {
+    background-color: #3e3e3e !important;
+    color: white !important;
+  }
+  
+  /* ============================================ */
+  /*                 FORM STYLES                  */
+  /* ============================================ */
+  
+  /* Form input styles */
+  .form-input {
+    @apply mt-1 block w-full rounded-md border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary;
+  }
+  
+  /* Legacy class support */
   .input {
+    @apply form-input;
+  }
+  
+  /* Form select styles */
+  .form-select {
     @apply mt-1 block w-full rounded-md border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary;
   }
   
+  /* Legacy class support */
   .select {
-    @apply mt-1 block w-full rounded-md border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary;
+    @apply form-select;
   }
   
-  /* Custom sidebar navigation hover styling */
-  .sidebar-nav-item {
+  /* ============================================ */
+  /*              SIDEBAR STYLES                  */
+  /* ============================================ */
+  
+  /* Base sidebar nav item */
+  .sb-item {
     @apply w-full justify-start transition-colors;
   }
   
-  /* Make hover styles more specific to override button defaults */
+  /* Legacy support */
+  .sidebar-nav-item {
+    @apply sb-item;
+  }
+  
+  /* Light mode sidebar item */
+  .sb-item-light {
+    @apply text-[#0F0F0F];
+  }
+  
+  /* Dark mode sidebar item */
+  .sb-item-dark {
+    @apply text-white bg-transparent;
+  }
+  
+  /* Legacy support - dark mode sidebar button */
+  .dark button.sidebar-nav-item {
+    background-color: transparent !important;
+  }
+  
+  /* Sidebar button in dark mode */
+  .sb-button-dark {
+    background-color: transparent !important;
+  }
+  
+  /* Hover styles for sidebar items */
+  .sb-item-hover {
+    @apply bg-[hsl(var(--sidebar-hover))] text-[#0F0F0F] !important;
+  }
+  
+  /* Legacy support */
   .sidebar-nav-item:hover {
+    @apply sb-item-hover;
+  }
+  
+  /* Ghost button sidebar hover */
+  .sb-ghost-hover {
     @apply bg-[hsl(var(--sidebar-hover))] text-[#0F0F0F] !important;
   }
   
-  /* Ghost button hover override for sidebar */
+  /* Legacy support */
   button[class*="ghost"].sidebar-nav-item:hover {
-    @apply bg-[hsl(var(--sidebar-hover))] text-[#0F0F0F] !important;
+    @apply sb-ghost-hover;
   }
   
-  /* Specific light mode hover styling */
-  :not(.dark) .sidebar-nav-item:hover {
+  /* Light mode sidebar hover */
+  .sb-item-light-hover {
     @apply bg-[#EDEDED] text-[#0F0F0F] !important;
   }
   
-  /* Ensure all sidebar nav items in light mode have proper hover behavior */
-  :not(.dark) button[class*="ghost"].sidebar-nav-item:hover {
+  /* Legacy support */
+  .sidebar-nav-item:hover {
+    @apply sb-item-light-hover;
+  }
+  
+  /* Light mode ghost sidebar hover */
+  .sb-ghost-light-hover {
     @apply bg-[#EDEDED] text-[#0F0F0F] !important;
   }
   
-  /* Default sidebar nav active styling */
-  .sidebar-nav-active {
+  /* Legacy support */
+  button[class*="ghost"].sidebar-nav-item:hover {
+    @apply sb-ghost-light-hover;
+  }
+  
+  /* Active sidebar item */
+  .sb-item-active {
     @apply bg-primary text-primary-foreground font-medium;
   }
   
-  /* Light mode overrides for sidebar navigation */
-  :not(.dark) .sidebar-nav-active {
+  /* Legacy support */
+  .sidebar-nav-active {
+    @apply sb-item-active;
+  }
+  
+  /* Light mode active sidebar item */
+  .sb-item-active-light {
     @apply bg-[#EDEDED] text-[#0F0F0F] font-medium !important;
   }
   
-  /* Ensure the icons are #0F0F0F in light mode active items */
-  :not(.dark) .sidebar-nav-active svg {
+  /* Legacy support */
+  .sidebar-nav-active {
+    @apply sb-item-active-light;
+  }
+  
+  /* Light mode active sidebar icon */
+  .sb-icon-active-light {
     @apply text-[#0F0F0F] !important;
   }
   
-  /* Dark mode overrides for sidebar navigation */
-  .dark .sidebar-nav-active {
+  /* Legacy support */
+  .sidebar-nav-active svg {
+    @apply sb-icon-active-light;
+  }
+  
+  /* Dark mode active sidebar item */
+  .sb-item-active-dark {
     @apply bg-[#272727] text-white font-medium !important;
   }
   
-  /* Make sidebar navigation icons white in dark mode - more specific rule */
+  /* Legacy support */
+  .dark .sidebar-nav-active {
+    @apply sb-item-active-dark;
+  }
+  
+  /* Dark mode sidebar icon */
+  .sb-icon-dark {
+    color: white !important;
+  }
+  
+  /* Dark mode active sidebar icon - ensure it's white */
+  .sb-icon-active-dark {
+    color: white !important;
+  }
+  
+  /* Legacy support for active sidebar icons in dark mode - using more specific selectors */
+  .dark .sidebar-nav-active svg,
+  .dark [data-active="true"] svg,
+  .dark button[data-active="true"] svg,
+  .dark a[data-active="true"] svg {
+    color: white !important;
+  }
+  
+  /* Extra specific selector for active dashboard icon in dark mode */
+  .dark button[data-active="true"] > svg,
+  .dark a[data-active="true"] > svg,
+  .dark .sidebar-nav-active > svg {
+    color: white !important;
+  }
+  
+  /* Legacy support for sidebar icons */
   .dark nav.flex.flex-col .sidebar-nav-item svg,
   .dark nav.flex.flex-col .sidebar-nav-active svg,
   .dark button.sidebar-nav-item svg,
   .dark .sidebar-nav-item svg[class*="lucide"],
   .dark .sidebar-nav-active svg[class*="lucide"] {
-    color: white !important;
+    @apply sb-icon-dark;
   }
   
-  /* Dark mode hover override - make text white */
-  .dark .sidebar-nav-item:hover:not(.sidebar-nav-active) {
+  /* Dark mode sidebar hover */
+  .sb-item-dark-hover {
     @apply bg-[rgb(51,51,51)] text-white !important;
   }
   
-  /* Hover effect for active items - slightly lighter background */
-  .dark .sidebar-nav-active:hover {
+  /* Legacy support */
+  .dark .sidebar-nav-item:hover:not(.sidebar-nav-active) {
+    @apply sb-item-dark-hover;
+  }
+  
+  /* Dark mode active sidebar hover */
+  .sb-item-active-dark-hover {
     @apply bg-[#323232] text-white !important;
   }
   
-  /* Dark mode button overrides */
-  .dark button:not(.sidebar-nav-item) {
-    @apply border-muted;
-    background-color: #272727 !important;
+  /* Legacy support */
+  .dark .sidebar-nav-active:hover {
+    @apply sb-item-active-dark-hover;
   }
   
-  /* Ensure sidebar buttons aren't affected by the button color change */
-  .dark button.sidebar-nav-item {
+  /* Sidebar container in dark mode */
+  .sb-container-dark {
+    background-color: #0F0F0F !important;
+  }
+  
+  /* Legacy support */
+  .dark [class*="md:flex"][class*="flex-col"][class*="w-64"] {
+    @apply sb-container-dark;
+  }
+  
+  /* Sidebar inner container in dark mode */
+  .sb-container-inner-dark {
+    background-color: #0F0F0F !important;
+  }
+  
+  /* Legacy support */
+  .dark nav.flex.flex-col,
+  .dark div.flex.flex-col.w-64 {
+    @apply sb-container-inner-dark;
+  }
+  
+  /* Light mode sidebar icon */
+  .sb-icon-light {
+    color: #0F0F0F !important;
+  }
+  
+  /* Legacy support */
+  .sidebar-nav-item svg,
+  button[data-active="true"] svg,
+  a[data-active="true"] svg {
+    @apply sb-icon-light;
+  }
+  
+  /* Light mode sidebar icon variants */
+  .sb-icon-variant-light {
+    color: #0F0F0F !important;
+  }
+  
+  /* Legacy support */
+  .sidebar-nav-item[class*="ghost"] svg,
+  .sidebar-nav-item[class*="outline"] svg,
+  .sidebar-nav-item[class*="link"] svg {
+    @apply sb-icon-variant-light;
+  }
+  
+  /* ============================================ */
+  /*             DASHBOARD STYLES                 */
+  /* ============================================ */
+  
+  /* Dashboard header */
+  .dash-header-dark {
     background-color: transparent !important;
+    background: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  
+  /* Legacy support */
+  .dark header.mb-8 {
+    @apply dash-header-dark;
+  }
+  
+  /* Dashboard component in dark mode - transparent */
+  .dash-component-dark {
+    background-color: transparent !important;
+    background: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  
+  /* Legacy support - transparent dashboard sections */
+  .dark [class*="dashboard"],
+  .dark section.rounded-lg,
+  .dark section.shadow,
+  .dark section.p-6 {
+    @apply dash-component-dark;
+  }
+  
+  /* Your Playlists, Recent Activity, Quick Actions sections */
+  .dark section.bg-white.dark\\:bg-gray-800.shadow.rounded-lg.p-6 {
+    background-color: transparent !important;
+    background: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  
+  /* Stat cards - Total Playlists, YouTube Playlists, Downloads - transparent */
+  .dark div.grid.grid-cols-1.md\\:grid-cols-3.gap-4 > div {
+    background-color: transparent !important;
+    background: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  
+  /* Make dashboard icon containers visible */
+  .dark .p-3.rounded-full {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+  
+  /* Cards in dashboard that should have background */
+  .dash-card-dark {
+    background-color: rgb(33, 33, 33) !important;
+    border-color: rgb(40, 40, 40) !important;
+  }
+  
+  /* Create playlist button in dark mode */
+  .dash-create-playlist-btn-dark {
+    background-color: #222222 !important;
+    color: white !important;
+    border-radius: 0.5rem !important;
+    transition: background-color 0.2s ease-in-out !important;
+  }
+  
+  /* Hover effect for create playlist button */
+  .dash-create-playlist-btn-dark:hover {
+    background-color: #323232 !important;
+  }
+  
+  /* Legacy support - target play icon only */
+  .dark button:has(svg[class*="lucide-play"]) {
+    @apply dash-create-playlist-btn-dark;
+  }
+
+  /* Create playlist icon in dark mode */
+  .dash-create-playlist-icon-dark {
+    color: white !important;
+  }
+  
+  /* Legacy support */
+  .dark button svg[class*="lucide-play"] {
+    @apply dash-create-playlist-icon-dark;
+  }
+  
+  /* Light mode version of create playlist button */
+  .dash-create-playlist-btn-light {
+    background-color: #0F0F0F !important;
+    color: white !important;
+    border-radius: 0.5rem !important;
+    transition: background-color 0.2s ease-in-out !important;
+  }
+  
+  /* Hover effect for light mode */
+  .dash-create-playlist-btn-light:hover {
+    background-color: #2C2C2C !important;
+  }
+  
+  /* Legacy support for light mode */
+  button:has(svg[class*="lucide-play"]):not(.dark *) {
+    @apply dash-create-playlist-btn-light;
+  }
+  
+  /* ============================================ */
+  /*              PLAYLIST STYLES                 */
+  /* ============================================ */
+  
+  /* Playlist component in dark mode */
+  .pl-component-dark {
+    background-color: rgb(33, 33, 33) !important;
+  }
+  
+  /* Legacy support */
+  .dark [class*="playlist"] {
+    @apply pl-component-dark;
+  }
+  
+  /* View all button in dark mode */
+  .pl-view-all-btn-dark {
+    /* Styles for View All button */
+  }
+  
+  /* Legacy support */
+  .dark a[class*="flex items-center"][href="/playlists"] {
+    @apply pl-view-all-btn-dark;
+  }
+  
+  /* View all icon in dark mode */
+  .pl-view-all-icon-dark {
+    color: white !important;
+  }
+  
+  /* Legacy support */
+  .dark a[class*="flex items-center"][href="/playlists"] svg {
+    @apply pl-view-all-icon-dark;
+  }
+  
+  /* View all icon in light mode */
+  .pl-view-all-icon-light {
+    color: white !important;
+  }
+  
+  /* Legacy support */
+  a[class*="flex items-center"] svg[class*="lucide-arrow-right"] {
+    @apply pl-view-all-icon-light;
+  }
+  
+  /* ============================================ */
+  /*                ICON STYLES                   */
+  /* ============================================ */
+  
+  /* YouTube brand color */
+  .icon-youtube {
+    color: #FF0000 !important;
+  }
+  
+  /* Legacy support */
+  .text-youtube-red {
+    @apply icon-youtube;
+  }
+  
+  /* Light mode icon */
+  .icon-light {
+    color: #fff;
+  }
+  
+  /* Legacy support */
+  svg[class*="lucide"] {
+    @apply icon-light;
+  }
+  
+  /* Dark mode icon */
+  .icon-dark {
+    color: white !important;
+  }
+  
+  /* Legacy support */
+  .dark svg[class*="lucide"] {
+    @apply icon-dark;
+  }
+  
+  /* YouTube logo - both modes */
+  .icon-youtube-logo {
+    color: #FF0000 !important;
+  }
+  
+  /* Legacy support */
+  div.flex.items-center svg[class*="lucide-youtube"] {
+    @apply icon-youtube-logo;
+  }
+  
+  .dark div.flex.items-center svg[class*="lucide-youtube"] {
+    @apply icon-youtube-logo;
+  }
+  
+  /* YouTube header icon */
+  .icon-youtube-header {
+    color: #FF0000 !important;
+  }
+  
+  /* Legacy support */
+  svg[class*="lucide-youtube"].h-8 {
+    @apply icon-youtube-header;
+  }
+  
+  /* Theme toggle icon */
+  .icon-theme-toggle {
+    color: #FF0000 !important;
+  }
+  
+  /* Legacy support */
+  button[class*="rounded-full"] svg[class*="lucide-moon"],
+  button[class*="rounded-full"] svg[class*="lucide-sun"] {
+    @apply icon-theme-toggle;
+  }
+  
+  /* ============================================ */
+  /*              SCROLLBAR STYLES                */
+  /* ============================================ */
+  
+  /* Scrollbar base */
+  .scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  /* Legacy support */
+  ::-webkit-scrollbar {
+    @apply scrollbar;
+  }
+  
+  /* Scrollbar track */
+  .scrollbar-track {
+    background: transparent;
+  }
+  
+  /* Legacy support */
+  ::-webkit-scrollbar-track {
+    @apply scrollbar-track;
+  }
+  
+  /* Scrollbar thumb */
+  .scrollbar-thumb {
+    @apply bg-muted;
+    border-radius: 4px;
+  }
+  
+  /* Legacy support */
+  ::-webkit-scrollbar-thumb {
+    @apply scrollbar-thumb;
+  }
+  
+  /* Scrollbar thumb hover */
+  .scrollbar-thumb-hover {
+    @apply bg-muted-foreground;
+  }
+  
+  /* Legacy support */
+  ::-webkit-scrollbar-thumb:hover {
+    @apply scrollbar-thumb-hover;
+  }
+  
+  /* Dark mode scrollbar thumb */
+  .scrollbar-thumb-dark {
+    @apply bg-muted;
+  }
+  
+  /* Legacy support */
+  .dark ::-webkit-scrollbar-thumb {
+    @apply scrollbar-thumb-dark;
+  }
+  
+  /* Dark mode scrollbar thumb hover */
+  .scrollbar-thumb-hover-dark {
+    @apply bg-muted-foreground;
+  }
+  
+  /* Legacy support */
+  .dark ::-webkit-scrollbar-thumb:hover {
+    @apply scrollbar-thumb-hover-dark;
+  }
+  
+  /* ============================================ */
+  /*          DARK MODE FOCUS STYLES              */
+  /* ============================================ */
+  
+  /* Focus visible in dark mode */
+  .focus-visible-dark {
+    outline-color: hsl(0, 0%, 30%);
+  }
+  
+  /* Legacy support */
+  .dark *:focus-visible {
+    @apply focus-visible-dark;
+  }
+  
+  /* Link in dark mode */
+  .link-dark {
+    color: hsl(0, 0%, 80%);
+  }
+  
+  /* Legacy support */
+  .dark a {
+    @apply link-dark;
+  }
+  
+  /* Link focus in dark mode */
+  .link-focus-dark {
+    color: hsl(0, 0%, 100%);
+  }
+  
+  /* Legacy support */
+  .dark a:focus {
+    @apply link-focus-dark;
+  }
+  
+  /* Set dark mode ring color */
+  .dark {
+    --tw-ring-color: hsl(0, 0%, 30%) !important;
+  }
+  
+  /* Focus in dark mode */
+  .focus-dark {
+    outline-color: hsl(0, 0%, 30%) !important;
+  }
+  
+  /* Legacy support */
+  .dark *:focus {
+    @apply focus-dark;
+  }
+  
+  /* Interactive element focus in dark mode */
+  .interactive-focus-dark {
+    border-color: hsl(0, 0%, 30%) !important;
+    outline-color: hsl(0, 0%, 30%) !important;
+    box-shadow: 0 0 0 2px hsla(0, 0%, 30%, 0.4) !important;
+  }
+  
+  /* Legacy support */
+  .dark a:focus,
+  .dark button:focus,
+  .dark input:focus,
+  .dark select:focus,
+  .dark textarea:focus {
+    @apply interactive-focus-dark;
+  }
+  
+  /* ============================================ */
+  /*        DARK MODE BACKGROUND OVERRIDES        */
+  /* ============================================ */
+  
+  /* Selected item in dark mode */
+  .selected-dark {
+    background-color: rgb(40, 40, 40) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  /* Legacy support */
+  .dark [data-active],
+  .dark [aria-selected="true"] {
+    @apply selected-dark;
+  }
+  
+  /* Background override for colored elements in dark mode */
+  .bg-override-dark {
+    background-color: rgb(33, 33, 33) !important;
+    background-image: none !important;
+    --tw-bg-opacity: 0 !important; /* Disable Tailwind opacity */
+  }
+  
+  /* Legacy support */
+  .dark [class*="bg-slate"],
+  .dark [class*="bg-gray"],
+  .dark [class*="from-"],
+  .dark [class*="to-"],
+  .dark [class*="via-"] {
+    @apply bg-override-dark;
+  }
+  
+  /* Specific overrides for Tailwind blue backgrounds */
+  .dark .bg-blue-900,
+  .dark .bg-blue-800,
+  .dark .bg-blue-700 {
+    background-color: rgb(33, 33, 33) !important;
+    --tw-bg-opacity: 0 !important;
+  }
+  
+  /* Override gray-800 background color */
+  .dark .bg-gray-800,
+  .dark [style*="background-color: rgb(31 41 55)"],
+  .dark [style*="background: rgb(31 41 55)"],
+  .dark [style*="background-color:rgb(31 41 55)"] {
+    background-color: rgb(33, 33, 33) !important;
+    --tw-bg-opacity: 0 !important;
+  }
+  
+  /* Direct color override for specific shades */
+  .color-override-dark {
+    background-color: rgb(33, 33, 33) !important;
+  }
+  
+  /* Legacy support */
+  .dark *[style*="background-color: #1D2936"],
+  .dark *[style*="background: #1D2936"],
+  .dark *[style*="background-color:#1D2936"],
+  .dark *[style*="background:#1D2936"] {
+    @apply color-override-dark;
+  }
+  
+  /* Any blue elements should use dark gray instead */
+  .dark [class*="text-blue"] {
+    color: white !important;
+  }
+  
+  .dark [class*="border-blue"] {
+    border-color: rgb(40, 40, 40) !important;
+  }
+  
+  /* Nested container in dark mode */
+  .nested-container-dark {
+    background-color: inherit;
+  }
+  
+  /* Legacy support */
+  .dark div > div, 
+  .dark section > div {
+    @apply nested-container-dark;
+  }
+  
+  /* App container in dark mode */
+  .app-container-dark {
+    background-color: #0F0F0F !important;
+  }
+  
+  /* Legacy support */
+  .dark main,
+  .dark [role="main"],
+  .dark .bg-background,
+  .dark .min-h-screen,
+  .dark .flex.min-h-screen {
+    @apply app-container-dark;
+  }
+  
+  /* Footer in dark mode */
+  .footer-dark {
+    background-color: rgb(33, 33, 33) !important;
+  }
+  
+  /* Legacy support */
+  .dark [class*="footer"] {
+    @apply footer-dark;
   }
 }
-
-/* Custom scrollbar styles */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-muted;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground;
-}
-
-/* Dark mode scrollbar */
-.dark ::-webkit-scrollbar-thumb {
-  @apply bg-muted;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground;
-}
-
-/* Additional focus and active state overrides */
-.dark *:focus-visible {
-  outline-color: hsl(0, 0%, 30%);
-}
-
-.dark a {
-  color: hsl(0, 0%, 80%);
-}
-
-.dark a:focus {
-  color: hsl(0, 0%, 100%);
-}
-
-/* Additional focus/active colors in dark mode */
-.dark {
-  --tw-ring-color: hsl(0, 0%, 30%) !important;
-}
-
-.dark *:focus {
-  outline-color: hsl(0, 0%, 30%) !important;
-}
-
-.dark a:focus,
-.dark button:focus,
-.dark input:focus,
-.dark select:focus,
-.dark textarea:focus {
-  border-color: hsl(0, 0%, 30%) !important;
-  outline-color: hsl(0, 0%, 30%) !important;
-  box-shadow: 0 0 0 2px hsla(0, 0%, 30%, 0.4) !important;
-}
-
-.dark [data-active],
-.dark [aria-selected="true"] {
-  background-color: rgb(40, 40, 40) !important;
-  color: hsl(var(--foreground)) !important;
-}
-
-/* Override specific elements with blue backgrounds */
-.dark [class*="bg-slate"],
-.dark [class*="bg-gray"],
-.dark [class*="bg-blue"],
-.dark [class*="from-"],
-.dark [class*="to-"],
-.dark [class*="via-"] {
-  background-color: rgb(33, 33, 33) !important;
-  background-image: none !important;
-}
-
-/* Target specific dashboard components that might have hardcoded colors */
-.dark [class*="dashboard"],
-.dark [class*="card"],
-.dark [class*="playlist"],
-.dark [class*="panel"],
-.dark [class*="content"],
-.dark [class*="header"],
-.dark [class*="footer"] {
-  background-color: rgb(33, 33, 33) !important;
-}
-
-/* Direct color override for specific blue shade */
-.dark *[style*="background-color: #1D2936"],
-.dark *[style*="background: #1D2936"],
-.dark *[style*="background-color:#1D2936"],
-.dark *[style*="background:#1D2936"] {
-  background-color: rgb(33, 33, 33) !important;
-}
-
-/* Override nested elements */
-.dark div > div, 
-.dark section > div {
-  background-color: inherit;
-}
-
-/* Target main containers and layout elements */
-.dark main,
-.dark [role="main"],
-.dark .bg-background,
-.dark .min-h-screen,
-.dark .flex.min-h-screen {
-  background-color: #0F0F0F !important;
-}
-
-/* Override card containers specifically on dashboard */
-.dark div[class*="rounded-lg"],
-.dark div[class*="shadow"],
-.dark div[class*="border"] {
-  background-color: rgb(33, 33, 33) !important;
-  border-color: rgb(40, 40, 40) !important;
-}
-
-/* YouTube icon styling */
-.text-youtube-red {
-  color: #FF0000 !important;
-}
-
-/* Light mode icon styling - set all Lucide icons to dark by default */
-svg[class*="lucide"] {
-  color: #0F0F0F;
-}
-
-/* Button icons in light mode - ensure they're white by default */
-:not(.dark) button svg {
-  color: white !important;
-}
-
-/* Sidebar navigation - keep icons dark in light mode */
-:not(.dark) .sidebar-nav-item svg,
-:not(.dark) .sidebar-nav-active svg {
-  color: #0F0F0F !important;
-}
-
-/* Light variants (ghost, outline) in sidebar should also keep dark icons */
-:not(.dark) .sidebar-nav-item[class*="ghost"] svg,
-:not(.dark) .sidebar-nav-item[class*="outline"] svg,
-:not(.dark) .sidebar-nav-item[class*="link"] svg {
-  color: #0F0F0F !important;
-}
-
-/* Dark mode - make ALL icons white by default */
-.dark svg[class*="lucide"] {
-  color: white !important;
-}
-
-/* Specific override for YouTube logo icon - always red in both modes */
-div.flex.items-center svg[class*="lucide-youtube"] {
-  color: #FF0000 !important;
-}
-
-.dark div.flex.items-center svg[class*="lucide-youtube"] {
-  color: #FF0000 !important;
-}
-
-/* Override sidebar background in dark mode */
-.dark [class*="md:flex"][class*="flex-col"][class*="w-64"] {
-  background-color: #0F0F0F !important;
-}
-
-/* Ensure sidebar container and all children maintain the dark background */
-.dark nav.flex.flex-col,
-.dark div.flex.flex-col.w-64 {
-  background-color: #0F0F0F !important;
-}
-
-/* Theme toggle button icons are always red regardless of mode */
-button[class*="rounded-full"] svg[class*="lucide-moon"],
-button[class*="rounded-full"] svg[class*="lucide-sun"] {
-  color: #FF0000 !important;
-}
-
-/* Ensure YouTube icon is always red */
-svg[class*="lucide-youtube"].h-8 {
-  color: #FF0000 !important;
-} 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Library, AlertTriangle, Plus } from 'lucide-react';
+import { Library, AlertTriangle, Play } from 'lucide-react';
 import { usePlaylists } from '../../services/queryHooks';
 import PlaylistList, { PlaylistSkeleton } from '../../features/playlists/components/PlaylistList';
 import { Button } from '../../components/ui/button';
@@ -23,7 +23,7 @@ const PlaylistsPage: React.FC = () => {
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Play className="mr-2 h-4 w-4" />
                   Create Playlist
                 </Button>
               </DialogTrigger>
