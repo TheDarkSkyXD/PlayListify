@@ -267,7 +267,7 @@ const PlaylistList: React.FC<PlaylistListProps> = ({ playlists = [] }) => {
                 )}
               </div>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-semibold truncate">
+                <CardTitle className="text-lg font-semibold break-words">
                   {playlist.name}
                 </CardTitle>
                 <CardDescription className="line-clamp-2">

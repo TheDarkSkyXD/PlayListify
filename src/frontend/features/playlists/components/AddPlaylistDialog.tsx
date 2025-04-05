@@ -183,6 +183,16 @@ export function AddPlaylistDialog({ open, onOpenChange }: AddPlaylistDialogProps
       return;
     }
 
+    if (playlistName.length > 100) {
+      setNameError('Playlist name cannot exceed 100 characters');
+      return;
+    }
+
+    if (playlistDescription.length > 5000) {
+      setNameError('Playlist description cannot exceed 5000 characters');
+      return;
+    }
+
     try {
       // Create custom playlist - fire and forget
       createPlaylistMutation.mutate(
@@ -326,9 +336,13 @@ export function AddPlaylistDialog({ open, onOpenChange }: AddPlaylistDialogProps
                   id="playlist-name"
                   placeholder="My Awesome Playlist"
                   value={playlistName}
-                  onChange={(e) => setPlaylistName(e.target.value)}
+                  onChange={(e) => setPlaylistName(e.target.value.slice(0, 100))}
+                  maxLength={100}
                 />
-                <p className="text-sm text-muted-foreground">Create a new playlist that you can add videos to later</p>
+                <div className="flex justify-between">
+                  <p className="text-sm text-muted-foreground">Create a new playlist that you can add videos to later</p>
+                  <p className="text-sm text-muted-foreground">{playlistName.length}/100</p>
+                </div>
                 {nameError && <p className="text-sm text-red-500">{nameError}</p>}
               </div>
 
@@ -338,11 +352,15 @@ export function AddPlaylistDialog({ open, onOpenChange }: AddPlaylistDialogProps
                   id="playlist-description"
                   placeholder="Add a description for your playlist"
                   value={playlistDescription}
-                  onChange={(e) => setPlaylistDescription(e.target.value)}
+                  onChange={(e) => setPlaylistDescription(e.target.value.slice(0, 5000))}
                   className="resize-none"
                   rows={3}
+                  maxLength={5000}
                 />
-                <p className="text-sm text-muted-foreground">Describe what this playlist is about</p>
+                <div className="flex justify-between">
+                  <p className="text-sm text-muted-foreground">Describe what this playlist is about</p>
+                  <p className="text-sm text-muted-foreground">{playlistDescription.length}/5000</p>
+                </div>
               </div>
 
               <DialogFooter>

@@ -292,7 +292,7 @@ export default function PlaylistDetails({ playlist, isLoading = false }: Playlis
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium truncate" title={video.title}>{video.title}</h3>
+                  <h3 className="font-medium break-words" title={video.title}>{video.title}</h3>
                   {video.url && (
                     <a
                       href={video.url}

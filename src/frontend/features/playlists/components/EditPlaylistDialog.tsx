@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +13,7 @@ import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
 import { Loader2, Check } from 'lucide-react';
 import { toast } from '../../../components/ui/use-toast';
-import { QUERY_KEYS } from '../../../services/query/keys';
+
 import { Playlist } from '../../../../shared/types/appTypes';
 import { useUpdatePlaylist } from '../../../services/query/hooks';
 
@@ -28,7 +27,6 @@ export function EditPlaylistDialog({ open, onOpenChange, playlist }: EditPlaylis
   const [name, setName] = useState(playlist.name);
   const [description, setDescription] = useState(playlist.description || '');
   const [nameError, setNameError] = useState('');
-  const queryClient = useQueryClient();
 
   // Reset form when dialog opens with new playlist
   useEffect(() => {
@@ -54,6 +52,16 @@ export function EditPlaylistDialog({ open, onOpenChange, playlist }: EditPlaylis
 
     if (name.trim().length < 2) {
       setNameError('Playlist name must be at least 2 characters');
+      return;
+    }
+
+    if (name.trim().length > 100) {
+      setNameError('Playlist name cannot exceed 100 characters');
+      return;
+    }
+
+    if (description.length > 5000) {
+      setNameError('Playlist description cannot exceed 5000 characters');
       return;
     }
 
@@ -105,18 +113,23 @@ export function EditPlaylistDialog({ open, onOpenChange, playlist }: EditPlaylis
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="playlist-name">Playlist Name</Label>
+            <Label htmlFor="playlist-name">Playlist Name (max 100 characters)</Label>
             <Input
               id="playlist-name"
               placeholder="My Awesome Playlist"
               value={name}
               onChange={(e) => {
-                setName(e.target.value);
+                setName(e.target.value.slice(0, 100));
                 if (e.target.value.trim()) {
                   setNameError('');
                 }
               }}
+              maxLength={100}
             />
+            <div className="flex justify-between">
+              <p className="text-sm text-muted-foreground">Enter a name for your playlist</p>
+              <p className="text-sm text-muted-foreground">{name.length}/100</p>
+            </div>
             {nameError && <p className="text-sm text-red-500">{nameError}</p>}
           </div>
 
@@ -126,10 +139,15 @@ export function EditPlaylistDialog({ open, onOpenChange, playlist }: EditPlaylis
               id="playlist-description"
               placeholder="Add a description for your playlist"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => setDescription(e.target.value.slice(0, 5000))}
               className="resize-none"
               rows={3}
+              maxLength={5000}
             />
+            <div className="flex justify-between">
+              <p className="text-sm text-muted-foreground">Describe what this playlist is about</p>
+              <p className="text-sm text-muted-foreground">{description.length}/5000</p>
+            </div>
           </div>
 
           <DialogFooter>

@@ -105,7 +105,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onDelete }) => {
         </div>
 
         <div className="p-4">
-          <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1 truncate">
+          <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1 break-words">
             {playlist.name}
           </h3>
           {playlist.description && (
