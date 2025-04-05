@@ -77,8 +77,23 @@ export async function importYoutubePlaylist(
     dbManager.createPlaylist(importedPlaylist);
 
     // Add each video to the database
+    let skippedExistingVideos = 0;
     for (const video of importedPlaylist.videos) {
+      // Before adding, check if the video already exists
+      const existingVideo = dbManager.getVideoById(video.id, importedPlaylist.id);
+      if (existingVideo) {
+        skippedExistingVideos++;
+      }
+
+      // Add the video (the addVideo function will skip if it already exists)
       dbManager.addVideo(importedPlaylist.id, video);
+    }
+
+    // Log the number of skipped videos
+    if (skippedExistingVideos > 0) {
+      console.log(`Skipped ${skippedExistingVideos} videos that already exist in the playlist`);
+      // Update the progress callback with this information
+      combinedProgressCallback(`Import complete! (${skippedExistingVideos} videos already existed in the playlist)`);
     }
 
     return importedPlaylist;

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getSetting } from './settingsManager';
 import { rateLimiter } from './rateLimiter';
-import { Playlist, Video } from '../../shared/types/appTypes';
+import { Video } from '../../shared/types/appTypes';
 
 // YouTube API base URL
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
@@ -101,14 +101,14 @@ async function fetchFromYouTubeApi<T>(endpoint: string, params: Record<string, a
           key: apiKey
         }
       });
-      
+
       return response.data;
     } catch (error: any) {
       // Handle API errors
       if (error.response) {
         const status = error.response.status;
         const data = error.response.data;
-        
+
         if (status === 403) {
           throw new Error(`YouTube API quota exceeded. Please try again later.`);
         } else if (status === 404) {
@@ -117,7 +117,7 @@ async function fetchFromYouTubeApi<T>(endpoint: string, params: Record<string, a
           throw new Error(`YouTube API error: ${data.error?.message || error.message}`);
         }
       }
-      
+
       throw new Error(`Network error: ${error.message}`);
     }
   });
@@ -134,8 +134,8 @@ export async function getPlaylistInfo(playlistId: string): Promise<{
   videoCount: number;
 }> {
   // Extract playlist ID from URL if a full URL was provided
-  const extractedId = playlistId.includes('list=') 
-    ? new URLSearchParams(playlistId.split('?')[1]).get('list') 
+  const extractedId = playlistId.includes('list=')
+    ? new URLSearchParams(playlistId.split('?')[1]).get('list')
     : playlistId;
 
   if (!extractedId) {
@@ -152,7 +152,7 @@ export async function getPlaylistInfo(playlistId: string): Promise<{
   }
 
   const playlist = data.items[0];
-  
+
   return {
     id: playlist.id,
     title: playlist.snippet.title,
@@ -167,8 +167,8 @@ export async function getPlaylistInfo(playlistId: string): Promise<{
  */
 export async function getPlaylistVideos(playlistId: string): Promise<Video[]> {
   // Extract playlist ID from URL if a full URL was provided
-  const extractedId = playlistId.includes('list=') 
-    ? new URLSearchParams(playlistId.split('?')[1]).get('list') 
+  const extractedId = playlistId.includes('list=')
+    ? new URLSearchParams(playlistId.split('?')[1]).get('list')
     : playlistId;
 
   if (!extractedId) {
@@ -192,8 +192,11 @@ export async function getPlaylistVideos(playlistId: string): Promise<Video[]> {
     if (data.items) {
       for (const item of data.items) {
         // Skip deleted or private videos
-        if (item.snippet.title === 'Deleted video' || 
-            item.snippet.title === 'Private video') {
+        if (item.snippet.title === 'Deleted video' ||
+            item.snippet.title === 'Private video' ||
+            item.snippet.title === '[Private video]' ||
+            item.snippet.title === '[Deleted video]') {
+          console.log(`Skipping private/deleted video: ${item.contentDetails.videoId}`);
           continue;
         }
 
@@ -215,6 +218,16 @@ export async function getPlaylistVideos(playlistId: string): Promise<Video[]> {
     pageToken = data.nextPageToken;
   } while (pageToken);
 
+  // Log how many videos were retrieved vs. the expected count
+  const playlistData = await getPlaylistInfo(extractedId);
+  const skippedCount = playlistData.videoCount - videos.length;
+
+  if (skippedCount > 0) {
+    console.log(`Retrieved ${videos.length} videos from playlist (skipped ${skippedCount} private/deleted videos)`);
+  } else {
+    console.log(`Retrieved ${videos.length} videos from playlist`);
+  }
+
   return videos;
 }
 
@@ -233,10 +246,10 @@ export async function importYoutubePlaylist(playlistId: string): Promise<{
 }> {
   // Get playlist info
   const playlistInfo = await getPlaylistInfo(playlistId);
-  
+
   // Get all videos
   const videos = await getPlaylistVideos(playlistId);
-  
+
   return {
     playlistInfo,
     videos
@@ -249,8 +262,8 @@ export async function importYoutubePlaylist(playlistId: string): Promise<{
 export async function checkVideoAvailability(videoId: string): Promise<boolean> {
   try {
     // Extract video ID from URL if a full URL was provided
-    const extractedId = videoId.includes('watch?v=') 
-      ? new URLSearchParams(videoId.split('?')[1]).get('v') 
+    const extractedId = videoId.includes('watch?v=')
+      ? new URLSearchParams(videoId.split('?')[1]).get('v')
       : videoId;
 
     if (!extractedId) {
@@ -285,8 +298,8 @@ export async function getVideoDetails(videoId: string): Promise<{
 } | null> {
   try {
     // Extract video ID from URL if a full URL was provided
-    const extractedId = videoId.includes('watch?v=') 
-      ? new URLSearchParams(videoId.split('?')[1]).get('v') 
+    const extractedId = videoId.includes('watch?v=')
+      ? new URLSearchParams(videoId.split('?')[1]).get('v')
       : videoId;
 
     if (!extractedId) {
@@ -303,7 +316,7 @@ export async function getVideoDetails(videoId: string): Promise<{
     }
 
     const video = data.items[0];
-    
+
     // Parse duration from ISO 8601 format
     const duration = isoDurationToSeconds(video.contentDetails.duration);
 
@@ -331,14 +344,14 @@ export async function getVideoDetails(videoId: string): Promise<{
  */
 function isoDurationToSeconds(isoDuration: string): number {
   const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  
+
   if (!match) {
     return 0;
   }
-  
+
   const hours = parseInt(match[1] || '0', 10);
   const minutes = parseInt(match[2] || '0', 10);
   const seconds = parseInt(match[3] || '0', 10);
-  
+
   return hours * 3600 + minutes * 60 + seconds;
-} 
+}

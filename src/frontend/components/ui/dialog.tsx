@@ -39,6 +39,18 @@ const DialogContent = React.forwardRef<
   const handleDragStart = (e: React.DragEvent) => {
     // Prevent default drag behavior
     e.preventDefault();
+
+    // Set the global dragEvent variable
+    if (typeof window !== 'undefined') {
+      (window as any).dragEvent = e.nativeEvent;
+    }
+  };
+
+  // Handle drag end to clean up
+  const handleDragEnd = () => {
+    if (typeof window !== 'undefined') {
+      (window as any).dragEvent = null;
+    }
   };
 
   return (
@@ -51,6 +63,7 @@ const DialogContent = React.forwardRef<
           className
         )}
         onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
         onDrag={(e) => e.preventDefault()}
         {...props}
       >

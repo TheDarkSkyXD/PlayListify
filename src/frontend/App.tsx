@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RouterProvider } from '@tanstack/react-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { router } from './routes/routes';
@@ -59,8 +59,17 @@ function App() {
   // Fix for dragEvent not defined error
   useEffect(() => {
     // Define dragEvent globally to prevent the error
-    if (typeof window !== 'undefined' && !(window as any).dragEvent) {
-      (window as any).dragEvent = null;
+    if (typeof window !== 'undefined') {
+      // Create a global dragEvent variable if it doesn't exist
+      if (!(window as any).dragEvent) {
+        (window as any).dragEvent = null;
+      }
+
+      // Define a global function to access dragEvent
+      // This helps prevent "dragEvent is not defined" errors
+      if (!(window as any).getDragEvent) {
+        (window as any).getDragEvent = () => (window as any).dragEvent;
+      }
     }
 
     // Add global drag event handlers
@@ -74,10 +83,16 @@ function App() {
 
     window.addEventListener('dragstart', handleDragStart);
     window.addEventListener('dragend', handleDragEnd);
+    window.addEventListener('drag', (e) => {
+      (window as any).dragEvent = e;
+    });
 
     return () => {
       window.removeEventListener('dragstart', handleDragStart);
       window.removeEventListener('dragend', handleDragEnd);
+      window.removeEventListener('drag', (e) => {
+        (window as any).dragEvent = e;
+      });
     };
   }, []);
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
-// Placeholder image as base64 string for when all else fails
-const PLACEHOLDER_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDMwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiAvPjxwYXRoIGQ9Ik0xNTAgNzVDMTUwIDcyLjIzODYgMTUyLjIzOSA3MCAxNTUgNzBIMjAwQzIwMi43NjEgNzAgMjA1IDcyLjIzODYgMjA1IDc1VjE3NUMyMDUgMTc3Ljc2MSAyMDIuNzYxIDE4MCAyMDAgMTgwSDE1NUMxNTIuMjM5IDE4MCAxNTAgMTc3Ljc2MSAxNTAgMTc1Vjc1WiIgZmlsbD0iIzY0NzQ4QiIgLz48cGF0aCBkPSJNOTUgMTAwQzk1IDk3LjIzODYgOTcuMjM4NiA5NSAxMDAgOTVIMTQ1QzE0Ny43NjEgOTUgMTUwIDk3LjIzODYgMTUwIDEwMFYyMDBDMTUwIDIwMi43NjEgMTQ3Ljc2MSAyMDUgMTQ1IDIwNUgxMDBDOTcuMjM4NiAyMDUgOTUgMjAyLjc2MSA5NSAyMDBWMTAwWiIgZmlsbD0iIzk0QTNCOCIgLz48Y2lyY2xlIGN4PSIxNTAiIGN5PSIxNTAiIHI9IjQwIiBmaWxsPSIjNDc1NTY5IiAvPjxwYXRoIGQ9Ik0xNDAgMTMwTDE3MCAxNTBMMTQwIDE3MFYxMzBaIiBmaWxsPSIjRjhGQUZDIiAvPjx0ZXh0IHg9IjE1MCIgeT0iMjM1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiPlBsYXlsaXN0PC90ZXh0Pjwvc3ZnPg==';
+// Placeholder image for when all else fails
+const PLACEHOLDER_IMAGE = '/placeholder.png';
 
 interface CachedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -32,6 +32,9 @@ export default function CachedImage({
     setIsLoading(true);
     setError(false);
 
+    // Check if this is a YouTube thumbnail URL
+    const isYouTubeThumbnail = src.includes('i.ytimg.com/vi/');
+
     // Try to load the image
     const img = new Image();
     img.src = src;
@@ -41,9 +44,22 @@ export default function CachedImage({
     };
 
     img.onerror = () => {
+      // If this is a YouTube thumbnail, try alternative formats
+      if (isYouTubeThumbnail) {
+        // Extract video ID from URL
+        const match = src.match(/\/vi\/([^/]+)\//);
+        if (match && match[1]) {
+          const videoId = match[1];
+
+          // Try different thumbnail formats
+          tryAlternativeThumbnails(videoId);
+          return;
+        }
+      }
+
       setError(true);
       setIsLoading(false);
-      
+
       // Try fallback if provided
       if (fallbackSrc) {
         setImageSrc(fallbackSrc);
@@ -51,6 +67,63 @@ export default function CachedImage({
         // Use placeholder as last resort
         setImageSrc(PLACEHOLDER_IMAGE);
       }
+    };
+
+    // Function to try different YouTube thumbnail formats
+    const tryAlternativeThumbnails = (videoId: string) => {
+      // Different thumbnail formats to try in order
+      const formats = [
+        'hqdefault.jpg',      // High quality - most reliably available
+        'mqdefault.jpg',      // Medium quality
+        'sddefault.jpg',      // SD quality
+        'default.jpg',        // Default quality
+        'maxresdefault.jpg'   // HD quality - least reliably available
+      ];
+
+      // Get the current format from the URL
+      const currentFormat = src.split('/').pop() || '';
+
+      // Find the index of the current format
+      const currentIndex = formats.indexOf(currentFormat);
+
+      // Start trying from the next format
+      const startIndex = currentIndex === -1 ? 0 : currentIndex + 1;
+
+      // Try each format in sequence
+      const tryNextFormat = (index: number) => {
+        if (index >= formats.length) {
+          // We've tried all formats, use fallback
+          setError(true);
+          setIsLoading(false);
+
+          if (fallbackSrc) {
+            setImageSrc(fallbackSrc);
+          } else {
+            setImageSrc(PLACEHOLDER_IMAGE);
+          }
+          return;
+        }
+
+        const format = formats[index];
+        const newUrl = `https://i.ytimg.com/vi/${videoId}/${format}`;
+
+        const testImg = new Image();
+        testImg.src = newUrl;
+
+        testImg.onload = () => {
+          // This format works, use it
+          setImageSrc(newUrl);
+          setIsLoading(false);
+        };
+
+        testImg.onerror = () => {
+          // Try the next format
+          tryNextFormat(index + 1);
+        };
+      };
+
+      // Start trying formats
+      tryNextFormat(startIndex);
     };
 
     return () => {
@@ -63,7 +136,7 @@ export default function CachedImage({
   // Skeleton loader while image is loading
   if (isLoading) {
     return (
-      <div 
+      <div
         className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded ${className}`}
         style={{ aspectRatio: '1 / 1' }}
         {...props}

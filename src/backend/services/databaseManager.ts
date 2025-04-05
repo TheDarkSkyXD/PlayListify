@@ -300,7 +300,7 @@ export function addVideo(playlistId: string, video: Video): Video {
 
   if (existingVideo) {
     // Video already exists in this playlist, return it
-    console.log(`Video ${video.id} already exists in playlist ${playlistId}, skipping insert`);
+    console.log(`Video ${video.id} (${video.title}) already exists in playlist ${playlistId}, skipping insert`);
     return existingVideo;
   }
 
@@ -383,6 +383,19 @@ export function updateVideo(videoId: string, updates: Partial<Video>): Video | n
   // Get updated video - now using composite key
   return db.prepare('SELECT * FROM videos WHERE id = ? AND playlistId = ?')
     .get(videoId, playlistId) as Video;
+}
+
+/**
+ * Get a video by ID from a specific playlist
+ */
+export function getVideoById(videoId: string, playlistId: string): Video | null {
+  const db = getDatabase();
+
+  // Get the video using composite key
+  const video = db.prepare('SELECT * FROM videos WHERE id = ? AND playlistId = ?')
+    .get(videoId, playlistId) as Video | undefined;
+
+  return video || null;
 }
 
 /**

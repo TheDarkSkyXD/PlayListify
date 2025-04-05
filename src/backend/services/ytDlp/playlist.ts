@@ -108,7 +108,8 @@ export async function getPlaylistInfo(playlistUrl: string): Promise<{
       // When using --flat-playlist, we need to construct the thumbnail URL
       let thumbnailUrl = videoData.thumbnail || '';
       if (!thumbnailUrl && videoData.id) {
-        thumbnailUrl = `https://i.ytimg.com/vi/${videoData.id}/mqdefault.jpg`;
+        // Use hqdefault.jpg which is more reliably available
+        thumbnailUrl = `https://i.ytimg.com/vi/${videoData.id}/hqdefault.jpg`;
       }
 
       // Get an accurate video count
@@ -203,12 +204,20 @@ export async function getPlaylistVideos(playlistUrl: string, progressCallback?: 
 
       console.log(`Found ${lines.length} video entries to process`);
 
+      let validVideoCount = 0;
       lines.forEach((line, index) => {
         try {
           const videoInfo = JSON.parse(line);
           // When using --flat-playlist, we need to construct the thumbnail URL
           const videoId = videoInfo.id;
-          const thumbnailUrl = videoInfo.thumbnail || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+          // Use hqdefault.jpg which is more reliably available
+          const thumbnailUrl = videoInfo.thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+          // Skip private videos
+          if (videoInfo.title === 'Private video' || videoInfo.title === '[Private video]' || videoInfo.title === 'Deleted video') {
+            console.log(`Skipping private/deleted video at index ${index}`);
+            return; // Skip this video
+          }
 
           videos.push({
             id: videoId,
@@ -220,14 +229,21 @@ export async function getPlaylistVideos(playlistUrl: string, progressCallback?: 
             addedAt: currentDate,
             status: 'available'
           });
-          progressCallback?.(index + 1);
+          validVideoCount++;
+          progressCallback?.(validVideoCount);
         } catch (e) {
           // Skip lines that can't be parsed
           console.error('Error parsing video info:', e);
         }
       });
 
-      console.log(`Successfully processed ${videos.length} videos from playlist`);
+      const skippedCount = lines.length - videos.length;
+      console.log(`Successfully processed ${videos.length} videos from playlist (skipped ${skippedCount} private/deleted videos)`);
+
+      // Log if we skipped any private videos
+      if (skippedCount > 0) {
+        console.log(`Skipped ${skippedCount} private or deleted videos that cannot be accessed`);
+      }
 
       // Handle if we got no videos but no error was thrown
       if (videos.length === 0) {
@@ -243,7 +259,7 @@ export async function getPlaylistVideos(playlistUrl: string, progressCallback?: 
       if (error.message.includes('timed out')) {
         throw new Error('The playlist import timed out. This could be because the playlist is too large or YouTube is throttling requests.');
       } else if (error.message.includes('Private video')) {
-        throw new Error('This playlist contains private videos that cannot be accessed.');
+        throw new Error('This playlist contains private videos that cannot be accessed. Try importing again - private videos will be skipped.');
       } else if (error.message.includes('sign in')) {
         throw new Error('This playlist requires you to sign in to YouTube.');
       } else {
@@ -371,7 +387,15 @@ export async function importYoutubePlaylist(
             const videoInfo = JSON.parse(line);
             // When using --flat-playlist, we need to construct the thumbnail URL
             const videoId = videoInfo.id;
-            const thumbnailUrl = videoInfo.thumbnail || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+            // Use hqdefault.jpg which is more reliably available
+            const thumbnailUrl = videoInfo.thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+            // Skip private videos
+            if (videoInfo.title === 'Private video' || videoInfo.title === '[Private video]' || videoInfo.title === 'Deleted video') {
+              console.log(`Skipping private/deleted video at index ${processedCount}`);
+              processedCount++;
+              continue; // Skip this video
+            }
 
             videos.push({
               id: videoId,
@@ -406,7 +430,13 @@ export async function importYoutubePlaylist(
 
         // Final progress update
         progressCallback?.('Retrieving videos...', 90, playlistInfo.videoCount);
-        console.log(`Successfully processed ${videos.length} videos from Mix playlist`);
+        const skippedCount = processedCount - videos.length;
+        console.log(`Successfully processed ${videos.length} videos from Mix playlist (skipped ${skippedCount} private/deleted videos)`);
+
+        // Log if we skipped any private videos
+        if (skippedCount > 0) {
+          console.log(`Skipped ${skippedCount} private or deleted videos that cannot be accessed`);
+        }
       } else {
         // For regular playlists, use the standard approach but with optimizations
         console.log('Using optimized approach for standard playlist');
@@ -451,7 +481,15 @@ export async function importYoutubePlaylist(
             const videoInfo = JSON.parse(line);
             // When using --flat-playlist, we need to construct the thumbnail URL
             const videoId = videoInfo.id;
-            const thumbnailUrl = videoInfo.thumbnail || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+            // Use hqdefault.jpg which is more reliably available
+            const thumbnailUrl = videoInfo.thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+            // Skip private videos
+            if (videoInfo.title === 'Private video' || videoInfo.title === '[Private video]' || videoInfo.title === 'Deleted video') {
+              console.log(`Skipping private/deleted video at index ${processedCount}`);
+              processedCount++;
+              continue; // Skip this video
+            }
 
             videos.push({
               id: videoId,
@@ -481,7 +519,13 @@ export async function importYoutubePlaylist(
 
         // Final progress update
         progressCallback?.('Retrieving videos...', 90, playlistInfo.videoCount);
-        console.log(`Successfully processed ${videos.length} videos from playlist`);
+        const skippedCount = processedCount - videos.length;
+        console.log(`Successfully processed ${videos.length} videos from playlist (skipped ${skippedCount} private/deleted videos)`);
+
+        // Log if we skipped any private videos
+        if (skippedCount > 0) {
+          console.log(`Skipped ${skippedCount} private or deleted videos that cannot be accessed`);
+        }
       }
     } catch (error: any) {
       console.error('Error retrieving playlist videos:', error);
@@ -536,14 +580,30 @@ export async function importYoutubePlaylist(
 
     // Check if we got any videos
     if (videos.length === 0) {
-      throw new Error('No videos could be imported from this playlist. The playlist might be empty or all videos are unavailable.');
+      throw new Error('No videos could be imported from this playlist. The playlist might be empty, private, or all videos are unavailable.');
     }
 
+    // Add a note about skipped videos in the final progress message
+    const totalSkipped = playlistInfo.videoCount - videos.length;
+
     // Import complete
-    progressCallback?.('Import complete!', videos.length, videos.length);
+    if (totalSkipped > 0) {
+      progressCallback?.(`Import complete! (${totalSkipped} private/deleted videos were skipped)`, videos.length, videos.length);
+    } else {
+      progressCallback?.('Import complete!', videos.length, videos.length);
+    }
+
+    // Note: Videos that already exist in the playlist will be reported separately
+    // by the database manager when they are added
+
     videoRateLimiter.setDelay(300); // Final delay to show completion
     await videoRateLimiter.delay();
-    console.log(`Playlist "${playlist.name}" imported successfully with ${videos.length} videos`);
+
+    if (totalSkipped > 0) {
+      console.log(`Playlist "${playlist.name}" imported successfully with ${videos.length} videos (${totalSkipped} private/deleted videos were skipped)`);
+    } else {
+      console.log(`Playlist "${playlist.name}" imported successfully with ${videos.length} videos`);
+    }
     return playlist;
   } catch (error: any) {
     console.error('Error importing YouTube playlist:', error);
