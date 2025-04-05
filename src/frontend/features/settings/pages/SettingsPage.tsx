@@ -151,19 +151,38 @@ export default function SettingsPage() {
               // Create the path with 'playlistify' appended
               const playlistifyPath = `${selectedPath}${selectedPath.endsWith('/') || selectedPath.endsWith('\\') ? '' : '/'}playlistify`;
 
-              setSettings({
+              const updatedSettings = {
                 ...settings,
                 [setting]: playlistifyPath
-              });
+              };
+
+              setSettings(updatedSettings);
+
+              // Save the setting immediately
+              if (window.api && window.api.settings) {
+                window.api.settings.set(setting as keyof AppSettings, playlistifyPath as any)
+                  .then(() => console.log(`Saved ${setting} immediately:`, playlistifyPath))
+                  .catch(err => console.error(`Error saving ${setting}:`, err));
+              }
+
               return;
             }
           }
 
           // For other settings or if already ends with 'playlistify'
-          setSettings({
+          const updatedSettings = {
             ...settings,
             [setting]: selectedPath
-          });
+          };
+
+          setSettings(updatedSettings);
+
+          // Save the setting immediately
+          if (window.api && window.api.settings) {
+            window.api.settings.set(setting as keyof AppSettings, selectedPath as any)
+              .then(() => console.log(`Saved ${setting} immediately:`, selectedPath))
+              .catch(err => console.error(`Error saving ${setting}:`, err));
+          }
         }
       }
     } catch (err) {

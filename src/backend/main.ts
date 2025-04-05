@@ -326,5 +326,7 @@ app.on('window-all-closed', () => {
 // Clean up resources when the app is closing
 app.on('will-quit', () => {
   console.log('App is closing, cleaning up resources...');
+
+  // Clean up file logger
   cleanupFileLogger();
 });

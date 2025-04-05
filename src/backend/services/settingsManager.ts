@@ -139,21 +139,31 @@ export function setSetting<K extends keyof SettingsSchema>(
     fs.ensureDirSync(value);
   }
 
-  const settings = (store as any).store as SettingsSchema;
-  settings[key] = value;
-  (store as any).store = settings;
+  // Directly set the value in the store to ensure it's saved to disk
+  (store as any).set(key, value);
+
+  // Log the setting change
+  console.log(`Setting ${key} updated to:`, value);
 }
 
 // Reset a setting to default
 export function resetSetting<K extends keyof SettingsSchema>(key: K): void {
-  const settings = (store as any).store as SettingsSchema;
-  settings[key] = defaultSettings[key];
-  (store as any).store = settings;
+  // Directly set the default value in the store
+  (store as any).set(key, defaultSettings[key]);
+  console.log(`Reset setting ${key} to default:`, defaultSettings[key]);
 }
 
 // Reset all settings to default
 export function resetAllSettings(): void {
-  (store as any).store = defaultSettings;
+  // Clear the store and set all defaults
+  (store as any).clear();
+
+  // Set each default setting individually
+  for (const [key, value] of Object.entries(defaultSettings)) {
+    (store as any).set(key, value);
+  }
+
+  console.log('All settings reset to defaults');
 
   // Re-create necessary directories
   initializeDirectories();
@@ -161,9 +171,9 @@ export function resetAllSettings(): void {
 
 // Delete a setting
 export function clearSetting(key: keyof SettingsSchema): void {
-  const settings = (store as any).store as SettingsSchema;
-  delete settings[key];
-  (store as any).store = settings;
+  // Delete the setting from the store
+  (store as any).delete(key);
+  console.log(`Deleted setting: ${key}`);
 }
 
 // Check if a setting exists
@@ -179,21 +189,29 @@ export function getAllSettings(): SettingsSchema {
 
 // Add account
 export function addAccount(email: string, refreshToken: string): void {
-  const settings = (store as any).store as SettingsSchema;
-  const accounts = settings.accounts || {};
+  // Get current accounts or initialize empty object
+  const accounts = getSetting('accounts') || {};
+
+  // Add the new account
   accounts[email] = { refreshToken };
-  settings.accounts = accounts;
-  (store as any).store = settings;
+
+  // Save the updated accounts
+  setSetting('accounts', accounts);
+  console.log(`Added account: ${email}`);
 }
 
 // Remove account
 export function removeAccount(email: string): void {
-  const settings = (store as any).store as SettingsSchema;
-  const accounts = settings.accounts;
+  // Get current accounts
+  const accounts = getSetting('accounts');
+
+  // Remove the account if it exists
   if (accounts && accounts[email]) {
     delete accounts[email];
-    settings.accounts = accounts;
-    (store as any).store = settings;
+
+    // Save the updated accounts
+    setSetting('accounts', accounts);
+    console.log(`Removed account: ${email}`);
   }
 }
 
@@ -201,3 +219,4 @@ export function removeAccount(email: string): void {
 export function initializeSettings(): void {
   initializeDirectories();
 }
+
