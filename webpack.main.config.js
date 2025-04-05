@@ -7,8 +7,8 @@ module.exports = {
    * that runs in the main process.
    */
   entry: {
-    index: './src/main.ts'
-    // Remove preload from webpack bundling
+    index: './src/backend/main.ts',
+    preload: './src/backend/preload.ts'
   },
   // Put your normal webpack config below here
   module: {
@@ -18,12 +18,12 @@ module.exports = {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.css', '.json'],
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      '@/components': path.resolve(__dirname, 'src/renderer/components'),
-      '@/utils': path.resolve(__dirname, 'src/renderer/utils'),
-      '@/styles': path.resolve(__dirname, 'src/renderer/styles'),
-      '@/features': path.resolve(__dirname, 'src/renderer/features'),
-      '@/services': path.resolve(__dirname, 'src/renderer/services'),
-      '@/stores': path.resolve(__dirname, 'src/renderer/stores'),
+      '@/components': path.resolve(__dirname, 'src/frontend/components'),
+      '@/utils': path.resolve(__dirname, 'src/frontend/utils'),
+      '@/styles': path.resolve(__dirname, 'src/frontend/styles'),
+      '@/features': path.resolve(__dirname, 'src/frontend/features'),
+      '@/services': path.resolve(__dirname, 'src/frontend/services'),
+      '@/stores': path.resolve(__dirname, 'src/frontend/stores'),
       '@/shared': path.resolve(__dirname, 'src/shared'),
     },
   },
@@ -44,7 +44,9 @@ module.exports = {
   plugins: [
     new CopyPlugin({
       patterns: [
-        { from: 'src/preload-commonjs.js', to: 'preload-commonjs.js' }
+        { from: 'src/backend/preload-commonjs.js', to: 'preload-commonjs.js' },
+        { from: 'src/frontend/preload/direct-logger.js', to: 'direct-logger.js' },
+        { from: 'src/frontend/preload/renderer-logger.js', to: 'renderer-logger.js' }
       ],
     }),
   ],

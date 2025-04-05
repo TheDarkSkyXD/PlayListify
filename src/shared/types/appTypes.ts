@@ -45,29 +45,29 @@ export interface AppSettings {
   checkForUpdates: boolean;
   startAtLogin: boolean;
   minimizeToTray: boolean;
-  
+
   // Download settings
   downloadLocation: string;
   concurrentDownloads: number;
   downloadFormat: 'mp4' | 'webm' | 'mp3' | 'best';
   maxQuality: '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p';
   autoConvertToMp3: boolean;
-  
+
   // Playback settings
   defaultVolume: number;
   autoPlay: boolean;
-  
+
   // Playlist settings
   playlistLocation: string;
   autoRefreshPlaylists: boolean;
   refreshInterval: number; // in milliseconds
-  
+
   // YouTube API settings
   youtubeApiKey?: string;
-  
+
   // Saved accounts/tokens
   accounts?: Record<string, { refreshToken: string }>;
-  
+
   // Advanced settings
   ytDlpPath?: string;
   ffmpegPath?: string;
@@ -104,7 +104,7 @@ export interface Api {
   send: (channel: string, data: any) => void;
   receive: (channel: string, func: (...args: any[]) => void) => void;
   invoke: (channel: string, ...args: any[]) => Promise<any>;
-  
+
   // Settings API
   settings: {
     get: <K extends keyof AppSettings>(key: K) => Promise<AppSettings[K]>;
@@ -113,7 +113,7 @@ export interface Api {
     reset: <K extends keyof AppSettings>(key: K) => Promise<boolean>;
     resetAll: () => Promise<boolean>;
   };
-  
+
   // File system API
   fs: {
     selectDirectory: () => Promise<string | null>;
@@ -127,14 +127,14 @@ export interface Api {
     getFreeDiskSpace: () => Promise<number>;
     validatePath: (dirPath: string) => Promise<PathValidationResult>;
   };
-  
+
   // Image utilities
   images: {
     cacheImage: (url: string) => Promise<string>;
     getLocalPath: (url: string, downloadIfMissing?: boolean) => Promise<string>;
     clearCache: (maxAgeDays?: number) => Promise<boolean>;
   };
-  
+
   // YouTube API
   youtube: {
     getPlaylistInfo: (playlistUrl: string) => Promise<{
@@ -145,12 +145,23 @@ export interface Api {
       videoCount: number;
     }>;
     getPlaylistVideos: (playlistUrl: string) => Promise<Video[]>;
-    importPlaylist: (playlistUrl: string) => Promise<Playlist>;
-    checkVideoStatus: (videoUrl: string) => Promise<'available' | 'unavailable'>;
+    importPlaylist: (playlistUrl: string, playlistInfo?: any) => Promise<Playlist>;
+    checkVideoStatus: (videoUrl: string) => Promise<{
+      available: boolean;
+      info?: {
+        id: string;
+        title: string;
+        url: string;
+        thumbnail: string;
+        duration: number;
+        channel?: string;
+      };
+      error?: string;
+    }>;
     downloadVideo: (videoUrl: string, outputDir: string, videoId: string, options?: DownloadOptions) => Promise<string>;
     onImportProgress: (callback: (data: { status: string, count?: number, total?: number }) => void) => (() => void);
   };
-  
+
   // Playlist management API
   playlists: {
     create: (name: string, description?: string) => Promise<Playlist>;
@@ -170,4 +181,4 @@ declare global {
   interface Window {
     api: Api;
   }
-} 
+}

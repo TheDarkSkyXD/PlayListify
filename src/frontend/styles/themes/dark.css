@@ -1,0 +1,211 @@
+/* ============================================ */
+/*                 DARK THEME                   */
+/*                                              */
+/* This file contains styles specific to the    */
+/* dark theme.                                  */
+/* ============================================ */
+
+.dark {
+  /* Dark Theme Colors */
+  --background: 0 0% 6%; /* YouTube dark background: #0F0F0F */
+  --foreground: 0 0% 100%; /* White text */
+  --card: 0 0% 13%; /* Elevated elements: rgb(33, 33, 33) */
+  --card-foreground: 0 0% 100%;
+  --popover: 0 0% 13%;
+  --popover-foreground: 0 0% 100%;
+  --primary: 0 0% 30%; /* Dark mode buttons: rgb(77, 77, 77) */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 16%; /* Slightly lighter background: rgb(40, 40, 40) */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 0 0% 24%; /* Medium gray: rgb(60, 60, 60) */
+  --muted-foreground: 0 0% 67%; /* Light gray for secondary text */
+  --accent: 0 100% 50%; /* YouTube Red: #FF0000 */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 18%; /* Very dark gray borders */
+  --input: 0 0% 18%;
+  --ring: 0 0% 30%; /* Medium gray ring: rgb(77, 77, 77) */
+  
+  /* Custom sidebar nav colors */
+  --sidebar-hover: 0 0% 20%; /* Dark mode hover: rgb(51, 51, 51) */
+}
+
+/* Dark Theme Specific Styles */
+
+/* Sidebar */
+.dark .sidebar-nav-item {
+  @apply text-white bg-transparent;
+}
+
+.dark button.sidebar-nav-item {
+  background-color: transparent !important;
+}
+
+.dark .sidebar-nav-item:hover:not(.sidebar-nav-active) {
+  @apply bg-[rgb(51,51,51)] text-white;
+}
+
+.dark .sidebar-nav-active {
+  @apply bg-[#272727] text-white font-medium;
+}
+
+.dark .sidebar-nav-active:hover {
+  @apply bg-[#323232] text-white;
+}
+
+.dark .sidebar-nav-item svg,
+.dark .sidebar-nav-active svg {
+  color: white !important;
+}
+
+.dark [class*="md:flex"][class*="flex-col"][class*="w-64"],
+.dark nav.flex.flex-col,
+.dark div.flex.flex-col.w-64 {
+  background-color: #0F0F0F !important;
+}
+
+/* Buttons */
+.dark button {
+  background-color: #3e3e3e !important;
+  color: white !important;
+}
+
+.dark button:has(svg[class*="lucide-play"]) {
+  background-color: #222222 !important;
+  color: white !important;
+  border-radius: 0.5rem !important;
+  transition: background-color 0.2s ease-in-out !important;
+}
+
+.dark button:has(svg[class*="lucide-play"]):hover {
+  background-color: #323232 !important;
+}
+
+.dark button svg[class*="lucide-play"] {
+  color: white !important;
+}
+
+/* Dashboard */
+.dark header.mb-8 {
+  background-color: transparent !important;
+  background: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.dark section.bg-white.dark\\:bg-gray-800.shadow.rounded-lg.p-6 {
+  background-color: transparent !important;
+  background: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.dark div.grid.grid-cols-1.md\\:grid-cols-3.gap-4 > div {
+  background-color: transparent !important;
+  background: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.dark .p-3.rounded-full {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Cards */
+.dark .card {
+  @apply bg-[#212121] border-[#2D2D2D];
+}
+
+/* Inputs */
+.dark .input, 
+.dark input[type="text"], 
+.dark input[type="email"], 
+.dark input[type="password"], 
+.dark input[type="number"], 
+.dark input[type="search"] {
+  @apply border-[#2D2D2D] bg-[#1A1A1A] text-white;
+}
+
+.dark .input:focus, 
+.dark input[type="text"]:focus, 
+.dark input[type="email"]:focus, 
+.dark input[type="password"]:focus, 
+.dark input[type="number"]:focus, 
+.dark input[type="search"]:focus {
+  @apply border-[#4D4D4D] ring-1 ring-[#4D4D4D];
+}
+
+/* Scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-[#3D3D3D];
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  @apply bg-[#4D4D4D];
+}
+
+/* Focus */
+.dark *:focus-visible {
+  outline-color: hsl(0, 0%, 30%);
+}
+
+.dark a:focus,
+.dark button:focus,
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: hsl(0, 0%, 30%) !important;
+  outline-color: hsl(0, 0%, 30%) !important;
+  box-shadow: 0 0 0 2px hsla(0, 0%, 30%, 0.4) !important;
+}
+
+/* Background Overrides */
+.dark [class*="bg-slate"],
+.dark [class*="bg-gray"],
+.dark [class*="from-"],
+.dark [class*="to-"],
+.dark [class*="via-"] {
+  background-color: rgb(33, 33, 33) !important;
+  background-image: none !important;
+  --tw-bg-opacity: 0 !important;
+}
+
+.dark .bg-blue-900,
+.dark .bg-blue-800,
+.dark .bg-blue-700 {
+  background-color: rgb(33, 33, 33) !important;
+  --tw-bg-opacity: 0 !important;
+}
+
+.dark .bg-gray-800,
+.dark [style*="background-color: rgb(31 41 55)"],
+.dark [style*="background: rgb(31 41 55)"],
+.dark [style*="background-color:rgb(31 41 55)"] {
+  background-color: rgb(33, 33, 33) !important;
+  --tw-bg-opacity: 0 !important;
+}
+
+.dark *[style*="background-color: #1D2936"],
+.dark *[style*="background: #1D2936"],
+.dark *[style*="background-color:#1D2936"],
+.dark *[style*="background:#1D2936"] {
+  background-color: rgb(33, 33, 33) !important;
+}
+
+.dark [class*="text-blue"] {
+  color: white !important;
+}
+
+.dark [class*="border-blue"] {
+  border-color: rgb(40, 40, 40) !important;
+}
+
+/* App Container */
+.dark main,
+.dark [role="main"],
+.dark .bg-background,
+.dark .min-h-screen,
+.dark .flex.min-h-screen {
+  background-color: #0F0F0F !important;
+}

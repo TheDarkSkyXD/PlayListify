@@ -22,20 +22,28 @@
     "paths": {
       "*": ["node_modules/*"],
       "@/*": ["src/*"],
-      "@/components/*": ["src/renderer/components/*"],
-      "@/utils/*": ["src/renderer/utils/*"],
-      "@/styles/*": ["src/renderer/styles/*"],
-      "@/features/*": ["src/renderer/features/*"],
-      "@/services/*": ["src/renderer/services/*"],
-      "@/stores/*": ["src/renderer/stores/*"],
+      "@/components/*": ["src/frontend/components/*"],
+      "@/components/ui/*": ["src/frontend/components/ui/*"],
+      "@/components/layout/*": ["src/frontend/components/layout/*"],
+      "@/components/common/*": ["src/frontend/components/common/*"],
+      "@/utils/*": ["src/frontend/utils/*"],
+      "@/styles/*": ["src/frontend/styles/*"],
+      "@/features/*": ["src/frontend/features/*"],
+      "@/features/dashboard/*": ["src/frontend/features/dashboard/*"],
+      "@/features/playlists/*": ["src/frontend/features/playlists/*"],
+      "@/features/downloads/*": ["src/frontend/features/downloads/*"],
+      "@/features/history/*": ["src/frontend/features/history/*"],
+      "@/features/settings/*": ["src/frontend/features/settings/*"],
+      "@/services/*": ["src/frontend/services/*"],
+      "@/stores/*": ["src/frontend/stores/*"],
       "@/shared/*": ["src/shared/*"]
     },
     "typeRoots": [
       "node_modules/@types",
       "src/types"
     ],
-    "types": ["react", "react-dom"]
+    "types": ["react", "react-dom", "jest"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "tests/**/*"],
   "exclude": ["node_modules", ".webpack"]
-} 
+}

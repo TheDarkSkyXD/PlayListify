@@ -1,0 +1,96 @@
+/* ============================================ */
+/*                LIGHT THEME                   */
+/*                                              */
+/* This file contains styles specific to the    */
+/* light theme.                                 */
+/* ============================================ */
+
+:root {
+  /* Light Theme Colors */
+  --background: 0 0% 100%; /* #FFFFFF */
+  --foreground: 0 0% 13%; /* Near-black: #212121 */
+  --card: 0 0% 100%; /* White cards */
+  --card-foreground: 0 0% 13%; /* #212121 */
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 13%;
+  --primary: 0 0% 6%; /* Dark button: #0F0F0F */
+  --primary-foreground: 0 0% 100%; /* White text on dark button */
+  --secondary: 0 0% 95%; /* Very light gray: #F2F2F2 */
+  --secondary-foreground: 0 0% 13%;
+  --muted: 0 0% 90%; /* Light gray for disabled */
+  --muted-foreground: 0 0% 45%; /* Medium gray for secondary text */
+  --accent: 0 100% 50%; /* YouTube Red: #FF0000 */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 0 0% 89%; /* Light gray borders */
+  --input: 0 0% 89%;
+  --ring: 0 0% 6%; /* Dark ring: #0F0F0F */
+  
+  /* Custom sidebar nav colors */
+  --sidebar-hover: 0 0% 93%; /* Light mode hover: #EDEDED */
+}
+
+/* Light Theme Specific Styles */
+
+/* Sidebar */
+.sidebar-nav-item {
+  @apply text-[#0F0F0F];
+}
+
+.sidebar-nav-item:hover {
+  @apply bg-[#EDEDED] text-[#0F0F0F];
+}
+
+button[class*="ghost"].sidebar-nav-item:hover {
+  @apply bg-[#EDEDED] text-[#0F0F0F];
+}
+
+.sidebar-nav-active {
+  @apply bg-[#EDEDED] text-[#0F0F0F] font-medium;
+}
+
+.sidebar-nav-active svg {
+  @apply text-[#0F0F0F];
+}
+
+/* Buttons */
+.btn-primary {
+  @apply bg-[#0F0F0F] text-white hover:bg-[#0F0F0F]/90;
+}
+
+.btn-secondary {
+  @apply bg-[#F2F2F2] text-[#0F0F0F] hover:bg-[#E5E5E5];
+}
+
+/* Create playlist button */
+button:has(svg[class*="lucide-play"]) {
+  @apply bg-[#0F0F0F] text-white rounded-md transition-colors;
+}
+
+button:has(svg[class*="lucide-play"]):hover {
+  @apply bg-[#2C2C2C];
+}
+
+/* Cards */
+.card {
+  @apply bg-white border border-[#E3E3E3] shadow-sm;
+}
+
+/* Inputs */
+.input, input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="search"] {
+  @apply border-[#E3E3E3] bg-white text-[#212121];
+}
+
+.input:focus, input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, input[type="number"]:focus, input[type="search"]:focus {
+  @apply border-[#0F0F0F] ring-1 ring-[#0F0F0F];
+}
+
+/* Scrollbar */
+::-webkit-scrollbar-thumb {
+  @apply bg-[#D1D1D1];
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-[#A1A1A1];
+}

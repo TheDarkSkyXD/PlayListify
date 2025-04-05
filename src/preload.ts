@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { Api, AppSettings } from './shared/types/appTypes';
 
+// Set up a direct listener for import progress events to verify they're being received
+ipcRenderer.on('yt:importProgress', (event, data) => {
+  console.log('PRELOAD: Received yt:importProgress event', data);
+});
+
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld(
@@ -8,110 +13,145 @@ contextBridge.exposeInMainWorld(
     // General message passing
     send: (channel: string, data: any) => {
       // whitelist channels
-      const validChannels = ['toMain'];
+      const validChannels = ['toMain', 'yt:requestProgressUpdates'];
       if (validChannels.includes(channel)) {
         ipcRenderer.send(channel, data);
+      } else {
+        console.warn(`Attempted to send to invalid channel: ${channel}`);
       }
     },
     receive: (channel: string, func: Function) => {
-      const validChannels = ['fromMain', 'download-progress', 'playlist-download-progress'];
+      const validChannels = ['fromMain', 'download-progress', 'playlist-download-progress', 'yt:importProgress'];
       if (validChannels.includes(channel)) {
-        // Deliberately strip event as it includes `sender` 
-        ipcRenderer.on(channel, (event, ...args) => func(...args));
+        console.log(`Registering receiver for channel: ${channel}`);
+        // Deliberately strip event as it includes `sender`
+        ipcRenderer.on(channel, (event, ...args) => {
+          console.log(`PRELOAD: Forwarding ${channel} event to renderer:`, args);
+          try {
+            func(...args);
+          } catch (error) {
+            console.error(`Error in ${channel} handler:`, error);
+          }
+        });
+      } else {
+        console.warn(`Attempted to register receiver for invalid channel: ${channel}`);
       }
     },
     invoke: (channel: string, ...args: any[]) => {
       return ipcRenderer.invoke(channel, ...args);
     },
     on: (channel: string, func: Function) => {
-      ipcRenderer.on(channel, (event, ...args) => func(...args));
+      const validChannels = ['fromMain', 'download-progress', 'playlist-download-progress', 'yt:importProgress'];
+      if (validChannels.includes(channel)) {
+        console.log(`Registering listener for channel: ${channel}`);
+        ipcRenderer.on(channel, (event, ...args) => func(...args));
+      } else {
+        console.warn(`Attempted to register listener for invalid channel: ${channel}`);
+      }
     },
     off: (channel: string, func: Function) => {
-      ipcRenderer.removeListener(channel, func as any);
+      const validChannels = ['fromMain', 'download-progress', 'playlist-download-progress', 'yt:importProgress'];
+      if (validChannels.includes(channel)) {
+        console.log(`Removing listener for channel: ${channel}`);
+        ipcRenderer.removeListener(channel, func as any);
+      } else {
+        console.warn(`Attempted to remove listener for invalid channel: ${channel}`);
+      }
+    },
+
+    // Direct method to listen for progress updates
+    listenForProgress: (callback: Function) => {
+      const listener = (event: any, data: any) => {
+        callback(data);
+      };
+      ipcRenderer.on('yt:importProgress', listener);
+      return () => {
+        ipcRenderer.removeListener('yt:importProgress', listener);
+      };
     },
 
     // Settings API
     settings: {
-      get: <K extends keyof AppSettings>(key: K) => 
+      get: <K extends keyof AppSettings>(key: K) =>
         ipcRenderer.invoke('settings:get', key),
-      set: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => 
+      set: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) =>
         ipcRenderer.invoke('settings:set', key, value),
-      getAll: () => 
+      getAll: () =>
         ipcRenderer.invoke('settings:getAll'),
-      reset: <K extends keyof AppSettings>(key: K) => 
+      reset: <K extends keyof AppSettings>(key: K) =>
         ipcRenderer.invoke('settings:reset', key),
-      resetAll: () => 
+      resetAll: () =>
         ipcRenderer.invoke('settings:resetAll')
     },
 
     // File system API
     fs: {
-      selectDirectory: () => 
+      selectDirectory: () =>
         ipcRenderer.invoke('fs:selectDirectory'),
-      createPlaylistDir: (playlistId: string, playlistName: string) => 
+      createPlaylistDir: (playlistId: string, playlistName: string) =>
         ipcRenderer.invoke('fs:createPlaylistDir', playlistId, playlistName),
-      writePlaylistMetadata: (playlistId: string, playlistName: string, metadata: any) => 
+      writePlaylistMetadata: (playlistId: string, playlistName: string, metadata: any) =>
         ipcRenderer.invoke('fs:writePlaylistMetadata', playlistId, playlistName, metadata),
-      readPlaylistMetadata: (playlistId: string, playlistName: string) => 
+      readPlaylistMetadata: (playlistId: string, playlistName: string) =>
         ipcRenderer.invoke('fs:readPlaylistMetadata', playlistId, playlistName),
-      getAllPlaylists: () => 
+      getAllPlaylists: () =>
         ipcRenderer.invoke('fs:getAllPlaylists'),
-      deletePlaylist: (playlistId: string, playlistName: string) => 
+      deletePlaylist: (playlistId: string, playlistName: string) =>
         ipcRenderer.invoke('fs:deletePlaylist', playlistId, playlistName),
-      videoExists: (playlistId: string, playlistName: string, videoId: string, format: string) => 
+      videoExists: (playlistId: string, playlistName: string, videoId: string, format: string) =>
         ipcRenderer.invoke('fs:videoExists', playlistId, playlistName, videoId, format),
-      getFileSize: (filePath: string) => 
+      getFileSize: (filePath: string) =>
         ipcRenderer.invoke('fs:getFileSize', filePath),
-      getFreeDiskSpace: () => 
+      getFreeDiskSpace: () =>
         ipcRenderer.invoke('fs:getFreeDiskSpace'),
-      validatePath: (dirPath: string) => 
+      validatePath: (dirPath: string) =>
         ipcRenderer.invoke('fs:validatePath', dirPath)
     },
-    
+
     // Image utilities
     images: {
-      cacheImage: (url: string) => 
+      cacheImage: (url: string) =>
         ipcRenderer.invoke('image:cache', url),
-      getLocalPath: (url: string, downloadIfMissing = true) => 
+      getLocalPath: (url: string, downloadIfMissing = true) =>
         ipcRenderer.invoke('image:getLocalPath', url, downloadIfMissing),
-      clearCache: (maxAgeDays = 30) => 
+      clearCache: (maxAgeDays = 30) =>
         ipcRenderer.invoke('image:clearCache', maxAgeDays)
     },
-    
+
     // YouTube API
     youtube: {
-      getPlaylistInfo: (playlistUrl: string) => 
+      getPlaylistInfo: (playlistUrl: string) =>
         ipcRenderer.invoke('yt:getPlaylistInfo', playlistUrl),
-      getPlaylistVideos: (playlistUrl: string) => 
+      getPlaylistVideos: (playlistUrl: string) =>
         ipcRenderer.invoke('yt:getPlaylistVideos', playlistUrl),
-      importPlaylist: (playlistUrl: string) => 
-        ipcRenderer.invoke('yt:importPlaylist', playlistUrl),
-      checkVideoStatus: (videoUrl: string) => 
+      importPlaylist: (playlistUrl: string, playlistInfo?: any) =>
+        ipcRenderer.invoke('yt:importPlaylist', playlistUrl, playlistInfo),
+      checkVideoStatus: (videoUrl: string) =>
         ipcRenderer.invoke('yt:checkVideoStatus', videoUrl),
-      downloadVideo: (videoUrl: string, outputDir: string, videoId: string, options?: any) => 
+      downloadVideo: (videoUrl: string, outputDir: string, videoId: string, options?: any) =>
         ipcRenderer.invoke('yt:downloadVideo', videoUrl, outputDir, videoId, options)
     },
-    
+
     // Playlist management API
     playlists: {
-      create: (name: string, description?: string) => 
+      create: (name: string, description?: string) =>
         ipcRenderer.invoke('playlist:create', name, description),
-      getAll: () => 
+      getAll: () =>
         ipcRenderer.invoke('playlist:getAll'),
-      getById: (playlistId: string) => 
+      getById: (playlistId: string) =>
         ipcRenderer.invoke('playlist:getById', playlistId),
-      delete: (playlistId: string) => 
+      delete: (playlistId: string) =>
         ipcRenderer.invoke('playlist:delete', playlistId),
-      update: (playlistId: string, updates: any) => 
+      update: (playlistId: string, updates: any) =>
         ipcRenderer.invoke('playlist:update', playlistId, updates),
-      addVideo: (playlistId: string, videoUrl: string) => 
+      addVideo: (playlistId: string, videoUrl: string) =>
         ipcRenderer.invoke('playlist:addVideo', playlistId, videoUrl),
-      removeVideo: (playlistId: string, videoId: string) => 
+      removeVideo: (playlistId: string, videoId: string) =>
         ipcRenderer.invoke('playlist:removeVideo', playlistId, videoId),
-      downloadVideo: (playlistId: string, videoId: string, options?: any) => 
+      downloadVideo: (playlistId: string, videoId: string, options?: any) =>
         ipcRenderer.invoke('playlist:downloadVideo', playlistId, videoId, options),
-      refresh: (playlistId: string) => 
+      refresh: (playlistId: string) =>
         ipcRenderer.invoke('playlist:refresh', playlistId)
     }
   } as Api
-); 
+);
