@@ -255,7 +255,7 @@ app.on('activate', () => mainWindow === null && createWindow());
   - Route definitions for Dashboard, Settings, and Playlist pages
 - [x] `src/renderer/pages/Dashboard/DashboardPage.tsx` (~25 lines)
   - Dashboard page component with responsive layout
-- [x] `src/renderer/pages/Settings/SettingsPage.tsx` (~30 lines) 
+- [x] `src/renderer/pages/Settings/SettingsPage.tsx` (~30 lines)
   - Settings page component
 - [x] `src/renderer/pages/PlaylistView/PlaylistViewPage.tsx` (~30 lines)
   - Individual playlist viewing page
@@ -275,7 +275,7 @@ app.on('activate', () => mainWindow === null && createWindow());
 - [x] Configure React Query for data management
 
 **Files Created/Updated:**
-- [x] `src/renderer/App.tsx` 
+- [x] `src/renderer/App.tsx`
   - Added QueryClientProvider with configuration
   - Set up stale time and refetch options
   - Implemented theme detection and management
@@ -359,14 +359,14 @@ interface SettingsSchema {
   checkForUpdates: boolean;
   startAtLogin: boolean;
   minimizeToTray: boolean;
-  
+
   // Download settings
   downloadLocation: string;
   concurrentDownloads: number;
   downloadFormat: 'mp4' | 'webm' | 'mp3' | 'best';
   maxQuality: '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p';
   autoConvertToMp3: boolean;
-  
+
   // Playlist settings
   playlistLocation: string;
   // ...other settings
@@ -395,7 +395,7 @@ export function setSetting<K extends keyof SettingsSchema>(
   if ((key === 'downloadLocation' || key === 'playlistLocation') && typeof value === 'string') {
     fs.ensureDirSync(value);
   }
-  
+
   store.set(key, value);
 }
 ```
@@ -417,7 +417,7 @@ export async function createPlaylistDir(playlistId: string, playlistName: string
   const sanitizedName = sanitizeFileName(playlistName);
   // Create a directory with format: playlistId-sanitizedName
   const playlistDir = path.join(baseDir, `${playlistId}-${sanitizedName}`);
-  
+
   try {
     await ensureDir(playlistDir);
     // Create subdirectories for metadata and videos
@@ -443,7 +443,7 @@ export async function writePlaylistMetadata(
   const playlistDir = path.join(baseDir, `${playlistId}-${sanitizedName}`);
   const metadataDir = path.join(playlistDir, 'metadata');
   const metadataPath = path.join(metadataDir, 'playlist-info.json');
-  
+
   try {
     await ensureDir(metadataDir);
     await fs.writeJson(metadataPath, metadata, { spaces: 2 });
@@ -689,56 +689,133 @@ export async function importPlaylist(playlistUrl: string, playlistName: string):
 ### Phase 3.1: Download Logic
 
 **Tasks:**
-- [ ] Implement video download functionality with yt-dlp
-- [ ] Create download queue management with p-queue
+- [x] Implement video download functionality with yt-dlp
+- [x] Create download queue management with p-queue
+- [x] Implement download status tracking
+- [x] Create IPC handlers for download operations
+- [x] Add lazy initialization to prevent startup errors
 
-**Files to Create:**
-- [ ] `src/main/services/downloadManager.ts` (~250 lines)
-  - Download queue management
-  - yt-dlp download execution
-- [ ] `src/main/services/logger.ts` (~100 lines)
-  - Logging service for downloads and errors
+**Files Created:**
+- [x] `src/backend/services/downloadManager.ts` (~530 lines)
+  - Download queue management with p-queue
+  - Download status tracking
+  - Pause, resume, and cancel functionality
+  - Integration with existing yt-dlp manager
+  - Lazy initialization to prevent startup errors
+- [x] `src/backend/ipc/downloadHandlers.ts` (~125 lines)
+  - IPC handlers for download operations
+  - Error handling and logging
 
-**Sample Code for `src/main/services/downloadManager.ts`:**
+**Implementation Details:**
+- Used the existing logger service for download-related events
+- Implemented a download queue with configurable concurrency
+- Added download status tracking (pending, downloading, paused, completed, failed, canceled)
+- Created methods for adding, pausing, resuming, and canceling downloads
+- Added progress tracking and status updates
+- Implemented IPC handlers for all download operations
+- Added TypeScript interfaces for download items and options
+- Integrated with the existing yt-dlp manager for video downloads
+- Added lazy initialization to prevent startup errors
+- Implemented proper error handling throughout the download process
+
+**Key Features:**
 ```typescript
-import PQueue from 'p-queue';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import fs from 'fs-extra';
-import path from 'path';
-import { getSetting } from './settingsManager';
-const execAsync = promisify(exec);
+// Download manager class with queue management
+export class DownloadManager {
+  private queue: PQueue | null = null;
+  private downloads: Map<string, DownloadItem> = new Map();
+  private activeDownloads: Set<string> = new Set();
+  private mainWindow?: BrowserWindow;
+  private initialized: boolean = false;
 
-const queue = new PQueue({ concurrency: 3 });
+  // Check if the download manager is initialized
+  public isInitialized(): boolean {
+    return this.initialized;
+  }
 
-export async function downloadVideo(url: string, playlistName: string): Promise<void> {
-  const outputDir = path.join(getSetting('downloadLocation', '~/Downloads/Videos'), playlistName);
-  await fs.ensureDir(outputDir);
-  const outputPath = path.join(outputDir, `${url.split('v=')[1]}.mp4`);
-  const command = `yt-dlp -f "bestvideo[height<=1080]+bestaudio" -o "${outputPath}" "${url}"`;
-  await execAsync(command);
-}
+  // Initialize the download manager
+  public initialize(): void {
+    if (this.initialized) return;
 
-export async function downloadVideos(urls: string[], playlistName: string): Promise<void> {
-  const tasks = urls.map((url) => () => downloadVideo(url, playlistName));
-  await queue.addAll(tasks);
+    try {
+      // Initialize the queue with concurrency from settings
+      const concurrentDownloads = getSetting('concurrentDownloads', 3);
+      this.queue = new PQueue({ concurrency: concurrentDownloads });
+
+      // Log initialization
+      logToFile('INFO', c.section('🚀', 'Download Manager initialized'));
+      logToFile('INFO', `Concurrent downloads: ${concurrentDownloads}`);
+
+      this.initialized = true;
+    } catch (error) {
+      console.error('Failed to initialize download manager:', error);
+    }
+  }
+
+  // Add a video to the download queue
+  public async addToQueue(
+    videoUrl: string,
+    videoId: string,
+    title: string,
+    outputDir: string,
+    options: DownloadOptions = {},
+    playlistId?: string,
+    thumbnail?: string
+  ): Promise<string> {
+    // Ensure we're initialized
+    if (!this.initialized) {
+      this.initialize();
+    }
+
+    // Generate a unique download ID
+    const downloadId = uuidv4();
+
+    // Create download item
+    const downloadItem: DownloadItem = {
+      id: downloadId,
+      videoId,
+      playlistId,
+      url: videoUrl,
+      title,
+      outputDir,
+      status: 'pending',
+      progress: 0,
+      format: options.format || getSetting('downloadFormat', 'mp4'),
+      quality: options.quality || getSetting('maxQuality', '1080p'),
+      addedAt: new Date().toISOString(),
+      thumbnail
+    };
+
+    // Add to downloads map
+    this.downloads.set(downloadId, downloadItem);
+
+    // Add to queue
+    if (this.queue) {
+      this.queue.add(async () => {
+        return this.processDownload(downloadId);
+      });
+    }
+
+    return downloadId;
+  }
 }
 ```
 
-### Phase 3.2: Format Conversion
+### Phase 3.2: Format Conversion (Next Step)
 
 **Tasks:**
 - [ ] Add format conversion capabilities with fluent-ffmpeg
 - [ ] Implement quality selection options
+- [ ] Create UI components for format selection
 
 **Files to Create:**
-- [ ] `src/main/services/formatConverter.ts` (~150 lines)
+- [ ] `src/backend/services/formatConverter.ts` (~150 lines)
   - Format conversion utilities
   - ffmpeg integration
-- [ ] `src/renderer/features/downloads/components/FormatSelector.tsx` (~150 lines)
+- [ ] `src/frontend/features/downloads/components/FormatSelector.tsx` (~150 lines)
   - UI for selecting download formats and quality
 
-**Sample Code for `src/main/services/formatConverter.ts`:**
+**Sample Code for `src/backend/services/formatConverter.ts`:**
 ```typescript
 import ffmpeg from 'fluent-ffmpeg';
 import path from 'path';
@@ -861,14 +938,14 @@ export const useStore = create<DownloadState>((set) => ({
 - [ ] Implement single video download functionality
 - [ ] Create UI for adding individual videos to playlists
 - [ ] Develop video search and import features
-- [ ] Add video metadata editing capabilities 
+- [ ] Add video metadata editing capabilities
 
 **Files to Create:**
 - [ ] `src/main/services/singleVideoManager.ts` (~200 lines)
   - Functions for downloading individual videos
   - URL validation and metadata extraction
   - Error handling for invalid URLs
-  
+
 - [ ] `src/renderer/features/videos/components/AddVideoForm.tsx` (~250 lines)
   - Form for adding individual videos to playlists
   - Video URL validation
@@ -928,7 +1005,7 @@ export async function validateVideoUrl(url: string): Promise<boolean> {
 export async function getVideoMetadata(url: string): Promise<Video> {
   try {
     const info = await ytDlp.getVideoInfo(url);
-    
+
     return {
       id: info.id || uuidv4(),
       title: info.title || 'Unknown Title',
@@ -953,13 +1030,13 @@ export async function downloadSingleVideo(url: string, outputDir?: string): Prom
     // Determine output directory
     const downloadDir = outputDir || getSetting('downloadLocation', path.join(app.getPath('videos'), 'PlayListify'));
     await fs.ensureDir(downloadDir);
-    
+
     // Extract video ID from URL
     const videoId = new URL(url).searchParams.get('v') || url.split('v=')[1]?.split('&')[0] || 'video';
-    
+
     // Set output filename
     const outputPath = path.join(downloadDir, `${videoId}.mp4`);
-    
+
     // Download video
     await ytDlp.exec([
       url,
@@ -967,7 +1044,7 @@ export async function downloadSingleVideo(url: string, outputDir?: string): Prom
       '-o', outputPath,
       '--no-playlist'
     ]);
-    
+
     return outputPath;
   } catch (error) {
     console.error('Error downloading single video:', error);
@@ -981,7 +1058,7 @@ export async function downloadSingleVideo(url: string, outputDir?: string): Prom
 export async function addVideoToPlaylist(playlistId: string, videoUrl: string): Promise<Video> {
   // Get video metadata
   const videoMetadata = await getVideoMetadata(videoUrl);
-  
+
   // Return the video object to be added to the playlist in the store
   return videoMetadata;
 }
@@ -1010,17 +1087,17 @@ export function AddVideoForm({ playlist, onSuccess }: AddVideoFormProps) {
   const [isValid, setIsValid] = useState<boolean | null>(null);
   const [videoPreview, setVideoPreview] = useState<Video | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   const queryClient = useQueryClient();
   const addVideoMutation = useAddVideoToPlaylist();
-  
+
   // Validate YouTube URL
   const validateYouTubeUrl = (url: string): boolean => {
     // Simple regex for YouTube video URLs
     const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11}/;
     return youtubeRegex.test(url);
   };
-  
+
   // Handle URL change
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
@@ -1029,7 +1106,7 @@ export function AddVideoForm({ playlist, onSuccess }: AddVideoFormProps) {
     setVideoPreview(null);
     setError(null);
   };
-  
+
   // Fetch video preview
   const fetchVideoPreview = async () => {
     if (!validateYouTubeUrl(videoUrl)) {
@@ -1037,9 +1114,9 @@ export function AddVideoForm({ playlist, onSuccess }: AddVideoFormProps) {
       setError('Please enter a valid YouTube video URL');
       return;
     }
-    
+
     setIsValidating(true);
-    
+
     try {
       // Fetch metadata from the backend
       const metadata = await window.api.videos.getVideoMetadata(videoUrl);
@@ -1054,15 +1131,15 @@ export function AddVideoForm({ playlist, onSuccess }: AddVideoFormProps) {
       setIsValidating(false);
     }
   };
-  
+
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!isValid || !videoPreview) {
       return;
     }
-    
+
     addVideoMutation.mutate(
       {
         playlistId: playlist.id,
@@ -1074,10 +1151,10 @@ export function AddVideoForm({ playlist, onSuccess }: AddVideoFormProps) {
           setVideoUrl('');
           setIsValid(null);
           setVideoPreview(null);
-          
+
           // Invalidate playlist query to refresh the list
           queryClient.invalidateQueries(['playlist', playlist.id]);
-          
+
           // Call onSuccess callback if provided
           if (onSuccess) {
             onSuccess();
@@ -1089,11 +1166,11 @@ export function AddVideoForm({ playlist, onSuccess }: AddVideoFormProps) {
       }
     );
   };
-  
+
   return (
     <div className="bg-card rounded-lg border p-6">
       <h3 className="text-lg font-medium mb-4">Add Video to Playlist</h3>
-      
+
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           <div>
@@ -1125,7 +1202,7 @@ export function AddVideoForm({ playlist, onSuccess }: AddVideoFormProps) {
               Example: https://www.youtube.com/watch?v=dQw4w9WgXcQ
             </p>
           </div>
-          
+
           {isValidating && (
             <div className="border rounded-md p-4">
               <Skeleton className="h-20 w-36 rounded-md" />
@@ -1133,14 +1210,14 @@ export function AddVideoForm({ playlist, onSuccess }: AddVideoFormProps) {
               <Skeleton className="h-4 w-1/2 mt-2" />
             </div>
           )}
-          
+
           {videoPreview && (
             <div className="border rounded-md p-4 flex items-center">
               <div className="h-20 w-36 bg-muted/40 rounded-md overflow-hidden flex-shrink-0">
                 {videoPreview.thumbnail ? (
-                  <img 
-                    src={videoPreview.thumbnail} 
-                    alt={videoPreview.title} 
+                  <img
+                    src={videoPreview.thumbnail}
+                    alt={videoPreview.title}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -1157,10 +1234,10 @@ export function AddVideoForm({ playlist, onSuccess }: AddVideoFormProps) {
               </div>
             </div>
           )}
-          
-          <Button 
-            type="submit" 
-            className="w-full" 
+
+          <Button
+            type="submit"
+            className="w-full"
             disabled={!isValid || addVideoMutation.isPending}
           >
             {addVideoMutation.isPending ? (
@@ -1198,18 +1275,18 @@ export function VideoSearch({ onVideoSelect }: VideoSearchProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<Video[]>([]);
-  
+
   // Handle search query change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
-  
+
   // Perform search
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
-    
+
     setIsSearching(true);
-    
+
     try {
       // This would call an API to search YouTube videos
       const results = await window.api.youtube.searchVideos(searchQuery);
@@ -1220,7 +1297,7 @@ export function VideoSearch({ onVideoSelect }: VideoSearchProps) {
       setIsSearching(false);
     }
   };
-  
+
   return (
     <div className="space-y-4">
       <div className="flex">
@@ -1230,8 +1307,8 @@ export function VideoSearch({ onVideoSelect }: VideoSearchProps) {
           placeholder="Search for YouTube videos..."
           className="flex-1"
         />
-        <Button 
-          type="button" 
+        <Button
+          type="button"
           onClick={handleSearch}
           className="ml-2"
           disabled={isSearching || !searchQuery.trim()}
@@ -1239,34 +1316,34 @@ export function VideoSearch({ onVideoSelect }: VideoSearchProps) {
           {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
         </Button>
       </div>
-      
+
       {isSearching && (
         <div className="text-center py-8">
           <Loader2 className="h-8 w-8 animate-spin mx-auto" />
           <p className="mt-2 text-muted-foreground">Searching YouTube...</p>
         </div>
       )}
-      
+
       {!isSearching && searchResults.length === 0 && searchQuery.trim() && (
         <div className="text-center py-8">
           <p className="text-muted-foreground">No results found for "{searchQuery}"</p>
         </div>
       )}
-      
+
       {searchResults.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-sm font-medium">Search Results</h3>
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {searchResults.map((video) => (
-              <div 
-                key={video.id} 
+              <div
+                key={video.id}
                 className="border rounded-md p-2 flex items-center hover:bg-accent/50 transition-colors"
               >
                 <div className="h-16 w-28 bg-muted/40 rounded-md overflow-hidden flex-shrink-0">
                   {video.thumbnail ? (
-                    <img 
-                      src={video.thumbnail} 
-                      alt={video.title} 
+                    <img
+                      src={video.thumbnail}
+                      alt={video.title}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -1278,9 +1355,9 @@ export function VideoSearch({ onVideoSelect }: VideoSearchProps) {
                 <div className="ml-3 flex-1">
                   <h4 className="font-medium text-sm line-clamp-2">{video.title}</h4>
                 </div>
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
+                <Button
+                  size="sm"
+                  variant="ghost"
                   className="ml-2 flex-shrink-0"
                   onClick={() => onVideoSelect(video)}
                 >
@@ -1353,13 +1430,13 @@ const secureStore = new Store({
 // Get or generate a machine-specific encryption key
 function getOrCreateEncryptionKey(): string {
   const keyFile = path.join(app.getPath('userData'), '.key');
-  
+
   try {
     // Try to read existing key
     if (fs.existsSync(keyFile)) {
       return fs.readFileSync(keyFile, 'utf8');
     }
-    
+
     // Generate new key if none exists
     const newKey = crypto.randomBytes(32).toString('hex');
     fs.writeFileSync(keyFile, newKey, { mode: 0o600 }); // Only user can read/write
@@ -1382,10 +1459,10 @@ export function getOAuthConfig(): { clientId: string, clientSecret: string } {
     try {
       const dotenv = require('dotenv');
       dotenv.config();
-      
+
       const envClientId = process.env.GOOGLE_CLIENT_ID;
       const envClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-      
+
       if (envClientId && envClientSecret) {
         return {
           clientId: envClientId,
@@ -1396,7 +1473,7 @@ export function getOAuthConfig(): { clientId: string, clientSecret: string } {
       console.log('dotenv not loaded');
     }
   }
-  
+
   // For production builds, use obfuscated built-in credentials
   // These will be replaced during the build process
   return {
@@ -1442,17 +1519,17 @@ function generatePKCE() {
     .createHash('sha256')
     .update(verifier)
     .digest('base64url');
-  
+
   return { verifier, challenge };
 }
 
 export async function authenticate(): Promise<string> {
-  // Get OAuth configuration 
+  // Get OAuth configuration
   const { clientId } = getOAuthConfig();
-  
+
   // Generate PKCE values
   const { verifier, challenge } = generatePKCE();
-  
+
   // Create the auth window
   const authWindow = new BrowserWindow({
     width: 800,
@@ -1463,7 +1540,7 @@ export async function authenticate(): Promise<string> {
       contextIsolation: true
     }
   });
-  
+
   // Build the authorization URL with PKCE
   const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   authUrl.searchParams.append('client_id', clientId);
@@ -1473,19 +1550,19 @@ export async function authenticate(): Promise<string> {
   authUrl.searchParams.append('code_challenge_method', 'S256');
   authUrl.searchParams.append('scope', 'https://www.googleapis.com/auth/youtube.readonly');
   authUrl.searchParams.append('access_type', 'offline');
-  
+
   // Load the auth URL
   authWindow.loadURL(authUrl.toString());
-  
+
   // Wait for the redirect to the success page
   return new Promise((resolve, reject) => {
     authWindow.webContents.on('will-redirect', async (event, url) => {
       const urlObj = new URL(url);
       const code = urlObj.searchParams.get('code');
-      
+
       if (code) {
         authWindow.close();
-        
+
         try {
           // Exchange the code for tokens using PKCE
           const { clientId, clientSecret } = getOAuthConfig();
@@ -1497,22 +1574,22 @@ export async function authenticate(): Promise<string> {
             grant_type: 'authorization_code',
             redirect_uri: 'urn:ietf:wg:oauth:2.0:oob'
           });
-          
+
           const { access_token, refresh_token } = tokenResponse.data;
-          
+
           // Store tokens securely
           storeToken('google', access_token);
           if (refresh_token) {
             storeToken('google_refresh', refresh_token);
           }
-          
+
           resolve(access_token);
         } catch (error) {
           reject(error);
         }
       }
     });
-    
+
     authWindow.on('closed', () => {
       reject(new Error('Authentication window was closed'));
     });
@@ -1526,11 +1603,11 @@ export function getGoogleToken(): string | null {
 // For token refresh
 export async function refreshToken(): Promise<string | null> {
   const refreshToken = getToken('google_refresh');
-  
+
   if (!refreshToken) {
     return null;
   }
-  
+
   try {
     const { clientId, clientSecret } = getOAuthConfig();
     const response = await axios.post('https://oauth2.googleapis.com/token', {
@@ -1539,7 +1616,7 @@ export async function refreshToken(): Promise<string | null> {
       refresh_token: refreshToken,
       grant_type: 'refresh_token'
     });
-    
+
     const { access_token } = response.data;
     storeToken('google', access_token);
     return access_token;
@@ -1578,11 +1655,11 @@ let configContent = fs.readFileSync(configPath, 'utf8');
 
 // Replace placeholders with obfuscated values
 configContent = configContent.replace(
-  '__OBFUSCATED_CLIENT_ID__', 
+  '__OBFUSCATED_CLIENT_ID__',
   obfuscate(clientId)
 );
 configContent = configContent.replace(
-  '__OBFUSCATED_CLIENT_SECRET__', 
+  '__OBFUSCATED_CLIENT_SECRET__',
   obfuscate(clientSecret)
 );
 
@@ -1785,7 +1862,7 @@ interface VideoPlayerProps {
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoId, playlistName, url }) => {
   const filePath = `${getSetting('downloadLocation', '~/Downloads/Videos')}/${playlistName}/${videoId}.mp4`;
   const playUrl = fs.existsSync(filePath) ? `file://${filePath}` : url;
-  
+
   return (
     <div className="p-4">
       <ReactPlayer url={playUrl} controls width="100%" height="auto" />
@@ -2028,19 +2105,19 @@ interface GlassmorphicCardProps extends React.HTMLAttributes<HTMLDivElement> {
   hasText?: boolean;
 }
 
-export function GlassmorphicCard({ 
-  children, 
-  blurStrength = 'medium', 
+export function GlassmorphicCard({
+  children,
+  blurStrength = 'medium',
   transparencyLevel = 'medium',
   hasText = true,
   className,
-  ...props 
+  ...props
 }: GlassmorphicCardProps) {
   const { reducedTransparency, highContrast } = useSettings();
-  
+
   // If user prefers reduced transparency or high contrast, avoid glassmorphism
   const shouldUseGlass = !reducedTransparency && !highContrast;
-  
+
   // Map settings to actual CSS values
   const blurValues = {
     none: '0',
@@ -2048,26 +2125,26 @@ export function GlassmorphicCard({
     medium: '8px',
     strong: '16px'
   };
-  
+
   const transparencyValues = {
     low: '0.85',
     medium: '0.75',
     high: '0.65'
   };
-  
+
   // Base styles that are always applied
   const baseStyles = "rounded-lg border border-border/30 p-4";
-  
+
   // Apply glassmorphism conditionally
   const glassStyles = shouldUseGlass
     ? `backdrop-blur-[${blurValues[blurStrength]}] bg-background/[${transparencyValues[transparencyLevel]}] backdrop-saturate-150`
     : "bg-background"; // Solid background fallback
-    
+
   // If there's text and we're using glass, ensure it has proper contrast
-  const textContrastStyles = (shouldUseGlass && hasText) 
-    ? "text-foreground drop-shadow-sm" 
+  const textContrastStyles = (shouldUseGlass && hasText)
+    ? "text-foreground drop-shadow-sm"
     : "";
-  
+
   return (
     <div
       className={cn(baseStyles, glassStyles, textContrastStyles, className)}
@@ -2092,51 +2169,51 @@ export function useDominantColor(imageUrl: string | null) {
 
   useEffect(() => {
     if (!imageUrl) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     const img = new Image();
     img.crossOrigin = 'Anonymous';
-    
+
     img.onload = () => {
       try {
         const colorThief = new ColorThief();
-        
+
         // Get dominant color
         const dominantRgb = colorThief.getColor(img);
         const dominantHex = rgbToHex(dominantRgb[0], dominantRgb[1], dominantRgb[2]);
         setDominantColor(dominantHex);
-        
+
         // Get color palette (8 colors)
         const colorPalette = colorThief.getPalette(img, 8);
-        const hexPalette = colorPalette.map(rgb => 
+        const hexPalette = colorPalette.map(rgb =>
           rgbToHex(rgb[0], rgb[1], rgb[2])
         );
         setPalette(hexPalette);
-        
+
         setIsLoading(false);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Error extracting colors'));
         setIsLoading(false);
       }
     };
-    
+
     img.onerror = () => {
       setError(new Error('Failed to load image'));
       setIsLoading(false);
     };
-    
+
     img.src = imageUrl;
   }, [imageUrl]);
-  
+
   // Helper function to convert RGB to HEX
   function rgbToHex(r: number, g: number, b: number): string {
     return '#' + [r, g, b]
       .map(x => x.toString(16).padStart(2, '0'))
       .join('');
   }
-  
+
   return { dominantColor, palette, isLoading, error };
 }
 ```
@@ -2152,40 +2229,40 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export function AnimatedButton({ children, ...props }: ButtonProps) {
   const [isPressed, setIsPressed] = useState(false);
-  
+
   // Create a spring animation for the button scale
   const scaleSpring = useSpring(1, {
     stiffness: 700,
     damping: 30
   });
-  
+
   // Transform the spring value to a slightly smaller scale when pressed
   const scale = useTransform(scaleSpring, [0, 1], [0.95, 1]);
-  
+
   // Handle mouse events
   const handleMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
     setIsPressed(true);
     scaleSpring.set(0);
-    
+
     // Optional: trigger subtle haptic feedback if available
     if (navigator.vibrate) {
       navigator.vibrate(5);
     }
-    
+
     if (props.onMouseDown) {
       props.onMouseDown(e);
     }
   };
-  
+
   const handleMouseUp = (e: MouseEvent<HTMLButtonElement>) => {
     setIsPressed(false);
     scaleSpring.set(1);
-    
+
     if (props.onMouseUp) {
       props.onMouseUp(e);
     }
   };
-  
+
   return (
     <motion.button
       style={{ scale }}
@@ -2197,7 +2274,7 @@ export function AnimatedButton({ children, ...props }: ButtonProps) {
           scaleSpring.set(1);
         }
       }}
-      whileHover={{ 
+      whileHover={{
         backgroundColor: 'var(--hover-bg)',
         y: -2,
         transition: { type: 'spring', stiffness: 500 }
@@ -2233,18 +2310,18 @@ import { getSetting } from './settingsManager';
 export function initAutoUpdater(mainWindow: BrowserWindow): void {
   if (getSetting('checkForUpdates', true)) {
     autoUpdater.checkForUpdatesAndNotify();
-    
+
     // Check for updates periodically
     const checkInterval = getSetting('updateCheckInterval', 60 * 60 * 1000); // 1 hour default
     setInterval(() => {
       autoUpdater.checkForUpdates();
     }, checkInterval);
   }
-  
+
   autoUpdater.on('update-available', (info) => {
     mainWindow.webContents.send('update-available', info);
   });
-  
+
   autoUpdater.on('update-downloaded', (info) => {
     mainWindow.webContents.send('update-downloaded', info);
   });
@@ -2292,17 +2369,17 @@ export async function promptForInstall(): Promise<boolean> {
     process.stdout.write('***           This tool is needed for YouTube playlists       ***\n');
     process.stdout.write('***                                                           ***\n');
     process.stdout.write('*****************************************************************\n\n');
-    
+
     // Create readline interface
     const rl = createReadlineInterface();
-    
+
     // Show the prompt and ask for input
     process.stdout.write('>>> REQUIRED ACTION: Install yt-dlp now? (y/n): ');
-    
+
     // Handle user input
     rl.on('line', (line) => {
       const input = line.trim().toLowerCase();
-      
+
       if (input === 'y' || input === 'yes') {
         rl.close();
         process.stdout.write('\n>>> INSTALLING: Starting yt-dlp installation process...\n\n');
@@ -2544,4 +2621,4 @@ playlistify/
 └── docs/
     ├── UserGuide.md
     └── DEVELOPER.md
-``` 
+```

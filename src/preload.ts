@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld(
       }
     },
     receive: (channel: string, func: Function) => {
-      const validChannels = ['fromMain', 'download-progress', 'playlist-download-progress', 'yt:importProgress'];
+      const validChannels = ['fromMain', 'download-progress', 'playlist-download-progress', 'yt:importProgress', 'download-update'];
       if (validChannels.includes(channel)) {
         console.log(`Registering receiver for channel: ${channel}`);
         // Deliberately strip event as it includes `sender`
@@ -41,7 +41,7 @@ contextBridge.exposeInMainWorld(
       return ipcRenderer.invoke(channel, ...args);
     },
     on: (channel: string, func: Function) => {
-      const validChannels = ['fromMain', 'download-progress', 'playlist-download-progress', 'yt:importProgress'];
+      const validChannels = ['fromMain', 'download-progress', 'playlist-download-progress', 'yt:importProgress', 'download-update'];
       if (validChannels.includes(channel)) {
         console.log(`Registering listener for channel: ${channel}`);
         ipcRenderer.on(channel, (event, ...args) => func(...args));
@@ -181,6 +181,41 @@ contextBridge.exposeInMainWorld(
     app: {
       restart: () =>
         ipcRenderer.invoke('app:restart')
+    },
+
+    // Download manager API
+    downloads: {
+      addToQueue: (videoUrl: string, videoId: string, title: string, outputDir: string, options?: any, playlistId?: string, thumbnail?: string) =>
+        ipcRenderer.invoke('download:addToQueue', videoUrl, videoId, title, outputDir, options, playlistId, thumbnail),
+      addMultipleToQueue: (videos: Array<{videoId: string, url: string, title: string, thumbnail?: string}>, playlistId: string, playlistName: string) =>
+        ipcRenderer.invoke('download:addMultipleToQueue', videos, playlistId, playlistName),
+      pause: (downloadId: string) =>
+        ipcRenderer.invoke('download:pause', downloadId),
+      resume: (downloadId: string) =>
+        ipcRenderer.invoke('download:resume', downloadId),
+      cancel: (downloadId: string) =>
+        ipcRenderer.invoke('download:cancel', downloadId),
+      remove: (downloadId: string) =>
+        ipcRenderer.invoke('download:remove', downloadId),
+      getAll: () =>
+        ipcRenderer.invoke('download:getAll'),
+      getById: (downloadId: string) =>
+        ipcRenderer.invoke('download:getById', downloadId),
+      getByPlaylist: (playlistId: string) =>
+        ipcRenderer.invoke('download:getByPlaylist', playlistId),
+      getByStatus: (status: string) =>
+        ipcRenderer.invoke('download:getByStatus', status),
+      getQueueStats: () =>
+        ipcRenderer.invoke('download:getQueueStats'),
+      checkVideoStatus: (videoUrl: string) =>
+        ipcRenderer.invoke('download:checkVideoStatus', videoUrl),
+      onDownloadUpdate: (callback: Function) => {
+        const channel = 'download-update';
+        ipcRenderer.on(channel, (event, data) => callback(data));
+        return () => {
+          ipcRenderer.removeListener(channel, callback as any);
+        };
+      }
     }
   } as Api
 );

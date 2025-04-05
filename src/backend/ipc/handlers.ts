@@ -7,9 +7,9 @@ import * as imageUtils from '../utils/imageUtils';
 import { registerLoggerHandlers } from './loggerHandlers';
 import { registerPlaylistDbHandlers } from './playlistDbHandlers';
 import { registerDatabaseHandlers } from './databaseHandlers';
+import { registerDownloadHandlers } from './downloadHandlers';
 import path from 'path';
 import fs from 'fs-extra';
-// No need for additional imports
 
 /**
  * Registers all IPC handlers for the main process
@@ -23,6 +23,9 @@ export function registerIpcHandlers(): void {
 
   // Register database management handlers
   registerDatabaseHandlers();
+
+  // Register download handlers
+  registerDownloadHandlers();
   // Settings related handlers
   ipcMain.handle('settings:get', (_: IpcMainInvokeEvent, key: string) => {
     return settingsManager.getSetting(key as any);

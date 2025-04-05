@@ -6,6 +6,7 @@ import { initializeSettings } from './services/settingsManager';
 import { initializeDatabase } from './services/playlistServiceProvider';
 import { initializeDatabaseAndMigrate } from './services/migrationManager';
 import { runDatabaseOptimization } from './services/databaseManager';
+import { downloadManager } from './services/downloadManager';
 import fs from 'fs-extra';
 import { initLogger, c as loggerC, getConsoleLogFilePath, getTerminalLogFilePath, logToFile, logToTerminalFile } from './services/logger';
 import { writeToConsoleLog, initFileLogger, cleanupFileLogger } from './services/fileLogger';
@@ -198,6 +199,17 @@ app.whenReady().then(async () => {
   c.info('🔄 Preparing main application window...');
   createWindow();
   c.success('✅ Application window created successfully');
+
+  // Initialize the download manager and set the main window
+  if (mainWindow) {
+    // First initialize the download manager
+    downloadManager.initialize();
+    c.info('🔄 Download manager initialized');
+
+    // Then set the main window
+    downloadManager.setMainWindow(mainWindow);
+    c.info('🔄 Download manager configured with main window');
+  }
 
   // Register IPC handlers
   c.info('\n🔌 Setting up IPC communication...');

@@ -3,6 +3,44 @@
  */
 
 /**
+ * Download status types
+ */
+export type DownloadStatus = 'pending' | 'downloading' | 'paused' | 'completed' | 'failed' | 'canceled';
+
+/**
+ * Download item interface
+ */
+export interface DownloadItem {
+  id: string;
+  videoId: string;
+  playlistId?: string;
+  url: string;
+  title: string;
+  outputDir: string;
+  outputPath?: string;
+  status: DownloadStatus;
+  progress: number;
+  speed?: string;
+  eta?: string;
+  size?: string;
+  error?: string;
+  format?: string;
+  quality?: string;
+  addedAt: string;
+  startedAt?: string;
+  completedAt?: string;
+  thumbnail?: string;
+}
+
+/**
+ * Download options interface
+ */
+export interface DownloadOptions {
+  format?: string;
+  quality?: string;
+}
+
+/**
  * Video item within a playlist
  */
 export interface Video {
@@ -225,6 +263,54 @@ export interface Api {
   // Application management API
   app: {
     restart: () => Promise<void>;
+  };
+
+  // Download manager API
+  downloads: {
+    addToQueue: (
+      videoUrl: string,
+      videoId: string,
+      title: string,
+      outputDir: string,
+      options?: DownloadOptions,
+      playlistId?: string,
+      thumbnail?: string
+    ) => Promise<string>;
+    addMultipleToQueue: (
+      videos: Array<{videoId: string, url: string, title: string, thumbnail?: string}>,
+      playlistId: string,
+      playlistName: string
+    ) => Promise<string[]>;
+    pause: (downloadId: string) => Promise<boolean>;
+    resume: (downloadId: string) => Promise<boolean>;
+    cancel: (downloadId: string) => Promise<boolean>;
+    remove: (downloadId: string) => Promise<boolean>;
+    getAll: () => Promise<DownloadItem[]>;
+    getById: (downloadId: string) => Promise<DownloadItem | undefined>;
+    getByPlaylist: (playlistId: string) => Promise<DownloadItem[]>;
+    getByStatus: (status: DownloadStatus) => Promise<DownloadItem[]>;
+    getQueueStats: () => Promise<{
+      pending: number;
+      active: number;
+      completed: number;
+      failed: number;
+      paused: number;
+      canceled: number;
+      total: number;
+    }>;
+    checkVideoStatus: (videoUrl: string) => Promise<{
+      available: boolean;
+      info?: {
+        id: string;
+        title: string;
+        url: string;
+        thumbnail: string;
+        duration: number;
+        channel?: string;
+      };
+      error?: string;
+    }>;
+    onDownloadUpdate: (callback: (download: DownloadItem) => void) => () => void;
   };
 }
 
