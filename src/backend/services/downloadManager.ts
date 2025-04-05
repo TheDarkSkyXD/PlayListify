@@ -5,6 +5,7 @@ import fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
 import { getSetting } from './settingsManager';
 import * as ytDlpManager from './ytDlpManager';
+import * as fileUtils from '../utils/fileUtils';
 import { c, logToFile } from './logger';
 import { app } from 'electron';
 
@@ -562,13 +563,9 @@ export class DownloadManager {
       this.initialize();
     }
 
-    // Get output directory for the playlist
-    const playlistLocation = getSetting('playlistLocation');
-    const outputDir = path.join(
-      playlistLocation,
-      `${playlistId}-${this.sanitizeFileName(playlistName)}`,
-      'videos'
-    );
+    // Get output directory for the playlist using fileUtils
+    // This will create the directory if it doesn't exist
+    const outputDir = await fileUtils.createDownloadDir(playlistId, playlistName);
 
     // Add each video to the queue
     const downloadIds: string[] = [];
@@ -595,17 +592,7 @@ export class DownloadManager {
     return downloadIds;
   }
 
-  /**
-   * Sanitize a file name to be safe for file systems
-   */
-  private sanitizeFileName(name: string): string {
-    // Replace invalid characters with underscores
-    return name
-      .replace(/[\\/:*?"<>|]/g, '_') // Replace invalid characters
-      .replace(/\s+/g, '_')          // Replace spaces with underscores
-      .replace(/_+/g, '_')           // Replace multiple underscores with a single one
-      .substring(0, 100);            // Limit length to 100 characters
-  }
+  // We're now using fileUtils.sanitizeFileName instead of this method
 }
 
 // Create and export a singleton instance

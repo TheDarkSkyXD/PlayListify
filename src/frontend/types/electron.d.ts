@@ -47,4 +47,4 @@ interface Window {
       refresh: (playlistId: string) => Promise<void>;
     };
   };
-} 
+}

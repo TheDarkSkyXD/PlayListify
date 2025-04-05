@@ -21,8 +21,25 @@ contextBridge.exposeInMainWorld(
       }
     },
     receive: (channel: string, func: Function) => {
-      const validChannels = ['fromMain', 'download-progress', 'playlist-download-progress', 'yt:importProgress', 'download-update'];
-      if (validChannels.includes(channel)) {
+      const validChannels = [
+        'fromMain',
+        'download-progress',
+        'playlist-download-progress',
+        'yt:importProgress',
+        'download-update',
+        'format:progress:*'
+      ];
+
+      // Check if the channel is valid or matches a wildcard pattern
+      const isValid = validChannels.some(validChannel => {
+        if (validChannel.endsWith('*')) {
+          const prefix = validChannel.slice(0, -1);
+          return channel.startsWith(prefix);
+        }
+        return channel === validChannel;
+      });
+
+      if (isValid) {
         console.log(`Registering receiver for channel: ${channel}`);
         // Deliberately strip event as it includes `sender`
         ipcRenderer.on(channel, (event, ...args) => {
@@ -41,8 +58,25 @@ contextBridge.exposeInMainWorld(
       return ipcRenderer.invoke(channel, ...args);
     },
     on: (channel: string, func: Function) => {
-      const validChannels = ['fromMain', 'download-progress', 'playlist-download-progress', 'yt:importProgress', 'download-update'];
-      if (validChannels.includes(channel)) {
+      const validChannels = [
+        'fromMain',
+        'download-progress',
+        'playlist-download-progress',
+        'yt:importProgress',
+        'download-update',
+        'format:progress:*'
+      ];
+
+      // Check if the channel is valid or matches a wildcard pattern
+      const isValid = validChannels.some(validChannel => {
+        if (validChannel.endsWith('*')) {
+          const prefix = validChannel.slice(0, -1);
+          return channel.startsWith(prefix);
+        }
+        return channel === validChannel;
+      });
+
+      if (isValid) {
         console.log(`Registering listener for channel: ${channel}`);
         ipcRenderer.on(channel, (event, ...args) => func(...args));
       } else {
@@ -211,6 +245,34 @@ contextBridge.exposeInMainWorld(
         ipcRenderer.invoke('download:checkVideoStatus', videoUrl),
       onDownloadUpdate: (callback: Function) => {
         const channel = 'download-update';
+        ipcRenderer.on(channel, (event, data) => callback(data));
+        return () => {
+          ipcRenderer.removeListener(channel, callback as any);
+        };
+      }
+    },
+
+    // Format converter API
+    formatConverter: {
+      initFFmpeg: () =>
+        ipcRenderer.invoke('format:initFFmpeg'),
+      convertFile: (inputPath: string, options: any) =>
+        ipcRenderer.invoke('format:convertFile', inputPath, options),
+      convertDownloadedVideo: (downloadId: string, options: any) =>
+        ipcRenderer.invoke('format:convertDownloadedVideo', downloadId, options),
+      extractAudio: (inputPath: string, format: string = 'mp3') =>
+        ipcRenderer.invoke('format:extractAudio', inputPath, format),
+      changeResolution: (inputPath: string, quality: string) =>
+        ipcRenderer.invoke('format:changeResolution', inputPath, quality),
+      trimVideo: (inputPath: string, startTime: string, endTime: string) =>
+        ipcRenderer.invoke('format:trimVideo', inputPath, startTime, endTime),
+      getAvailableFormats: () =>
+        ipcRenderer.invoke('format:getAvailableFormats'),
+      getAvailableQualities: () =>
+        ipcRenderer.invoke('format:getAvailableQualities'),
+      getVideoDuration: (filePath: string) =>
+        ipcRenderer.invoke('format:getVideoDuration', filePath),
+      onConversionProgress: (channel: string, callback: Function) => {
         ipcRenderer.on(channel, (event, data) => callback(data));
         return () => {
           ipcRenderer.removeListener(channel, callback as any);

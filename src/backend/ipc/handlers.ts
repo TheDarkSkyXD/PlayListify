@@ -1,4 +1,4 @@
-import { ipcMain, dialog, IpcMainInvokeEvent } from 'electron';
+import { ipcMain, dialog, IpcMainInvokeEvent, app } from 'electron';
 import * as settingsManager from '../services/settingsManager';
 import * as fileUtils from '../utils/fileUtils';
 import * as ytDlpManager from '../services/ytDlpManager';
@@ -8,6 +8,7 @@ import { registerLoggerHandlers } from './loggerHandlers';
 import { registerPlaylistDbHandlers } from './playlistDbHandlers';
 import { registerDatabaseHandlers } from './databaseHandlers';
 import { registerDownloadHandlers } from './downloadHandlers';
+import { registerFormatConverterHandlers } from './formatConverterHandlers';
 import path from 'path';
 import fs from 'fs-extra';
 
@@ -26,6 +27,9 @@ export function registerIpcHandlers(): void {
 
   // Register download handlers
   registerDownloadHandlers();
+
+  // Register format converter handlers
+  registerFormatConverterHandlers();
   // Settings related handlers
   ipcMain.handle('settings:get', (_: IpcMainInvokeEvent, key: string) => {
     return settingsManager.getSetting(key as any);
@@ -52,16 +56,26 @@ export function registerIpcHandlers(): void {
 
   // File system related handlers
   ipcMain.handle('fs:selectDirectory', async () => {
-    const result = await dialog.showOpenDialog({
-      properties: ['openDirectory'],
-    });
+    try {
+      const result = await dialog.showOpenDialog({
+        properties: ['openDirectory'],
+        title: 'Select Directory',
+        buttonLabel: 'Select',
+        defaultPath: app.getPath('videos')
+      });
 
-    if (result.canceled) {
-      return null;
+      if (result.canceled) {
+        return null;
+      }
+
+      return result.filePaths[0];
+    } catch (error) {
+      console.error('Error showing directory dialog:', error);
+      throw error;
     }
-
-    return result.filePaths[0];
   });
+
+
 
   ipcMain.handle('fs:createPlaylistDir', async (_: IpcMainInvokeEvent, playlistId: string, playlistName: string) => {
     return await fileUtils.createPlaylistDir(playlistId, playlistName);

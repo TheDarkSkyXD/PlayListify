@@ -16,7 +16,7 @@ const colors = {
   dim: '\x1b[2m',
   underscore: '\x1b[4m',
   blink: '\x1b[5m',
-  
+
   // Foreground (text) colors
   black: '\x1b[30m',
   red: '\x1b[31m',
@@ -26,7 +26,7 @@ const colors = {
   magenta: '\x1b[35m',
   cyan: '\x1b[36m',
   white: '\x1b[37m',
-  
+
   // Background colors
   bgBlack: '\x1b[40m',
   bgRed: '\x1b[41m',
@@ -103,7 +103,7 @@ console.log('');
 
 // Create a function to make the yt-dlp check more visible when directly displayed
 function enhanceYtDlpCheck() {
-  // Find and enhance all instances of "Checking if yt-dlp is already installed..." 
+  // Find and enhance all instances of "Checking if yt-dlp is already installed..."
   const originalConsoleLog = console.log;
   console.log = function() {
     const args = Array.from(arguments);
@@ -116,7 +116,7 @@ function enhanceYtDlpCheck() {
       originalConsoleLog.apply(console, args);
     }
   };
-  
+
   // Restore after 5 seconds (by then the message would have been displayed)
   setTimeout(() => {
     console.log = originalConsoleLog;
@@ -127,7 +127,7 @@ function enhanceYtDlpCheck() {
 function getTaskStyles(taskType) {
   let taskIcon = '📋';
   let taskColor = colorFuncs.bright.white;
-  
+
   // Assign icons and colors based on task types
   switch(taskType.toLowerCase()) {
     case 'checking':
@@ -183,7 +183,7 @@ function getTaskStyles(taskType) {
         taskColor = colorFuncs.bright.green;
       }
   }
-  
+
   return { taskIcon, taskColor };
 }
 
@@ -194,11 +194,11 @@ enhanceYtDlpCheck();
 async function main() {
   try {
     console.log('\n');
-    
+
     // Create colorful header with gradient effect
     const colors1 = [colors.red, colors.yellow, colors.green, colors.cyan, colors.blue, colors.magenta];
     const colors2 = [colors.yellow, colors.green, colors.cyan, colors.blue, colors.magenta, colors.red];
-    
+
     // Print top border with gradient
     process.stdout.write('  ');
     for (let i = 0; i < 45; i++) {
@@ -206,38 +206,67 @@ async function main() {
       process.stdout.write(`${colors.bright}${colors1[colorIndex]}═${colors.reset}`);
     }
     process.stdout.write('\n');
-    
+
     // Print title with bright colors
     console.log(`  ${colors.bright}${colors.yellow}🚀 ${colors.bright}${colors.white}P${colors.cyan}L${colors.green}A${colors.yellow}Y${colors.magenta}L${colors.blue}I${colors.red}S${colors.cyan}T${colors.green}I${colors.yellow}F${colors.magenta}Y${colors.reset} ${colors.bright}${colors.white}DEVELOPMENT STARTUP${colors.reset}`);
-    
+
     // Print bottom border with reverse gradient
     process.stdout.write('  ');
     for (let i = 0; i < 45; i++) {
       const colorIndex = Math.floor(i / 8) % colors2.length;
       process.stdout.write(`${colors.bright}${colors2[colorIndex]}═${colors.reset}`);
     }
-    
+
     // Time information
     console.log('\n');
     process.stdout.write(`  ${colors.bright}${colors.yellow}⏱️  ${colors.bright}${colors.white}Start time: ${colors.reset}`);
     process.stdout.write(`${colors.bright}${colors.cyan}${startTime.toLocaleTimeString()}${colors.reset}\n\n`);
-    
+
     // Check if the setup script exists
     if (!fs.existsSync(setupScriptPath)) {
       c.error('\n❌ ERROR: Setup script not found');
       c.error(`📂 Expected path: ${setupScriptPath}`);
       throw new Error('Setup script not found');
     }
-    
-    c.section('📋', 'STEP 1/2: DEPENDENCY CHECK');
+
+    c.section('📋', 'STEP 1/3: SQLITE CHECK');
+    c.info(`🔍 Checking SQLite module...`);
+
+    // Run the fix-sqlite-path script
+    try {
+      const fixSqliteScriptPath = path.resolve(__dirname, 'fix-sqlite-path.js');
+      if (fs.existsSync(fixSqliteScriptPath)) {
+        c.info(`🔧 Running SQLite fix script: ${fixSqliteScriptPath}`);
+        const fixSqliteProcess = spawnSync('node', [fixSqliteScriptPath], {
+          stdio: 'inherit',
+          encoding: 'utf-8'
+        });
+
+        if (fixSqliteProcess.status !== 0) {
+          c.warning(`⚠️ SQLite fix script exited with code ${fixSqliteProcess.status}`);
+          c.info(`ℹ️ Continuing with startup...`);
+        } else {
+          c.success(`✅ SQLite module path fixed successfully`);
+        }
+      } else {
+        c.warning(`⚠️ SQLite fix script not found at ${fixSqliteScriptPath}`);
+        c.info(`ℹ️ Continuing with startup...`);
+      }
+    } catch (error) {
+      c.warning(`⚠️ Error running SQLite fix script: ${error.message}`);
+      c.info(`ℹ️ Continuing with startup...`);
+    }
+
+    console.log('\n');
+    c.section('📋', 'STEP 2/3: DEPENDENCY CHECK');
     c.info(`🔍 Running setup script: ${setupScriptPath}`);
-    
+
     // Use spawnSync instead of execSync to get exit code
-    const setupProcess = spawnSync('node', [setupScriptPath], { 
+    const setupProcess = spawnSync('node', [setupScriptPath], {
       stdio: 'inherit',
       encoding: 'utf-8'
     });
-    
+
     // Check the exit code
     if (setupProcess.status === 10) {
       // User declined installation, do not start the app
@@ -250,68 +279,68 @@ async function main() {
       // Other error occurred
       throw new Error(`Setup script failed with code ${setupProcess.status}`);
     }
-    
+
     // If we get here, the setup was successful
     console.log('\n');
-    c.section('📋', 'STEP 2/2: ELECTRON APPLICATION STARTUP');
-    
+    c.section('📋', 'STEP 3/3: ELECTRON APPLICATION STARTUP');
+
     // These messages are now more colorful with icons and spacing
     console.log('');
     process.stdout.write(`${colors.bright}${colors.green}⚡ ${colors.bright}${colors.white}Launching Electron Application${colors.reset}\n\n`);
     appLoadStartTime = new Date(); // Track when app loading starts
-    
+
     const steps = [
-      { 
-        icon: '🖥️', 
-        text: 'Main Process', 
+      {
+        icon: '🖥️',
+        text: 'Main Process',
         desc: 'Starting core application components',
         labelColor: colors.cyan,
         descColor: colors.green
       },
-      { 
-        icon: '🌐', 
-        text: 'Renderer Process', 
+      {
+        icon: '🌐',
+        text: 'Renderer Process',
         desc: 'Loading UI components and views',
         labelColor: colors.magenta,
         descColor: colors.yellow
       },
-      { 
-        icon: '🔌', 
-        text: 'IPC Bridge', 
+      {
+        icon: '🔌',
+        text: 'IPC Bridge',
         desc: 'Initializing communication channels',
         labelColor: colors.blue,
         descColor: colors.cyan
       },
-      { 
-        icon: '🎨', 
-        text: 'Asset Pipeline', 
+      {
+        icon: '🎨',
+        text: 'Asset Pipeline',
         desc: 'Processing styles and resources',
         labelColor: colors.yellow,
         descColor: colors.magenta
       }
     ];
-    
+
     // Display steps with colorful formatting - each step has its own unique colors
     steps.forEach(step => {
       // Icon with bright yellow
       process.stdout.write(`  ${colors.bright}${colors.yellow}${step.icon} `);
-      
+
       // Label with custom color
       process.stdout.write(`${colors.bright}${step.labelColor}${step.text}:${colors.reset} `);
-      
+
       // Description with custom color
       process.stdout.write(`${colors.bright}${step.descColor}${step.desc}${colors.reset}\n`);
     });
-    
+
     c.highlight('\n⏳ Please wait while the application loads...\n');
-    
+
     // Add a divider before Electron Forge starts
     c.divider();
-    
+
     // Create a colorful Electron Forge banner
     const forgeBannerText = "ELECTRON FORGE";
     const forgeBannerColors = [colors.cyan, colors.green, colors.yellow, colors.magenta, colors.blue, colors.red];
-    
+
     // Print top border
     process.stdout.write('  ');
     for (let i = 0; i < 45; i++) {
@@ -319,14 +348,14 @@ async function main() {
       process.stdout.write(`${colors.bright}${forgeBannerColors[colorIndex]}▬${colors.reset}`);
     }
     process.stdout.write('\n  ');
-    
+
     // Display the banner with color per letter
     for (let i = 0; i < forgeBannerText.length; i++) {
       const colorIndex = i % forgeBannerColors.length;
       process.stdout.write(`${colors.bright}${forgeBannerColors[colorIndex]}${forgeBannerText[i]}${colors.reset}`);
     }
     process.stdout.write('\n');
-    
+
     // Print bottom border
     process.stdout.write('  ');
     for (let i = 0; i < 45; i++) {
@@ -334,10 +363,10 @@ async function main() {
       process.stdout.write(`${colors.bright}${forgeBannerColors[colorIndex]}▬${colors.reset}`);
     }
     process.stdout.write('\n\n');
-    
+
     c.info('This process compiles and launches the Electron application:');
     process.stdout.write('\n');
-    
+
     // Definition of stages and their associated colors
     const stages = [
       {
@@ -388,44 +417,44 @@ async function main() {
         ]
       }
     ];
-    
+
     // Track which stage we're in
     let currentStage = '';
-    
+
     // Track which descriptions we've already shown
     const shownDescriptions = new Set();
-    
+
     // Run Electron Forge with enhanced output
     console.log("\n" + colorFuncs.cyan("▶ Running Electron Forge..."));
-    
+
     // Prepare for stage tracking
     let stageLine = false;
-    
+
     // Run Electron Forge with output captured and enhanced
     try {
       // Now try to use electron-forge
-      const electronForge = spawn('electron-forge', ['start'], { 
+      const electronForge = spawn('electron-forge', ['start'], {
         shell: true,
-        stdio: ['inherit', 'pipe', 'pipe'] 
+        stdio: ['inherit', 'pipe', 'pipe']
       });
-      
+
       // Process stdout for prettier output
       electronForge.stdout.on('data', (data) => {
         const output = data.toString();
         const lines = output.split('\n');
-        
+
         for (const line of lines) {
           if (line.trim() === '') continue;
-          
+
           // Regular output with no special formatting
           else if (line.includes('[39m')) {
             // Clean up ANSI codes and extract the content
             const cleanLine = stripAnsi(line).trim();
-            
-            // Special handling for checkmark lines 
+
+            // Special handling for checkmark lines
             if (cleanLine.startsWith('✓')) {
               const message = cleanLine.substring(1).trim();
-              
+
               if (message) {
                 // Map common completion messages to task types for better icons
                 let taskType = '';
@@ -436,10 +465,10 @@ async function main() {
                 else if (message.includes('Loading')) taskType = 'Loading';
                 else if (message.includes('Preparing')) taskType = 'Preparing';
                 else if (message.includes('Running')) taskType = 'Running';
-                
+
                 // Get appropriate icon and colors
                 const { taskIcon, taskColor } = getTaskStyles(taskType || message);
-                
+
                 // Create a rainbow effect for the message text
                 const rainbowColors = [
                   colorFuncs.bright.cyan,
@@ -447,16 +476,16 @@ async function main() {
                   colorFuncs.bright.yellow,
                   colorFuncs.bright.magenta
                 ];
-                
+
                 // Create pretty output with multiple colors
                 let prettyText = '';
                 const words = message.split(' ');
-                
+
                 words.forEach((word, idx) => {
                   const colorIdx = idx % rainbowColors.length;
                   prettyText += rainbowColors[colorIdx](word) + ' ';
                 });
-                
+
                 // Print the enhanced line with icons and colors
                 console.log(`${colorFuncs.bright.green('✓')} ${taskIcon} ${prettyText.trim()}`);
               } else {
@@ -466,7 +495,7 @@ async function main() {
             } else if (cleanLine.startsWith('❯')) {
               // Handle progress indicator lines with different colors based on content
               const message = cleanLine.substring(1).trim();
-              
+
               // Different colors for different types of progress
               let progressColor;
               if (message.includes('Checking')) {
@@ -499,7 +528,7 @@ async function main() {
                 const colorIndex = Math.abs(message.length) % rotateColors.length;
                 progressColor = rotateColors[colorIndex];
               }
-              
+
               // Print with bright arrow icon and colored message
               console.log(`${colorFuncs.bright.yellow('❯')} ${progressColor(message)}`);
             } else if (cleanLine.startsWith('›')) {
@@ -531,20 +560,20 @@ async function main() {
           }
         }
       });
-      
+
       // Process stderr for error output
       electronForge.stderr.on('data', (data) => {
         const output = data.toString();
         const lines = output.split('\n');
-        
+
         for (const line of lines) {
           if (line.trim() === '') continue;
-          
+
           // Error messages in red
           console.log(colorFuncs.bright.red(line.trim()));
         }
       });
-      
+
       // Wait for Electron Forge to finish
       await new Promise((resolve, reject) => {
         electronForge.on('close', (code) => {
@@ -555,18 +584,18 @@ async function main() {
           }
         });
       });
-      
+
       const appLoadEndTime = new Date();
       const appLoadTimeMs = appLoadEndTime - appLoadStartTime;
       const appLoadTimeSec = (appLoadTimeMs / 1000).toFixed(2);
-      
+
       console.log('\n');
       console.log(colorFuncs.bright.cyan('═════════════════════════════════════════════════'));
       console.log(colorFuncs.bright.green('✅ APPLICATION LOADED SUCCESSFULLY'));
       console.log(colorFuncs.bright.cyan('═════════════════════════════════════════════════'));
       console.log(`${colorFuncs.bright.yellow('⚡')} ${colorFuncs.bright.white('App load time:')} ${colorFuncs.bright.green(appLoadTimeSec + 's')} ${colorFuncs.dim('(' + appLoadTimeMs + 'ms)')}`);
       console.log('');
-      
+
     } catch (error) {
       console.error('\n');
       console.log(colorFuncs.bright.red('═════════════════════════════════════════════════'));
@@ -574,7 +603,7 @@ async function main() {
       console.log(colorFuncs.bright.red('═════════════════════════════════════════════════'));
       console.error(colorFuncs.bright.red(error.message));
       console.log('');
-      
+
       process.exit(1);
     }
   } catch (error) {
@@ -584,7 +613,7 @@ async function main() {
     console.log(colorFuncs.bright.red('═════════════════════════════════════════════════'));
     console.error(colorFuncs.bright.red(error.message));
     console.log('');
-    
+
     process.exit(1);
   }
 }

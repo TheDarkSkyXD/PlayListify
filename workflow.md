@@ -801,33 +801,134 @@ export class DownloadManager {
 }
 ```
 
-### Phase 3.2: Format Conversion (Next Step)
+### Phase 3.2: Format Conversion
 
 **Tasks:**
-- [ ] Add format conversion capabilities with fluent-ffmpeg
-- [ ] Implement quality selection options
-- [ ] Create UI components for format selection
+- [x] Add format conversion capabilities with fluent-ffmpeg
+- [x] Implement quality selection options
+- [x] Create UI components for format selection
+- [x] Add IPC handlers for format conversion
+- [x] Create demo component for format conversion
 
-**Files to Create:**
-- [ ] `src/backend/services/formatConverter.ts` (~150 lines)
-  - Format conversion utilities
-  - ffmpeg integration
-- [ ] `src/frontend/features/downloads/components/FormatSelector.tsx` (~150 lines)
+**Files Created:**
+- [x] `src/backend/services/formatConverter.ts` (~500 lines)
+  - Format conversion utilities with fluent-ffmpeg
+  - Support for multiple output formats (mp4, webm, mp3, etc.)
+  - Quality selection and resolution control
+  - Progress tracking during conversion
+  - Error handling and logging
+- [x] `src/backend/ipc/formatConverterHandlers.ts` (~200 lines)
+  - IPC handlers for format conversion operations
+  - Progress tracking and reporting
+  - Error handling
+- [x] `src/frontend/features/downloads/components/FormatSelector.tsx` (~200 lines)
   - UI for selecting download formats and quality
+  - Support for video and audio formats
+  - Advanced options for bitrate control
+- [x] `src/frontend/features/downloads/components/FormatConverterDemo.tsx` (~200 lines)
+  - Demo component for format conversion
+  - Progress tracking and display
+  - Result display with file information
 
-**Sample Code for `src/backend/services/formatConverter.ts`:**
+**Implementation Details:**
+- Added support for multiple output formats (mp4, webm, mp3, aac, flac, opus, m4a)
+- Implemented quality selection for video formats (360p to 4K)
+- Added bitrate control for audio formats
+- Created a tabbed interface for selecting between video and audio formats
+- Implemented progress tracking during conversion
+- Added error handling and logging
+- Created IPC handlers for all format conversion operations
+- Added TypeScript interfaces for conversion options and results
+
+**Key Features:**
 ```typescript
-import ffmpeg from 'fluent-ffmpeg';
-import path from 'path';
+// Format conversion with progress tracking
+export async function convertFile(
+  inputPath: string,
+  options: ConversionOptions,
+  progressCallback?: (progress: ConversionProgress) => void
+): Promise<ConversionResult> {
+  // Ensure FFmpeg is initialized
+  await initFFmpeg();
 
-export async function convertToMp3(inputPath: string): Promise<string> {
-  const outputPath = inputPath.replace('.mp4', '.mp3');
+  // Determine output path based on input path and format
+  const parsedPath = path.parse(inputPath);
+  const outputPath = path.join(
+    parsedPath.dir,
+    `${parsedPath.name}.${options.format}`
+  );
+
+  // Create FFmpeg command
+  const command = ffmpeg(inputPath);
+
+  // Set output format
+  command.toFormat(options.format);
+
+  // Apply video options if not converting to audio-only format
+  if (!['mp3', 'aac', 'flac', 'opus', 'm4a'].includes(options.format)) {
+    // Set video codec based on format
+    if (options.format === 'mp4') {
+      command.videoCodec('libx264');
+    } else if (options.format === 'webm') {
+      command.videoCodec('libvpx-vp9');
+    }
+
+    // Set resolution based on quality
+    if (options.quality) {
+      switch (options.quality) {
+        case '360p':
+          command.size('640x360');
+          break;
+        case '480p':
+          command.size('854x480');
+          break;
+        case '720p':
+          command.size('1280x720');
+          break;
+        case '1080p':
+          command.size('1920x1080');
+          break;
+        // Additional resolutions...
+      }
+    }
+  }
+
+  // Set progress handler
+  if (progressCallback) {
+    command.on('progress', (progress) => {
+      progressCallback({
+        percent: Math.min(Math.round(progress.percent || 0), 100),
+        fps: progress.frames ? progress.frames / ((progress.timemark.split(':').reduce((acc, time) => (60 * acc) + +time, 0)) || 1) : undefined,
+        kbps: progress.currentKbps,
+        targetSize: progress.targetSize,
+        currentSize: progress.currentSize,
+        timemark: progress.timemark,
+        eta: progress.timemark
+      });
+    });
+  }
+
+  // Execute the conversion
   return new Promise((resolve, reject) => {
-    ffmpeg(inputPath)
-      .toFormat('mp3')
-      .on('end', () => resolve(outputPath))
-      .on('error', (err) => reject(err))
-      .save(outputPath);
+    command.on('end', async () => {
+      // Return result with file information
+      resolve({
+        success: true,
+        outputPath,
+        duration: await getVideoDuration(outputPath),
+        format: options.format,
+        size: (await fs.stat(outputPath)).size
+      });
+    }).on('error', (err) => {
+      reject({
+        success: false,
+        outputPath: '',
+        duration: 0,
+        format: options.format,
+        size: 0,
+        error: err.message
+      });
+    }).save(outputPath);
   });
 }
 ```

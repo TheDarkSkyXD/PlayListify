@@ -36,8 +36,8 @@ export interface DownloadItem {
  * Download options interface
  */
 export interface DownloadOptions {
-  format?: string;
-  quality?: string;
+  format?: 'mp4' | 'webm' | 'mp3' | 'best';
+  quality?: '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p';
 }
 
 /**
@@ -130,10 +130,48 @@ export interface PathValidationResult {
   error?: string;
 }
 
-// Download options for videos
-export interface DownloadOptions {
-  format?: 'mp4' | 'webm' | 'mp3' | 'best';
-  quality?: '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p';
+// These are already defined above
+// export interface DownloadOptions {
+//   format?: 'mp4' | 'webm' | 'mp3' | 'best';
+//   quality?: '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p';
+// }
+
+// Supported output formats
+export type OutputFormat = 'mp4' | 'webm' | 'mp3' | 'aac' | 'flac' | 'opus' | 'm4a';
+
+// Conversion options
+export interface ConversionOptions {
+  format: OutputFormat;
+  quality?: string;
+  audioBitrate?: string;
+  videoBitrate?: string;
+  width?: number;
+  height?: number;
+  fps?: number;
+  startTime?: string;
+  endTime?: string;
+  metadata?: Record<string, string>;
+}
+
+// Conversion progress
+export interface ConversionProgress {
+  percent: number;
+  fps?: number;
+  kbps?: number;
+  targetSize?: number;
+  currentSize?: number;
+  timemark?: string;
+  eta?: string;
+}
+
+// Conversion result
+export interface ConversionResult {
+  success: boolean;
+  outputPath: string;
+  duration: number;
+  format: string;
+  size: number;
+  error?: string;
 }
 
 // Playlist update options
@@ -312,11 +350,77 @@ export interface Api {
     }>;
     onDownloadUpdate: (callback: (download: DownloadItem) => void) => () => void;
   };
+
+  // Format converter API
+  formatConverter: {
+    initFFmpeg: () => Promise<{ success: boolean; error?: string }>;
+    convertFile: (
+      inputPath: string,
+      options: ConversionOptions
+    ) => Promise<{
+      success: boolean;
+      result?: ConversionResult;
+      progressChannel?: string;
+      error?: string;
+    }>;
+    convertDownloadedVideo: (
+      downloadId: string,
+      options: ConversionOptions
+    ) => Promise<{
+      success: boolean;
+      result?: ConversionResult;
+      progressChannel?: string;
+      error?: string;
+    }>;
+    extractAudio: (
+      inputPath: string,
+      format?: string
+    ) => Promise<{
+      success: boolean;
+      result?: ConversionResult;
+      progressChannel?: string;
+      error?: string;
+    }>;
+    changeResolution: (
+      inputPath: string,
+      quality: string
+    ) => Promise<{
+      success: boolean;
+      result?: ConversionResult;
+      progressChannel?: string;
+      error?: string;
+    }>;
+    trimVideo: (
+      inputPath: string,
+      startTime: string,
+      endTime: string
+    ) => Promise<{
+      success: boolean;
+      result?: ConversionResult;
+      progressChannel?: string;
+      error?: string;
+    }>;
+    getAvailableFormats: () => Promise<{
+      video: string[];
+      audio: string[];
+    }>;
+    getAvailableQualities: () => Promise<string[]>;
+    getVideoDuration: (filePath: string) => Promise<{
+      success: boolean;
+      duration?: number;
+      formattedDuration?: string;
+      error?: string;
+    }>;
+    onConversionProgress: (
+      channel: string,
+      callback: (progress: ConversionProgress) => void
+    ) => () => void;
+  };
 }
 
 // Extend the Window interface to include our API
 declare global {
   interface Window {
-    api: Api;
+    electron: Api;
   }
 }

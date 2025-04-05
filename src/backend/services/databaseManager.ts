@@ -24,7 +24,18 @@ export function initDatabase(): Database.Database {
     fs.ensureDirSync(path.dirname(dbPath));
 
     // Create/open database
-    db = new Database(dbPath, { verbose: getSetting('debug') ? console.log : undefined });
+    try {
+      db = new Database(dbPath, { verbose: getSetting('debug') ? console.log : undefined });
+    } catch (dbError: any) {
+      console.error('Error creating database instance:', dbError);
+
+      // Check if this is a module not found error
+      if (dbError.code === 'MODULE_NOT_FOUND') {
+        throw new Error(`SQLite module not found. Please run 'npm run rebuild:sqlite' to rebuild the native module.`);
+      }
+
+      throw dbError;
+    }
 
     // Apply database configuration
     if (dbConfig.useWAL) {

@@ -136,8 +136,30 @@ export default function SettingsPage() {
   const handleSelectFolder = async (setting: string) => {
     try {
       if (window.api && window.api.fs) {
+        // Use the regular directory selector for all settings
         const selectedPath = await window.api.fs.selectDirectory();
+
         if (selectedPath) {
+          // If this is the download location, append 'playlistify' folder
+          if (setting === 'downloadLocation') {
+            // Use path.join to properly handle different OS path separators
+            const pathParts = selectedPath.split(/[\\/]/);
+            const lastPart = pathParts[pathParts.length - 1];
+
+            // Only append 'playlistify' if it's not already the last part
+            if (lastPart.toLowerCase() !== 'playlistify') {
+              // Create the path with 'playlistify' appended
+              const playlistifyPath = `${selectedPath}${selectedPath.endsWith('/') || selectedPath.endsWith('\\') ? '' : '/'}playlistify`;
+
+              setSettings({
+                ...settings,
+                [setting]: playlistifyPath
+              });
+              return;
+            }
+          }
+
+          // For other settings or if already ends with 'playlistify'
           setSettings({
             ...settings,
             [setting]: selectedPath
@@ -216,6 +238,7 @@ export default function SettingsPage() {
                           value={settings.downloadLocation || ''}
                           onChange={handleChange}
                           className="flex-1"
+                          placeholder="Select a download location"
                         />
                         <Button
                           type="button"
@@ -226,6 +249,10 @@ export default function SettingsPage() {
                           <FolderOpen className="h-4 w-4" />
                         </Button>
                       </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <Info className="h-3 w-3 inline mr-1" />
+                        A 'playlistify' folder will be created at the selected location
+                      </p>
                     </div>
 
                     <Separator />

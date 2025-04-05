@@ -29,6 +29,7 @@ module.exports = {
   },
   externals: {
     'electron-squirrel-startup': 'commonjs electron-squirrel-startup',
+    'better-sqlite3': 'commonjs better-sqlite3',
   },
   output: {
     filename: '[name].js',

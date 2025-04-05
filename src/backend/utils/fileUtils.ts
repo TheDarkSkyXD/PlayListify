@@ -39,6 +39,27 @@ export async function createPlaylistDir(playlistId: string, playlistName: string
 }
 
 /**
+ * Creates a download directory for a playlist
+ */
+export async function createDownloadDir(playlistId: string, playlistName: string): Promise<string> {
+  const baseDir = getSetting('downloadLocation');
+  // Use a sanitized version of the playlist name for the folder
+  const sanitizedName = sanitizeFileName(playlistName);
+  // Create a directory with format: playlistId-sanitizedName
+  const downloadDir = path.join(baseDir, `${playlistId}-${sanitizedName}`);
+  const videosDir = path.join(downloadDir, 'videos');
+
+  try {
+    await ensureDir(downloadDir);
+    await ensureDir(videosDir);
+    return videosDir;
+  } catch (error) {
+    console.error(`Failed to create download directory for ${playlistName}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Finds a playlist directory by ID, regardless of name
  */
 export async function findPlaylistDirById(playlistId: string): Promise<string | null> {

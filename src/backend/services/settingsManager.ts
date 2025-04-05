@@ -51,7 +51,7 @@ const defaultSettings: SettingsSchema = {
   minimizeToTray: true,
 
   // Download settings
-  downloadLocation: path.join(app.getPath('videos'), 'Playlistify'),
+  downloadLocation: path.join(app.getPath('videos'), 'playlistify'),
   concurrentDownloads: 3,
   downloadFormat: 'mp4',
   maxQuality: '1080p',
@@ -84,11 +84,37 @@ const store = new Store({
 // Ensure directories exist
 export function initializeDirectories(): void {
   const settings = (store as any).store as SettingsSchema;
-  const downloadLocation = settings.downloadLocation;
+  let downloadLocation = settings.downloadLocation;
   const playlistLocation = settings.playlistLocation;
 
-  fs.ensureDirSync(downloadLocation);
-  fs.ensureDirSync(playlistLocation);
+  // Ensure the download location exists
+  try {
+    // Make sure the download location ends with 'playlistify'
+    if (!downloadLocation.endsWith('playlistify') && !downloadLocation.endsWith('Playlistify')) {
+      downloadLocation = path.join(downloadLocation, 'playlistify');
+      // Update the setting to include the playlistify folder
+      setSetting('downloadLocation', downloadLocation);
+    }
+
+    fs.ensureDirSync(downloadLocation);
+    console.log(`Ensured download directory exists: ${downloadLocation}`);
+  } catch (error) {
+    console.error(`Failed to create download directory: ${downloadLocation}`, error);
+    // If we can't create the specified directory, fall back to the default
+    const fallbackLocation = path.join(app.getPath('videos'), 'playlistify');
+    fs.ensureDirSync(fallbackLocation);
+    console.log(`Created fallback download directory: ${fallbackLocation}`);
+    // Update the setting to the fallback location
+    setSetting('downloadLocation', fallbackLocation);
+  }
+
+  // Ensure the playlist location exists
+  try {
+    fs.ensureDirSync(playlistLocation);
+    console.log(`Ensured playlist directory exists: ${playlistLocation}`);
+  } catch (error) {
+    console.error(`Failed to create playlist directory: ${playlistLocation}`, error);
+  }
 }
 
 // Standard getter function

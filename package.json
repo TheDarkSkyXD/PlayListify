@@ -31,7 +31,9 @@
     "db:reset": "node scripts/db-tools.js reset",
     "db:create-test": "node scripts/create-test-db.js",
     "db:update-schema": "node scripts/update-db-schema.js",
-    "rebuild": "node scripts/rebuild-app.js"
+    "rebuild": "node scripts/rebuild-app.js",
+    "rebuild:sqlite": "node scripts/rebuild-sqlite.js",
+    "fix:sqlite": "node scripts/fix-sqlite-path.js"
   },
   "keywords": [],
   "author": {
@@ -95,6 +97,7 @@
     "@tanstack/react-query": "^5.71.10",
     "@tanstack/react-router": "^1.114.34",
     "@types/better-sqlite3": "^7.6.13",
+    "better-sqlite3": "^9.4.3",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.14.0",
     "axios": "^1.8.4",
