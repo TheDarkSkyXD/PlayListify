@@ -1,6 +1,6 @@
 import YtDlpWrap from 'yt-dlp-wrap';
 import { exec } from 'child_process';
-import { promisify } from 'util';
+// import { promisify } from 'util'; // Not needed as we have custom execAsync
 import path from 'path';
 import fs from 'fs-extra';
 import { app } from 'electron';
@@ -128,12 +128,13 @@ export async function initYtDlp(customBinaryPath?: string, silent: boolean = fal
     // Log available commands only if not silent
     if (!silent) {
       try {
-        const { stdout } = await execAsync(`"${getBundledYtDlpPath()}" --help`, {
+        const result = await execAsync(`"${getBundledYtDlpPath()}" --help`, {
           maxBuffer: MAX_BUFFER_SIZE
         });
+        const stdout = typeof result === 'object' && result !== null && 'stdout' in result ? (result.stdout as string) : '';
         console.log('Available yt-dlp commands:',
           stdout.split('\n')
-               .filter(line => line.includes('--'))
+               .filter((line: string) => line.includes('--'))
                .slice(0, 5)
                .join('\n  ') +
           '\n  ... (truncated)'

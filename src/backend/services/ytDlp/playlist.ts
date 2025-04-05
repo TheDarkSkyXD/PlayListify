@@ -18,7 +18,10 @@ export async function getPlaylistInfo(playlistUrl: string): Promise<{
   return rateLimiter.execute('yt-dlp', async () => {
     try {
       // Ensure yt-dlp is initialized
-      if (!await initYtDlp()) {
+      try {
+        await initYtDlp();
+      } catch (error) {
+        console.error('Failed to initialize yt-dlp, retrying...', error);
         await initYtDlp();
       }
 
@@ -43,18 +46,20 @@ export async function getPlaylistInfo(playlistUrl: string): Promise<{
         console.log('Detected YouTube Mix playlist, using specialized approach');
 
         // Use --flat-playlist for faster initial fetch and ignore unavailable videos
-        const { stdout: mixOutput } = await execAsync(
+        const result = await execAsync(
           `"${getBundledYtDlpPath()}" --dump-json --flat-playlist --ignore-errors --playlist-end 100 --no-warnings "${playlistUrl}"`,
           { maxBuffer: MAX_BUFFER_SIZE },
           30000 // 30 second timeout
         );
+
+        const mixOutput = typeof result === 'object' && result !== null && 'stdout' in result ? (result.stdout as string) : '';
 
         if (!mixOutput || mixOutput.trim() === '') {
           throw new Error('No video data returned from yt-dlp for Mix playlist');
         }
 
         // Parse the video data - each line is a separate JSON object
-        const videoLines = mixOutput.split('\n').filter(line => line.trim() !== '');
+        const videoLines = mixOutput.split('\n').filter((line: string) => line.trim() !== '');
         const videoCount = videoLines.length;
 
         // Get the first video for metadata
@@ -81,11 +86,13 @@ export async function getPlaylistInfo(playlistUrl: string): Promise<{
 
       // Get info for the first video to extract playlist metadata
       // Use --flat-playlist for faster fetch
-      const { stdout: videoOutput } = await execAsync(
+      const videoResult = await execAsync(
         `"${getBundledYtDlpPath()}" --dump-json --flat-playlist --ignore-errors --playlist-end 1 --no-warnings "${playlistUrl}"`,
         { maxBuffer: MAX_BUFFER_SIZE },
         30000 // 30 second timeout
       );
+
+      const videoOutput = typeof videoResult === 'object' && videoResult !== null && 'stdout' in videoResult ? (videoResult.stdout as string) : '';
 
       if (!videoOutput || videoOutput.trim() === '') {
         throw new Error('No video data returned from yt-dlp');
@@ -115,14 +122,16 @@ export async function getPlaylistInfo(playlistUrl: string): Promise<{
           videoCount = videoData.n_entries;
         } else {
           // Use --flat-playlist for faster video counting and skip unavailable videos
-          const { stdout: countOutput } = await execAsync(
+          const countResult = await execAsync(
             `"${getBundledYtDlpPath()}" --flat-playlist --ignore-errors --no-warnings --dump-json "${playlistUrl}"`,
             { maxBuffer: MAX_BUFFER_SIZE },
             30000 // 30 second timeout
           );
 
+          const countOutput = typeof countResult === 'object' && countResult !== null && 'stdout' in countResult ? (countResult.stdout as string) : '';
+
           // Count the lines to get the video count
-          const lines = countOutput.split('\n').filter(line => line.trim() !== '');
+          const lines = countOutput.split('\n').filter((line: string) => line.trim() !== '');
           videoCount = lines.length;
         }
       } catch (countError) {
@@ -151,7 +160,10 @@ export async function getPlaylistVideos(playlistUrl: string, progressCallback?: 
   return rateLimiter.execute('yt-dlp', async () => {
     try {
       // Ensure yt-dlp is initialized
-      if (!await initYtDlp()) {
+      try {
+        await initYtDlp();
+      } catch (error) {
+        console.error('Failed to initialize yt-dlp, retrying...', error);
         await initYtDlp();
       }
 
@@ -309,18 +321,20 @@ export async function importYoutubePlaylist(
         console.log('Using specialized approach for YouTube Mix playlist');
         // Use --flat-playlist for faster initial fetch and ignore unavailable videos
         // Limit to 100 videos for Mix playlists to keep it reasonably fast
-        const { stdout } = await execAsync(
+        const result = await execAsync(
           `"${getBundledYtDlpPath()}" --dump-json --flat-playlist --ignore-errors --playlist-end 100 --no-warnings "${playlistUrl}"`,
           { maxBuffer: MAX_BUFFER_SIZE },
           30000 // 30 second timeout
         );
+
+        const stdout = typeof result === 'object' && result !== null && 'stdout' in result ? (result.stdout as string) : '';
 
         if (!stdout || stdout.trim() === '') {
           throw new Error('No data returned from yt-dlp');
         }
 
         // Parse each line as a video
-        const lines = stdout.split('\n').filter(line => line.trim() !== '');
+        const lines = stdout.split('\n').filter((line: string) => line.trim() !== '');
         const currentDate = new Date().toISOString();
 
         console.log(`Found ${lines.length} video entries to process`);
@@ -374,7 +388,7 @@ export async function importYoutubePlaylist(
             // Report progress for each video
             // Calculate progress value based on processed count
             // IMPORTANT: Start from 0 and go up to 100 (not 15 to 90)
-            const progressValue = Math.floor((processedCount / lines.length) * 100);
+            // const progressValue = Math.floor((processedCount / lines.length) * 100);
             progressCallback?.(`Processing video ${processedCount} of ${lines.length}...`, processedCount, playlistInfo.videoCount);
 
             // Log the first few videos to track progress
@@ -399,18 +413,20 @@ export async function importYoutubePlaylist(
 
         // Use --flat-playlist for faster initial fetch and ignore unavailable videos
         // This is much faster but provides less detailed data
-        const { stdout } = await execAsync(
+        const result = await execAsync(
           `"${getBundledYtDlpPath()}" --dump-json --flat-playlist --ignore-errors --no-warnings "${playlistUrl}"`,
           { maxBuffer: MAX_BUFFER_SIZE },
           30000 // 30 second timeout
         );
+
+        const stdout = typeof result === 'object' && result !== null && 'stdout' in result ? (result.stdout as string) : '';
 
         if (!stdout || stdout.trim() === '') {
           throw new Error('No data returned from yt-dlp');
         }
 
         // Parse each line as a video
-        const lines = stdout.split('\n').filter(line => line.trim() !== '');
+        const lines = stdout.split('\n').filter((line: string) => line.trim() !== '');
         const currentDate = new Date().toISOString();
 
         console.log(`Found ${lines.length} video entries to process`);
@@ -452,7 +468,7 @@ export async function importYoutubePlaylist(
             // Report progress for each video
             // Calculate progress value based on processed count
             // IMPORTANT: Start from 0 and go up to 100 (not 15 to 90)
-            const progressValue = Math.floor((processedCount / lines.length) * 100);
+            // const progressValue = Math.floor((processedCount / lines.length) * 100);
             progressCallback?.(`Processing video ${processedCount} of ${lines.length}...`, processedCount, playlistInfo.videoCount);
 
             // Apply a delay AFTER updating the progress to ensure the UI has time to render

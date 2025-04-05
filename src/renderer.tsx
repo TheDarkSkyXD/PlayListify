@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './renderer/App';
-import './renderer/styles/global.css';
+import App from './frontend/App';
+import './frontend/styles/global.css';
 
 // Create root element
 const container = document.getElementById('root');
@@ -15,4 +15,4 @@ root.render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
-); 
+);

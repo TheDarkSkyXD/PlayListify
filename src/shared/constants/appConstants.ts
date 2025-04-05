@@ -25,29 +25,30 @@ export const DEFAULT_SETTINGS = {
   checkForUpdates: true,
   startAtLogin: false,
   minimizeToTray: true,
-  
+
   // Download settings
   downloadLocation: '', // Will be set to Downloads folder in settings manager
   concurrentDownloads: 3,
   downloadFormat: 'mp4',
   maxQuality: '1080p',
   autoConvertToMp3: false,
-  
+
   // Playback settings
   defaultVolume: 70,
   autoPlay: false,
-  
+
   // Playlist settings
   playlistLocation: '', // Will be set in settings manager
   autoRefreshPlaylists: false,
   refreshInterval: 86400000, // 24 hours in milliseconds
-  
+
   // Rate limiting settings
   apiRateLimit: {
     maxRequests: 60,
     perMinute: 1
   },
-  
+
+
   // Advanced settings
   ytDlpPath: '',
   ffmpegPath: '',
@@ -90,4 +91,4 @@ export const UI = {
   MAX_PLAYLISTS_PER_PAGE: 12,
   THUMBNAIL_WIDTH: 320,
   THUMBNAIL_HEIGHT: 180
-}; 
+};

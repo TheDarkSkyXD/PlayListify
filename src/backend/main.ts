@@ -3,6 +3,9 @@ import path from 'path';
 import { initYtDlp } from './services/ytDlpManager';
 import { registerIpcHandlers } from './ipc/handlers';
 import { initializeSettings } from './services/settingsManager';
+import { initializeDatabase } from './services/playlistServiceProvider';
+import { initializeDatabaseAndMigrate } from './services/migrationManager';
+import { runDatabaseOptimization } from './services/databaseManager';
 import fs from 'fs-extra';
 import { initLogger, c as loggerC, getConsoleLogFilePath, getTerminalLogFilePath, logToFile, logToTerminalFile } from './services/logger';
 import { writeToConsoleLog, initFileLogger, cleanupFileLogger } from './services/fileLogger';
@@ -147,6 +150,21 @@ app.whenReady().then(async () => {
   c.info('⚙️  Loading application settings...');
   initializeSettings();
   c.success('✅ Settings initialized successfully');
+
+  // Initialize database and run migration if needed
+  c.info('🗄️  Initializing database...');
+  initializeDatabase();
+  await initializeDatabaseAndMigrate();
+
+  // Optimize database for better performance
+  c.info('🔧 Optimizing database...');
+  if (runDatabaseOptimization()) {
+    c.success('✅ Database optimized successfully');
+  } else {
+    c.warning('⚠️ Database optimization failed, continuing anyway');
+  }
+
+  c.success('✅ Database initialized successfully');
 
   // Ensure development assets
   c.info('\n📂 Checking development assets...');

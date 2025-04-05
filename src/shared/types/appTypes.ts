@@ -18,6 +18,7 @@ export interface Video {
   addedAt: string;
   status?: 'available' | 'unavailable' | 'processing' | 'unknown';
   downloadStatus?: 'pending' | 'downloading' | 'completed' | 'failed' | 'cancelled';
+  playlistId?: string; // Reference to the parent playlist
 }
 
 /**
@@ -67,6 +68,7 @@ export interface AppSettings {
 
   // Saved accounts/tokens
   accounts?: Record<string, { refreshToken: string }>;
+
 
   // Advanced settings
   ytDlpPath?: string;
@@ -173,6 +175,56 @@ export interface Api {
     removeVideo: (playlistId: string, videoId: string) => Promise<Playlist>;
     downloadVideo: (playlistId: string, videoId: string, options?: DownloadOptions) => Promise<string>;
     refresh: (playlistId: string) => Promise<Playlist>;
+  };
+
+  // Database management API
+  database: {
+    getInfo: () => Promise<{
+      success: boolean;
+      path?: string;
+      directory?: string;
+      size?: {
+        bytes: number;
+        megabytes: string;
+      };
+      stats?: any;
+      integrity?: any;
+      error?: string;
+    }>;
+    backup: () => Promise<{
+      success: boolean;
+      path?: string;
+      size?: {
+        bytes: number;
+        megabytes: string;
+      };
+      error?: string;
+    }>;
+    restore: (backupPath: string) => Promise<{
+      success: boolean;
+      path?: string;
+      error?: string;
+    }>;
+    listBackups: () => Promise<{
+      success: boolean;
+      backups?: Array<{
+        path: string;
+        filename: string;
+        date: string;
+        size: string;
+        bytes: number;
+      }>;
+      error?: string;
+    }>;
+    optimize: () => Promise<{
+      success: boolean;
+      error?: string;
+    }>;
+  };
+
+  // Application management API
+  app: {
+    restart: () => Promise<void>;
   };
 }
 

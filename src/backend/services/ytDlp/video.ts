@@ -23,7 +23,10 @@ export async function checkVideoStatus(videoUrl: string): Promise<{
   return rateLimiter.execute('yt-dlp', async () => {
     try {
       // Ensure yt-dlp is initialized
-      if (!await initYtDlp()) {
+      try {
+        await initYtDlp();
+      } catch (error) {
+        console.error('Failed to initialize yt-dlp, retrying...', error);
         await initYtDlp();
       }
 
@@ -76,7 +79,10 @@ export async function downloadVideo(
   return rateLimiter.execute('yt-dlp', async () => {
     try {
       // Ensure yt-dlp is initialized
-      if (!await initYtDlp()) {
+      try {
+        await initYtDlp();
+      } catch (error) {
+        console.error('Failed to initialize yt-dlp, retrying...', error);
         await initYtDlp();
       }
 

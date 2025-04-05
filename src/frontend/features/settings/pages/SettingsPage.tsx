@@ -5,10 +5,9 @@ import { Label } from '../../../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { Separator } from '../../../components/ui/separator';
 import { Skeleton } from '../../../components/ui/skeleton';
-import { ArrowLeft, Save, FolderOpen, AlertCircle, CheckCircle, Home, Settings, Youtube, Library, PlusCircle } from 'lucide-react';
-import { Link } from '@tanstack/react-router';
+import { Save, FolderOpen, AlertCircle, CheckCircle, Info, Folder } from 'lucide-react';
 import { AppSettings } from '../../../../shared/types/appTypes';
-import { SidebarNav } from '../../../components/common/SidebarNav';
+import DatabaseBackupSection from '../components/DatabaseBackupSection';
 import AppLayout from '../../../components/Layout/AppLayout';
 import { STORAGE_KEYS } from '../../../../shared/constants/appConstants';
 
@@ -150,28 +149,7 @@ export default function SettingsPage() {
     }
   };
 
-  const navItems = [
-    {
-      title: "Dashboard",
-      href: "/",
-      icon: <Home className="mr-2 h-5 w-5" />
-    },
-    {
-      title: "Playlists",
-      href: "/playlists",
-      icon: <Library className="mr-2 h-5 w-5" />
-    },
-    {
-      title: "Import",
-      href: "/import",
-      icon: <Youtube className="mr-2 h-5 w-5" />
-    },
-    {
-      title: "Settings",
-      href: "/settings",
-      icon: <Settings className="mr-2 h-5 w-5" />
-    }
-  ];
+  // Settings page content
 
   if (isLoading) {
     return (
@@ -207,6 +185,7 @@ export default function SettingsPage() {
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="downloads">Downloads</TabsTrigger>
               <TabsTrigger value="advanced">Advanced</TabsTrigger>
+              <TabsTrigger value="database">Database</TabsTrigger>
               <TabsTrigger value="about">About</TabsTrigger>
             </TabsList>
 
@@ -358,6 +337,33 @@ export default function SettingsPage() {
                       </p>
                     </div>
 
+                    <Separator />
+
+                    <div>
+                      <h3 className="text-lg font-medium">Database Information</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        PlayListify uses SQLite to store playlist and video metadata for improved performance.
+                      </p>
+
+                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                        <p className="text-sm text-blue-800 dark:text-blue-400">
+                          <Info className="h-4 w-4 inline-block mr-2" />
+                          Playlist and video metadata are stored in a SQLite database, while actual video files
+                          remain on the filesystem. This hybrid approach provides efficient metadata querying
+                          with optimal storage for large files.
+                        </p>
+                      </div>
+
+                      {process.env.NODE_ENV === 'development' && (
+                        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded-md">
+                          <p className="text-sm text-gray-800 dark:text-gray-400">
+                            <Folder className="h-4 w-4 inline-block mr-2" />
+                            In development mode, the database is stored in the <code>database</code> folder for easy access.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
                     <Button type="submit" disabled={isSaving} className="mt-4">
                       {isSaving ?
                         <span className="flex items-center">
@@ -372,6 +378,12 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                 </form>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="database">
+              <div className="bg-card text-card-foreground rounded-lg shadow-sm border p-6">
+                <DatabaseBackupSection />
               </div>
             </TabsContent>
 

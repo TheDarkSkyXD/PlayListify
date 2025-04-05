@@ -213,6 +213,31 @@ export function getTerminalLogFilePath(): string {
   return terminalLogFilePath;
 }
 
+/**
+ * Read the console log file
+ */
+export function readConsoleLog(): string {
+  try {
+    if (fs.existsSync(consoleLogFilePath)) {
+      return fs.readFileSync(consoleLogFilePath, 'utf8');
+    }
+    return 'Log file not found';
+  } catch (error) {
+    return `Error reading log file: ${error}`;
+  }
+}
+
+/**
+ * Clear the console log file
+ */
+export function clearConsoleLog(): void {
+  try {
+    fs.writeFileSync(consoleLogFilePath, `=== PlayListify Console Log - ${new Date().toISOString()} ===\n\n`);
+  } catch (error) {
+    originalConsoleError(`Failed to clear console log file: ${error}`);
+  }
+}
+
 // Styled console output helpers (similar to what's in main.ts)
 export const c = {
   header: (text: string) => {

@@ -2,15 +2,14 @@ import { ipcMain, dialog, IpcMainInvokeEvent } from 'electron';
 import * as settingsManager from '../services/settingsManager';
 import * as fileUtils from '../utils/fileUtils';
 import * as ytDlpManager from '../services/ytDlpManager';
-import * as playlistManager from '../services/playlistManager';
+import * as playlistServiceProvider from '../services/playlistServiceProvider';
 import * as imageUtils from '../utils/imageUtils';
 import { registerLoggerHandlers } from './loggerHandlers';
+import { registerPlaylistDbHandlers } from './playlistDbHandlers';
+import { registerDatabaseHandlers } from './databaseHandlers';
 import path from 'path';
 import fs from 'fs-extra';
-import { v4 as uuidv4 } from 'uuid';
-
-// Define type for settings keys
-type SettingsKey = keyof ReturnType<typeof settingsManager.getAllSettings>;
+// No need for additional imports
 
 /**
  * Registers all IPC handlers for the main process
@@ -18,6 +17,12 @@ type SettingsKey = keyof ReturnType<typeof settingsManager.getAllSettings>;
 export function registerIpcHandlers(): void {
   // Register logger handlers
   registerLoggerHandlers();
+
+  // Register database-based playlist handlers
+  registerPlaylistDbHandlers();
+
+  // Register database management handlers
+  registerDatabaseHandlers();
   // Settings related handlers
   ipcMain.handle('settings:get', (_: IpcMainInvokeEvent, key: string) => {
     return settingsManager.getSetting(key as any);
@@ -132,7 +137,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('yt:importPlaylist', async (event: IpcMainInvokeEvent, playlistUrl: string, playlistInfo?: any) => {
     console.log('[BACKEND] Received yt:importPlaylist request');
     // Pass the existing playlist info to avoid fetching it again
-    return await playlistManager.importYoutubePlaylist(
+    return await playlistServiceProvider.importYoutubePlaylist(
       playlistUrl,
       // Create a progress callback function that sends updates to the renderer
       (status: string, count: number = 0, total: number = 0) => {
@@ -153,40 +158,49 @@ export function registerIpcHandlers(): void {
 
   // Playlist management handlers
   ipcMain.handle('playlist:create', async (_: IpcMainInvokeEvent, name: string, description?: string) => {
-    return await playlistManager.createEmptyPlaylist(name, description);
+    return await playlistServiceProvider.createEmptyPlaylist(name, description);
   });
 
   ipcMain.handle('playlist:getAll', async () => {
-    return await playlistManager.getAllPlaylists();
+    return await playlistServiceProvider.getAllPlaylists();
   });
 
   ipcMain.handle('playlist:getById', async (_: IpcMainInvokeEvent, playlistId: string) => {
-    return await playlistManager.getPlaylistById(playlistId);
+    return await playlistServiceProvider.getPlaylistById(playlistId);
   });
 
   ipcMain.handle('playlist:delete', async (_: IpcMainInvokeEvent, playlistId: string) => {
-    await playlistManager.deletePlaylist(playlistId);
+    await playlistServiceProvider.deletePlaylist(playlistId);
     return true;
   });
 
   ipcMain.handle('playlist:update', async (_: IpcMainInvokeEvent, playlistId: string, updates: any) => {
-    return await playlistManager.updatePlaylist(playlistId, updates);
+    return await playlistServiceProvider.updatePlaylist(playlistId, updates);
   });
 
   ipcMain.handle('playlist:addVideo', async (_: IpcMainInvokeEvent, playlistId: string, videoUrl: string) => {
-    return await playlistManager.addVideoToPlaylist(playlistId, videoUrl);
+    return await playlistServiceProvider.addVideoToPlaylist(playlistId, videoUrl);
   });
 
   ipcMain.handle('playlist:removeVideo', async (_: IpcMainInvokeEvent, playlistId: string, videoId: string) => {
-    return await playlistManager.removeVideoFromPlaylist(playlistId, videoId);
+    return await playlistServiceProvider.removeVideoFromPlaylist(playlistId, videoId);
   });
 
   ipcMain.handle('playlist:downloadVideo', async (_: IpcMainInvokeEvent, playlistId: string, videoId: string, options?: any) => {
-    return await playlistManager.downloadPlaylistVideo(playlistId, videoId, options);
+    return await playlistServiceProvider.downloadPlaylistVideo(playlistId, videoId, options);
   });
 
   ipcMain.handle('playlist:refresh', async (_: IpcMainInvokeEvent, playlistId: string) => {
-    return await playlistManager.refreshYoutubePlaylist(playlistId);
+    return await playlistServiceProvider.refreshYoutubePlaylist(playlistId);
+  });
+
+  // Add new handlers for search and stats
+  ipcMain.handle('playlist:search', async (_: IpcMainInvokeEvent, query: string) => {
+    return await playlistServiceProvider.searchPlaylists(query);
+  });
+
+  ipcMain.handle('playlist:stats', async () => {
+    return await playlistServiceProvider.getDatabaseStats();
   });
 
   // Filesystem validation

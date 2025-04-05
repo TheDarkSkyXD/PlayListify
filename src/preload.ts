@@ -129,7 +129,16 @@ contextBridge.exposeInMainWorld(
       checkVideoStatus: (videoUrl: string) =>
         ipcRenderer.invoke('yt:checkVideoStatus', videoUrl),
       downloadVideo: (videoUrl: string, outputDir: string, videoId: string, options?: any) =>
-        ipcRenderer.invoke('yt:downloadVideo', videoUrl, outputDir, videoId, options)
+        ipcRenderer.invoke('yt:downloadVideo', videoUrl, outputDir, videoId, options),
+      onImportProgress: (callback: (data: { status: string, count?: number, total?: number }) => void) => {
+        const listener = (_: any, data: any) => {
+          callback(data);
+        };
+        ipcRenderer.on('yt:importProgress', listener);
+        return () => {
+          ipcRenderer.removeListener('yt:importProgress', listener);
+        };
+      }
     },
 
     // Playlist management API
@@ -152,6 +161,26 @@ contextBridge.exposeInMainWorld(
         ipcRenderer.invoke('playlist:downloadVideo', playlistId, videoId, options),
       refresh: (playlistId: string) =>
         ipcRenderer.invoke('playlist:refresh', playlistId)
+    },
+
+    // Database management API
+    database: {
+      getInfo: () =>
+        ipcRenderer.invoke('database:getInfo'),
+      backup: () =>
+        ipcRenderer.invoke('database:backup'),
+      restore: (backupPath: string) =>
+        ipcRenderer.invoke('database:restore', backupPath),
+      listBackups: () =>
+        ipcRenderer.invoke('database:listBackups'),
+      optimize: () =>
+        ipcRenderer.invoke('database:optimize')
+    },
+
+    // Application management API
+    app: {
+      restart: () =>
+        ipcRenderer.invoke('app:restart')
     }
   } as Api
 );

@@ -1,0 +1,10 @@
+# Ignore database files
+*.db
+*.db-wal
+*.db-shm
+
+# Ignore backups
+backups/
+
+# Don't ignore README
+!README.md

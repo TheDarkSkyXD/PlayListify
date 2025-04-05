@@ -1,8 +1,8 @@
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
-import { registerIpcHandlers } from './main/ipc/handlers';
-import { initializeSettings } from './main/services/settingsManager';
-import { initYtDlp } from './main/services/ytDlpManager';
+import { registerIpcHandlers } from './backend/ipc/handlers';
+import { initializeSettings } from './backend/services/settingsManager';
+import { initYtDlp } from './backend/services/ytDlpManager';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -14,10 +14,10 @@ const initializeApp = async () => {
   try {
     // Initialize settings first (creates necessary directories)
     initializeSettings();
-    
+
     // Initialize yt-dlp
     await initYtDlp();
-    
+
     console.log('Application services initialized successfully');
   } catch (error) {
     console.error('Failed to initialize application services:', error);
@@ -57,7 +57,7 @@ registerIpcHandlers();
 app.on('ready', async () => {
   // Initialize application services before creating the window
   await initializeApp();
-  
+
   // Create the main window
   createWindow();
 });
@@ -75,4 +75,4 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
-}); 
+});

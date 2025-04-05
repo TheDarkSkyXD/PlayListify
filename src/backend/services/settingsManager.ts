@@ -10,29 +10,32 @@ interface SettingsSchema {
   checkForUpdates: boolean;
   startAtLogin: boolean;
   minimizeToTray: boolean;
-  
+
   // Download settings
   downloadLocation: string;
   concurrentDownloads: number;
   downloadFormat: 'mp4' | 'webm' | 'mp3' | 'best';
   maxQuality: '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p';
   autoConvertToMp3: boolean;
-  
+
   // Playback settings
   defaultVolume: number;
   autoPlay: boolean;
-  
+
   // Playlist settings
   playlistLocation: string;
   autoRefreshPlaylists: boolean;
   refreshInterval: number; // in milliseconds
-  
+
   // YouTube API settings
   youtubeApiKey?: string;
-  
+
   // Saved accounts/tokens
   accounts?: { [email: string]: { refreshToken: string } };
-  
+
+  // Migration settings
+  migrationCompleted?: boolean;
+
   // Advanced settings
   ytDlpPath?: string;
   ffmpegPath?: string;
@@ -46,29 +49,32 @@ const defaultSettings: SettingsSchema = {
   checkForUpdates: true,
   startAtLogin: false,
   minimizeToTray: true,
-  
+
   // Download settings
   downloadLocation: path.join(app.getPath('videos'), 'Playlistify'),
   concurrentDownloads: 3,
   downloadFormat: 'mp4',
   maxQuality: '1080p',
   autoConvertToMp3: false,
-  
+
   // Playback settings
   defaultVolume: 0.7,
   autoPlay: false,
-  
+
   // Playlist settings
   playlistLocation: path.join(app.getPath('userData'), 'playlists'),
   autoRefreshPlaylists: true,
   refreshInterval: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
-  
+
+  // Migration settings
+  migrationCompleted: false,
+
   // Advanced settings
   debug: false
 };
 
 // Initialize store with schema
-const store = new Store<SettingsSchema>({
+const store = new Store({
   defaults: defaultSettings,
   name: 'settings',
   // Optional: enable encryption for sensitive data
@@ -77,9 +83,10 @@ const store = new Store<SettingsSchema>({
 
 // Ensure directories exist
 export function initializeDirectories(): void {
-  const downloadLocation = store.get('downloadLocation');
-  const playlistLocation = store.get('playlistLocation');
-  
+  const settings = (store as any).store as SettingsSchema;
+  const downloadLocation = settings.downloadLocation;
+  const playlistLocation = settings.playlistLocation;
+
   fs.ensureDirSync(downloadLocation);
   fs.ensureDirSync(playlistLocation);
 }
@@ -89,10 +96,11 @@ export function getSetting<K extends keyof SettingsSchema>(
   key: K,
   defaultValue?: SettingsSchema[K]
 ): SettingsSchema[K] {
+  const settings = (store as any).store as SettingsSchema;
   if (defaultValue !== undefined) {
-    return store.get(key as any, defaultValue);
+    return settings[key] ?? defaultValue;
   }
-  return store.get(key as any, defaultSettings[key]);
+  return settings[key] ?? defaultSettings[key];
 }
 
 // Standard setter function
@@ -104,56 +112,66 @@ export function setSetting<K extends keyof SettingsSchema>(
   if ((key === 'downloadLocation' || key === 'playlistLocation') && typeof value === 'string') {
     fs.ensureDirSync(value);
   }
-  
-  store.set(key, value);
+
+  const settings = (store as any).store as SettingsSchema;
+  settings[key] = value;
+  (store as any).store = settings;
 }
 
 // Reset a setting to default
 export function resetSetting<K extends keyof SettingsSchema>(key: K): void {
-  store.set(key, defaultSettings[key]);
+  const settings = (store as any).store as SettingsSchema;
+  settings[key] = defaultSettings[key];
+  (store as any).store = settings;
 }
 
 // Reset all settings to default
 export function resetAllSettings(): void {
-  store.clear();
-  store.set(defaultSettings);
-  
+  (store as any).store = defaultSettings;
+
   // Re-create necessary directories
   initializeDirectories();
 }
 
 // Delete a setting
 export function clearSetting(key: keyof SettingsSchema): void {
-  store.delete(key);
+  const settings = (store as any).store as SettingsSchema;
+  delete settings[key];
+  (store as any).store = settings;
 }
 
 // Check if a setting exists
 export function hasSetting(key: keyof SettingsSchema): boolean {
-  return store.has(key);
+  const settings = (store as any).store as SettingsSchema;
+  return key in settings;
 }
 
 // Get all settings
 export function getAllSettings(): SettingsSchema {
-  return store.store;
+  return (store as any).store as SettingsSchema;
 }
 
 // Add account
 export function addAccount(email: string, refreshToken: string): void {
-  const accounts = store.get('accounts') || {};
+  const settings = (store as any).store as SettingsSchema;
+  const accounts = settings.accounts || {};
   accounts[email] = { refreshToken };
-  store.set('accounts', accounts);
+  settings.accounts = accounts;
+  (store as any).store = settings;
 }
 
 // Remove account
 export function removeAccount(email: string): void {
-  const accounts = store.get('accounts');
+  const settings = (store as any).store as SettingsSchema;
+  const accounts = settings.accounts;
   if (accounts && accounts[email]) {
     delete accounts[email];
-    store.set('accounts', accounts);
+    settings.accounts = accounts;
+    (store as any).store = settings;
   }
 }
 
 // Initialize settings
 export function initializeSettings(): void {
   initializeDirectories();
-} 
+}
