@@ -1,5 +1,5 @@
 
-import { Playlist, Video } from '../../../../shared/types/appTypes';
+import { Playlist, Video, DownloadOptions } from '../../../../shared/types/appTypes';
 import { Button } from '../../../components/ui/button';
 import { Download, Trash2, Clock, Check, AlertCircle, Play, Plus, Edit } from 'lucide-react';
 import { Skeleton } from '../../../components/ui/skeleton';
@@ -8,8 +8,12 @@ import { useDownloadVideo, useRemoveVideoFromPlaylist, useDeletePlaylist, useDow
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../../../components/ui/alert-dialog';
 import { Link } from '@tanstack/react-router';
 import { AddVideoDialog } from './AddVideoDialog';
-import React from 'react';
+import { useState } from 'react';
 import { EditPlaylistDialog } from './EditPlaylistDialog';
+import { usePlayerStore } from '../../player/stores/playerStore';
+import VideoPlayer from '../../player/components/VideoPlayer';
+import DownloadOptionsDialog from '../../downloads/components/DownloadOptionsDialog';
+import { toast } from '../../../components/ui/use-toast';
 
 interface PlaylistDetailsProps {
   playlist: Playlist;
@@ -70,8 +74,12 @@ export default function PlaylistDetails({ playlist, isLoading = false }: Playlis
   const removeVideoMutation = useRemoveVideoFromPlaylist();
   const deletePlaylistMutation = useDeletePlaylist();
   const downloadPlaylistMutation = useDownloadPlaylist();
-  const [addVideoDialogOpen, setAddVideoDialogOpen] = React.useState(false);
-  const [editPlaylistDialogOpen, setEditPlaylistDialogOpen] = React.useState(false);
+  const [addVideoDialogOpen, setAddVideoDialogOpen] = useState(false);
+  const [editPlaylistDialogOpen, setEditPlaylistDialogOpen] = useState(false);
+  const [downloadOptionsOpen, setDownloadOptionsOpen] = useState(false);
+
+  // Player state
+  const { playVideo, currentVideo, isPlayerVisible } = usePlayerStore();
 
   if (isLoading) {
     return <PlaylistDetailsSkeleton />;
@@ -96,7 +104,41 @@ export default function PlaylistDetails({ playlist, isLoading = false }: Playlis
   };
 
   const handleDownloadPlaylist = () => {
-    downloadPlaylistMutation.mutate(playlist.id);
+    setDownloadOptionsOpen(true);
+  };
+
+  const handleDownloadWithOptions = async (options: DownloadOptions & { downloadLocation: string }) => {
+    try {
+      // Save the selected download location as the default for future downloads
+      await window.api.settings.set('downloadLocation', options.downloadLocation);
+
+      // Save the selected format and quality as defaults
+      if (options.format) {
+        await window.api.settings.set('downloadFormat', options.format);
+      }
+
+      if (options.quality) {
+        await window.api.settings.set('maxQuality', options.quality);
+      }
+
+      // Close the dialog
+      setDownloadOptionsOpen(false);
+
+      // Start the download with the selected options
+      downloadPlaylistMutation.mutate(playlist.id);
+
+      toast({
+        title: 'Download Started',
+        description: `Downloading ${playlist.name} with ${options.format || 'mp4'} format at ${options.quality || '1080p'} quality`,
+      });
+    } catch (error) {
+      console.error('Error starting download:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to start download',
+        variant: 'destructive'
+      });
+    }
   };
 
   const getVideoStatusIcon = (video: Video) => {
@@ -318,6 +360,18 @@ export default function PlaylistDetails({ playlist, isLoading = false }: Playlis
                 </div>
 
                 <div className="flex gap-2 self-end md:self-center mt-2 md:mt-0">
+                  {/* Play button */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => playVideo(video, playlist)}
+                    className="text-primary hover:text-primary hover:bg-primary/10"
+                  >
+                    <Play className="h-4 w-4" />
+                    <span className="sr-only">Play</span>
+                  </Button>
+
+                  {/* Download button */}
                   {!video.downloaded && video.status !== 'unavailable' && (
                     <Button
                       size="sm"
@@ -365,8 +419,45 @@ export default function PlaylistDetails({ playlist, isLoading = false }: Playlis
             ))}
             </div>
           </div>
+
+          {/* Video Player */}
+          {isPlayerVisible && currentVideo && (
+            <div className="mt-6">
+              <VideoPlayer
+                videoId={currentVideo.id}
+                playlistId={playlist.id}
+                videoUrl={currentVideo.url}
+                title={currentVideo.title}
+                onNext={() => usePlayerStore.getState().playNext()}
+                onPrevious={() => usePlayerStore.getState().playPrevious()}
+                hasNext={usePlayerStore.getState().currentVideoIndex < playlist.videos.length - 1}
+                hasPrevious={usePlayerStore.getState().currentVideoIndex > 0}
+              />
+            </div>
+          )}
         </div>
       )}
+
+      {/* Dialogs */}
+      <AddVideoDialog
+        open={addVideoDialogOpen}
+        onOpenChange={setAddVideoDialogOpen}
+        playlist={playlist}
+      />
+
+      <EditPlaylistDialog
+        open={editPlaylistDialogOpen}
+        onOpenChange={setEditPlaylistDialogOpen}
+        playlist={playlist}
+      />
+
+      <DownloadOptionsDialog
+        open={downloadOptionsOpen}
+        onOpenChange={setDownloadOptionsOpen}
+        playlist={playlist}
+        onDownload={handleDownloadWithOptions}
+        isDownloading={downloadPlaylistMutation.isPending}
+      />
     </div>
   );
 }

@@ -169,14 +169,12 @@ export function AddVideoDialog({ open, onOpenChange, playlist }: AddVideoDialogP
   };
 
 
-  // Ensure dialog remains open when it should be
-  React.useEffect(() => {
-    if (!open) onOpenChange(true);
-  }, [open, onOpenChange]);
+  // No need to force the dialog to be open
+  // We'll let the parent component control the open state
 
   return (
     <Dialog
-      open={true} // Always force open to true
+      open={open}
       onOpenChange={onOpenChange}
     >
       <DialogContent className="sm:max-w-[500px]">

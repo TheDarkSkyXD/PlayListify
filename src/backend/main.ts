@@ -67,6 +67,9 @@ export function createWindow() {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       nodeIntegration: false,
       contextIsolation: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      webviewTag: true,
     },
   });
 
@@ -104,17 +107,20 @@ export function createWindow() {
     console.error('mainWindow is null when trying to set up did-finish-load handler');
   }
 
-  // Set Content Security Policy to allow YouTube image domains and app:// protocol
+  // Set Content Security Policy to allow YouTube domains and app:// protocol
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' 'unsafe-inline' data:; " +
+          "default-src 'self' 'unsafe-inline' data: https://*.youtube.com https://www.youtube.com; " +
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.youtube.com https://www.youtube.com https://s.ytimg.com https://www.google.com https://static.doubleclick.net https://googleads.g.doubleclick.net https://*.googlesyndication.com https://*.gstatic.com; " +
           "img-src 'self' data: https://* http://* blob:; " +
           "media-src 'self' https://* http://* blob:; " +
           "connect-src 'self' https://* http://* blob: app:; " +
-          "font-src 'self' data:;"
+          "frame-src 'self' https://*.youtube.com https://www.youtube.com https://*.doubleclick.net https://googleads.g.doubleclick.net; " +
+          "font-src 'self' data: https://*.youtube.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com; " +
+          "style-src 'self' 'unsafe-inline' https://*.youtube.com https://www.youtube.com https://fonts.googleapis.com;"
         ]
       }
     });

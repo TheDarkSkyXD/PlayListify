@@ -1,25 +1,41 @@
-import React from 'react';
-import { useParams, Link } from '@tanstack/react-router';
+import { useEffect } from 'react';
+import { useParams, Link, useNavigate } from '@tanstack/react-router';
 import { usePlaylist } from '../../../services/query/hooks';
 import { Button } from '../../../components/ui/button';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import PlaylistDetails, { PlaylistDetailsSkeleton } from '../components/PlaylistDetails';
 import { Separator } from '../../../components/ui/separator';
 import AppLayout from '../../../components/Layout/AppLayout';
+import { usePlayerStore } from '../../player/stores/playerStore';
 
 export default function PlaylistViewPage() {
   const { playlistId } = useParams({ from: '/playlist/$playlistId' });
   const { data: playlist, isLoading, error } = usePlaylist(playlistId || '');
+  const navigate = useNavigate();
+  const resetPlayer = usePlayerStore(state => state.resetPlayer);
+
+  // Reset player state when navigating away
+  useEffect(() => {
+    return () => {
+      resetPlayer();
+    };
+  }, [resetPlayer]);
 
   return (
     <AppLayout>
       <div className="container px-4 py-8 h-full overflow-y-auto">
         <div className="mb-6">
-          <Button asChild variant="ghost" size="sm" className="mb-4">
-            <Link to="/playlists" className="flex items-center">
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back to Playlists
-            </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mb-4 flex items-center"
+            onClick={() => {
+              resetPlayer();
+              navigate({ to: '/playlists' });
+            }}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to Playlists
           </Button>
 
           <Separator className="my-4" />

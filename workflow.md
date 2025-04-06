@@ -936,32 +936,316 @@ export async function convertFile(
 ### Phase 3.3: Playback
 
 **Tasks:**
-- [ ] Create video player component with react-player
-- [ ] Implement playback controls
+- [x] Create video player component with react-player
+- [x] Implement playback controls
+- [x] Add player state management with Zustand
+- [x] Integrate player with playlist view
+- [x] Add keyboard shortcuts for playback control
+- [x] Implement fullscreen support
+- [x] Add error handling for missing files
+- [x] Add download options dialog for playlist downloads
+- [x] Use YouTube's default controls for YouTube videos
+- [x] Update Content Security Policy for YouTube integration
+- [x] Add conditional UI based on video source (local vs. YouTube)
+- [x] Implement playlist navigation for YouTube videos
 
-**Files to Create:**
-- [ ] `src/renderer/features/player/components/VideoPlayer.tsx` (~200 lines)
-  - Video playback component
-  - Controls and options UI
-- [ ] `src/renderer/pages/PlaylistView/PlaylistViewPage.tsx` (~200 lines)
-  - Page for viewing a specific playlist and its videos
+**Files Created:**
+- [x] `src/frontend/features/player/components/VideoPlayer.tsx` (~300 lines)
+  - Video playback component with ReactPlayer
+  - Custom controls UI with play/pause, volume, seek, fullscreen
+  - Error handling for missing files
+  - Keyboard shortcuts for playback control
+- [x] `src/frontend/features/player/stores/playerStore.ts` (~150 lines)
+  - Zustand store for player state management
+  - Actions for play, pause, next, previous
+  - Playlist navigation support
+- [x] `src/frontend/features/player/utils/playerUtils.ts` (~100 lines)
+  - Utility functions for file path resolution
+  - YouTube URL handling
+  - Time formatting
+- [x] `src/frontend/features/downloads/components/DownloadOptionsDialog.tsx` (~200 lines)
+  - Dialog for selecting download options
+  - Options for download location and video quality/format
+  - Integration with FormatSelector component
+- [x] `tests/frontend/features/player/VideoPlayer.test.tsx` (~150 lines)
+  - Tests for player rendering and controls
+  - Mock implementation for ReactPlayer
 
-**Sample Code for `src/renderer/features/player/components/VideoPlayer.tsx`:**
+**Implementation Details:**
+- Used ReactPlayer for video playback with support for both local files and streaming
+- Created custom controls UI with play/pause, volume, seek, fullscreen buttons for local videos
+- Used YouTube's native controls for YouTube videos for better compatibility
+- Implemented keyboard shortcuts for common playback actions
+- Added error handling for missing files with user-friendly error messages
+- Created a Zustand store for player state management
+- Integrated player with playlist view for seamless playback
+- Added support for playlist navigation (next/previous)
+- Implemented responsive design for different screen sizes
+- Added fullscreen support with proper event handling
+- Created a download options dialog for playlist downloads
+- Added ability to select download location and video quality/format
+- Implemented settings persistence for download preferences
+- Updated Content Security Policy to allow YouTube video playback
+- Added conditional UI that adapts based on video source (local vs. YouTube)
+- Enhanced video path resolution to better handle YouTube URLs
+
+**Sample Code for `src/frontend/features/player/components/VideoPlayer.tsx`:**
 ```typescript
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player';
-import { getSetting } from '../../../../main/services/settingsManager';
+import { Button } from '../../../components/ui/button';
+import { Slider } from '../../../components/ui/slider';
+import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward } from 'lucide-react';
+import { formatDuration } from '../../../utils/formatting';
+import { cn } from '../../../utils/cn';
 
 interface VideoPlayerProps {
   videoId: string;
-  playlistName: string;
+  playlistId: string;
+  videoUrl?: string;
+  title?: string;
+  onNext?: () => void;
+  onPrevious?: () => void;
+  hasNext?: boolean;
+  hasPrevious?: boolean;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoId, playlistName }) => {
-  const filePath = `${getSetting('downloadLocation', '~/Downloads/Videos')}/${playlistName}/${videoId}.mp4`;
+const VideoPlayer: React.FC<VideoPlayerProps> = ({
+  videoId,
+  playlistId,
+  videoUrl,
+  title,
+  onNext,
+  onPrevious,
+  hasNext = false,
+  hasPrevious = false
+}) => {
+  const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = useState(0.8);
+  const [muted, setMuted] = useState(false);
+  const [played, setPlayed] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [videoPath, setVideoPath] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Check if the video file exists and get its path
+  useEffect(() => {
+    const checkVideoFile = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // If we have a direct URL, use it first
+        if (videoUrl) {
+          // For YouTube videos, we want to use the URL directly
+          if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+            console.log('Using YouTube URL:', videoUrl);
+            setVideoPath(videoUrl);
+            setLoading(false);
+            return;
+          }
+
+          // For other URLs, we'll still use them directly
+          setVideoPath(videoUrl);
+          setLoading(false);
+          return;
+        }
+
+        // Otherwise try to get the local file
+        const playlist = await window.api.playlists.getById(playlistId);
+
+        if (!playlist) {
+          throw new Error('Playlist not found');
+        }
+
+        // Check if the video exists locally
+        const downloadLocation = await window.api.settings.get('downloadLocation');
+        if (!downloadLocation) {
+          throw new Error('Download location not set');
+        }
+
+        const videoExists = await window.api.fs.videoExists(
+          playlistId,
+          playlist.name,
+          videoId,
+          'mp4'
+        );
+
+        if (videoExists) {
+          // Construct the file path
+          const filePath = `file://${downloadLocation}/${playlist.name}/${videoId}.mp4`;
+          setVideoPath(filePath);
+        } else {
+          // Try to find the video in the playlist and get its URL
+          const video = playlist.videos.find((v: { id: string }) => v.id === videoId);
+          if (video && video.url) {
+            console.log('Video not found locally, using URL:', video.url);
+            setVideoPath(video.url);
+          } else {
+            throw new Error('Video not found locally and no URL provided');
+          }
+        }
+      } catch (err) {
+        console.error('Error checking video file:', err);
+        if (videoUrl) {
+          setVideoPath(videoUrl);
+        } else {
+          setError('Failed to load video. It may not be downloaded yet.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkVideoFile();
+  }, [videoId, playlistId, videoUrl]);
+
   return (
-    <div className="p-4">
-      <ReactPlayer url={`file://${filePath}`} controls width="100%" height="auto" />
+    <div className="relative overflow-hidden bg-black rounded-md w-full aspect-video">
+      {loading ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      ) : error ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4">
+          <p className="text-lg font-semibold mb-2">Error</p>
+          <p className="text-center mb-4">{error}</p>
+
+          {/* Retry button */}
+          <Button
+            variant="outline"
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              // Force reload the player
+              if (videoPath) {
+                const currentPath = videoPath;
+                setVideoPath(null);
+                setTimeout(() => setVideoPath(currentPath), 100);
+              }
+              setLoading(false);
+            }}
+            className="mt-2"
+          >
+            Retry
+          </Button>
+        </div>
+      ) : (
+        <>
+          {videoPath && (
+            <ReactPlayer
+              url={videoPath}
+              playing={playing}
+              volume={volume}
+              muted={muted}
+              width="100%"
+              height="100%"
+              onProgress={handleProgress}
+              onDuration={handleDuration}
+              onError={(e) => {
+                console.error('Player error:', e);
+                setError('Failed to play video. The file may be corrupted or in an unsupported format.');
+              }}
+              config={{
+                youtube: {
+                  playerVars: {
+                    origin: window.location.origin,
+                    modestbranding: 1,
+                    rel: 0,
+                    showinfo: 0,
+                    controls: 1,
+                    iv_load_policy: 3,  // Disable annotations
+                    fs: 1,              // Enable fullscreen button
+                    playsinline: 1,     // Play inline on mobile devices
+                    disablekb: 0,       // Enable keyboard controls
+                    enablejsapi: 1,     // Enable JavaScript API
+                    autoplay: playing ? 1 : 0  // Respect the playing state
+                  },
+                  embedOptions: {},
+                  onUnstarted: () => console.log('Video unstarted')
+                },
+                file: {
+                  attributes: {
+                    controlsList: 'nodownload',
+                  },
+                },
+              }}
+            />
+          )}
+
+          {/* Video title */}
+          {title && (
+            <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent">
+              <h3 className="text-white font-medium truncate">{title}</h3>
+            </div>
+          )}
+
+          {/* Controls overlay - only show for non-YouTube videos */}
+          {videoPath && !videoPath.includes('youtube.com') && (
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent opacity-0 hover:opacity-100 transition-opacity">
+              {/* Progress bar */}
+              <div className="mb-2">
+                <Slider
+                  value={[played]}
+                  min={0}
+                  max={1}
+                  step={0.001}
+                  onValueChange={handleSeekChange}
+                  onValueCommit={handleSeekMouseUp}
+                  onMouseDown={handleSeekMouseDown}
+                  className="cursor-pointer"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  {/* Play/Pause button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/20"
+                    onClick={handlePlayPause}
+                  >
+                    {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Simple playlist navigation for YouTube videos */}
+          {videoPath && videoPath.includes('youtube.com') && (hasNext || hasPrevious) && (
+            <div className="absolute top-2 right-2 z-10 flex gap-2">
+              {hasPrevious && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={onPrevious}
+                  disabled={!onPrevious}
+                  className="bg-black/50 text-white hover:bg-black/70"
+                >
+                  <SkipBack className="h-4 w-4" />
+                  <span className="ml-1">Previous</span>
+                </Button>
+              )}
+
+              {hasNext && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={onNext}
+                  disabled={!onNext}
+                  className="bg-black/50 text-white hover:bg-black/70"
+                >
+                  <span className="mr-1">Next</span>
+                  <SkipForward className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };
