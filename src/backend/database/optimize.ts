@@ -150,7 +150,7 @@ export function checkDatabaseIntegrity() {
     console.error('Failed to check database integrity:', error);
     return {
       integrityCheck: ['Error checking integrity'],
-      foreignKeyCheck: [],
+      foreignKeyCheck: [] as string[],
       hasIssues: true,
       error: error.message
     };

@@ -41,14 +41,14 @@ export async function getVideoFilePath(
       videoId,
       format
     );
-    
+
     if (!videoExists) {
       return null;
     }
-    
+
     // Get the download location from settings
     const downloadLocation = await window.electron.settings.get('downloadLocation');
-    
+
     // Construct the file path
     return `file://${downloadLocation}/${playlistName}/${videoId}.${format}`;
   } catch (error) {
@@ -64,15 +64,15 @@ export function formatTime(seconds: number): string {
   if (isNaN(seconds)) {
     return '00:00';
   }
-  
+
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
-  
+
   if (hours > 0) {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
-  
+
   return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
@@ -88,11 +88,11 @@ export function getYouTubeUrl(videoId: string): string {
  */
 export function extractYouTubeVideoId(url: string): string | null {
   if (!url) return null;
-  
+
   // Regular expression to extract YouTube video ID
   const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
   const match = url.match(regExp);
-  
+
   return (match && match[7].length === 11) ? match[7] : null;
 }
 
@@ -101,10 +101,10 @@ export function extractYouTubeVideoId(url: string): string | null {
  */
 export function isYouTubeVideoUrl(url: string): boolean {
   if (!url) return false;
-  
+
   // Regular expression to validate YouTube video URL
   const regExp = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11}/;
-  
+
   return regExp.test(url);
 }
 
@@ -119,6 +119,8 @@ export function getYouTubeThumbnailUrl(videoId: string, quality: 'default' | 'me
     standard: 'sddefault',
     maxres: 'maxresdefault'
   };
-  
-  return `https://img.youtube.com/vi/${videoId}/${qualityMap[quality]}.jpg`;
+
+  // Use both i.ytimg.com and img.youtube.com domains for better reliability
+  // i.ytimg.com is the newer domain, but img.youtube.com still works and might be more reliable
+  return `https://i.ytimg.com/vi/${videoId}/${qualityMap[quality]}.jpg`;
 }

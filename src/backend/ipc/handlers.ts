@@ -1,6 +1,6 @@
 import { ipcMain, dialog, IpcMainInvokeEvent, app } from 'electron';
 import * as settingsManager from '../services/settingsManager';
-import * as fileUtils from '../utils/fileUtils';
+import * as fileUtils from '../utils/fileUtils/index';
 import * as ytDlpManager from '../services/ytDlpManager';
 import * as playlistServiceProvider from '../services/playlistServiceProvider';
 import * as imageUtils from '../utils/imageUtils';

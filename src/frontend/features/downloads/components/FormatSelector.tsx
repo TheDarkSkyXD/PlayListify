@@ -51,7 +51,7 @@ export default function FormatSelector({
   // Handle tab change
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    
+
     // Set default format based on tab
     if (value === 'video' && !VIDEO_FORMATS.includes(format as any)) {
       setFormat('mp4');
@@ -63,7 +63,7 @@ export default function FormatSelector({
   // Handle format change
   const handleFormatChange = (value: string) => {
     setFormat(value);
-    
+
     // If switching to audio format, update the tab
     if (AUDIO_FORMATS.includes(value as any) && activeTab !== 'audio') {
       setActiveTab('audio');
@@ -107,7 +107,7 @@ export default function FormatSelector({
               Audio
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="video" className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="videoFormat">Video Format</Label>
@@ -128,7 +128,7 @@ export default function FormatSelector({
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="videoQuality">Video Quality</Label>
               <Select
@@ -142,19 +142,21 @@ export default function FormatSelector({
                 <SelectContent>
                   {VIDEO_QUALITIES.map((videoQuality) => (
                     <SelectItem key={videoQuality} value={videoQuality}>
-                      {videoQuality === '2160p' ? '4K (2160p)' :
+                      {videoQuality === '4320p' ? '8K (4320p)' :
+                       videoQuality === '2160p' ? '4K (2160p)' :
                        videoQuality === '1440p' ? 'QHD (1440p)' :
                        videoQuality === '1080p' ? 'Full HD (1080p)' :
                        videoQuality === '720p' ? 'HD (720p)' :
                        videoQuality === '480p' ? 'SD (480p)' :
                        videoQuality === '360p' ? 'LD (360p)' :
+                       videoQuality === 'best' ? 'Best Available' :
                        videoQuality}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            
+
             {showAdvanced && (
               <div className="pt-2">
                 <div className="flex items-center space-x-2 mb-4">
@@ -171,7 +173,7 @@ export default function FormatSelector({
               </div>
             )}
           </TabsContent>
-          
+
           <TabsContent value="audio" className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="audioFormat">Audio Format</Label>
@@ -192,7 +194,7 @@ export default function FormatSelector({
                 </SelectContent>
               </Select>
             </div>
-            
+
             {showAdvanced && (
               <div className="space-y-2">
                 <div className="flex justify-between">
@@ -212,7 +214,7 @@ export default function FormatSelector({
           </TabsContent>
         </Tabs>
       </CardContent>
-      
+
       {showAdvanced && (
         <CardFooter className="flex justify-between pt-0">
           <Button variant="outline" size="sm" disabled={disabled}>

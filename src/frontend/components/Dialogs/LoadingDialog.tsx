@@ -1,7 +1,7 @@
-import React from 'react';
+import * as React from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Loader2 } from 'lucide-react';
-import * as Progress from '@radix-ui/react-progress';
+import { Progress } from '../ui/progress';
 
 interface LoadingDialogProps {
   isOpen: boolean;
@@ -40,38 +40,33 @@ export default function LoadingDialog({
       >
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{description}</DialogDescription>
-        
+
         <div className="flex flex-col items-center justify-center py-6 space-y-4">
           {/* Spinner */}
           <div className="flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-          
+
           {/* Message */}
           <p className="text-center text-sm text-gray-500 dark:text-gray-400">
             {message}
           </p>
-          
+
           {/* Progress bar (if progress is provided) */}
           {progress && (
             <div className="w-full space-y-2">
-              <Progress.Root
-                className="relative h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
+              <Progress
+                className="h-2 bg-gray-200 dark:bg-gray-700"
                 value={progressPercentage || 0}
-              >
-                <Progress.Indicator
-                  className="h-full bg-primary transition-all"
-                  style={{ width: `${progressPercentage || 0}%` }}
-                />
-              </Progress.Root>
-              
+              />
+
               {/* Progress label */}
               {progress.label && (
                 <p className="text-xs text-center text-gray-500 dark:text-gray-400">
                   {progress.label}
                 </p>
               )}
-              
+
               {/* Progress percentage */}
               {progressPercentage !== null && (
                 <p className="text-xs text-center text-gray-500 dark:text-gray-400">

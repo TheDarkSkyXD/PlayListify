@@ -44,10 +44,10 @@ export class RateLimiter {
 
     const now = Date.now();
     const timestamps = this.requestTimestamps.get(limiterName) || [];
-    
+
     // Calculate time window in milliseconds (how far back to check)
     const timeWindow = (limiter.perMinute * 60 * 1000);
-    
+
     // Filter timestamps to only include those within the time window
     const recentTimestamps = timestamps.filter(
       timestamp => now - timestamp < timeWindow
@@ -75,7 +75,7 @@ export class RateLimiter {
 
     const now = Date.now();
     const timestamps = this.requestTimestamps.get(limiterName) || [];
-    
+
     if (timestamps.length === 0) {
       return 0;
     }
@@ -83,14 +83,14 @@ export class RateLimiter {
     // If we have at least one timestamp, ensure minimum cooldown
     const lastRequest = Math.max(...timestamps);
     const timeSinceLastRequest = now - lastRequest;
-    
+
     if (timeSinceLastRequest < limiter.cooldownMs) {
       return limiter.cooldownMs - timeSinceLastRequest;
     }
 
     // Calculate time window in milliseconds
     const timeWindow = (limiter.perMinute * 60 * 1000);
-    
+
     // If we're at capacity, calculate when the oldest request will expire
     const recentTimestamps = timestamps
       .filter(timestamp => now - timestamp < timeWindow)
@@ -110,10 +110,10 @@ export class RateLimiter {
   public recordRequest(limiterName: string): void {
     const now = Date.now();
     const timestamps = this.requestTimestamps.get(limiterName) || [];
-    
+
     // Add current timestamp
     timestamps.push(now);
-    
+
     // Update timestamps
     this.requestTimestamps.set(limiterName, timestamps);
   }
@@ -125,13 +125,13 @@ export class RateLimiter {
    */
   public async waitForRateLimit(limiterName: string): Promise<void> {
     const waitTime = this.getTimeUntilNextRequest(limiterName);
-    
+
     if (waitTime > 0) {
       // Log for debugging
       console.log(`Rate limiting ${limiterName} request for ${waitTime}ms`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
-    
+
     // Record the request
     this.recordRequest(limiterName);
   }
@@ -149,4 +149,4 @@ export class RateLimiter {
 }
 
 // Export a singleton instance
-export const rateLimiter = new RateLimiter(); 
+export const rateLimiter = new RateLimiter();

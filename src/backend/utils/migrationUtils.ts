@@ -28,12 +28,13 @@ export async function migrateAllPlaylists(): Promise<{
     // Migrate each playlist
     for (const playlist of playlists) {
       try {
-        await migratePlaylist(playlist);
+        await migratePlaylist(playlist as Playlist);
         result.migrated++;
-      } catch (error: any) {
+      } catch (error) {
         console.error(`Failed to migrate playlist ${playlist.name} (${playlist.id}):`, error);
         result.failed++;
-        result.errors.push(`Playlist ${playlist.name} (${playlist.id}): ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        result.errors.push(`Playlist ${playlist.name} (${playlist.id}): ${errorMessage}`);
       }
     }
 

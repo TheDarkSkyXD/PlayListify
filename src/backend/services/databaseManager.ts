@@ -109,10 +109,19 @@ function createTables(): void {
       addedAt TEXT NOT NULL,
       status TEXT,
       downloadStatus TEXT,
+      maxQuality TEXT,
       PRIMARY KEY (id, playlistId),
       FOREIGN KEY (playlistId) REFERENCES playlists(id) ON DELETE CASCADE
     );
   `);
+
+  // Add maxQuality column if it doesn't exist (for backward compatibility)
+  try {
+    db.exec(`ALTER TABLE videos ADD COLUMN maxQuality TEXT;`);
+    console.log('Added maxQuality column to videos table');
+  } catch (error) {
+    // Column might already exist, which is fine
+  }
 
   // Create tags table
   db.exec(`
@@ -319,8 +328,8 @@ export function addVideo(playlistId: string, video: Video): Video {
   const stmt = db.prepare(`
     INSERT INTO videos (
       id, playlistId, title, url, thumbnail, duration, fileSize,
-      downloaded, downloadPath, format, addedAt, status, downloadStatus
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      downloaded, downloadPath, format, addedAt, status, downloadStatus, maxQuality
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
@@ -336,7 +345,8 @@ export function addVideo(playlistId: string, video: Video): Video {
     video.format || null,
     video.addedAt || new Date().toISOString(),
     video.status || null,
-    video.downloadStatus || null
+    video.downloadStatus || null,
+    video.maxQuality || null
   );
 
   // Update playlist updatedAt timestamp

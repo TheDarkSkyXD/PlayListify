@@ -1,5 +1,5 @@
 import * as ytDlpManager from './ytDlpManager';
-import * as fileUtils from '../utils/fileUtils';
+import * as fileUtils from '../utils/fileUtils/index';
 import * as dbManager from './databaseManager';
 import { Playlist, Video } from '../../shared/types/appTypes';
 import fs from 'fs-extra';
@@ -233,25 +233,24 @@ export async function addVideoToPlaylist(playlistId: string, videoUrl: string): 
         }
       }
 
-      // Use the direct command approach instead of relying on file output
-      // Add --no-check-certificate to avoid SSL issues
-      const { stdout } = await execAsync(`"${ytDlpPath}" --dump-json --no-playlist --no-check-certificate "${videoUrl}"`, {
-        maxBuffer: 10 * 1024 * 1024 // 10MB buffer
-      });
+      // Use ytDlpManager to get video status which includes maxQuality
+      const videoStatus = await ytDlpManager.checkVideoStatus(videoUrl);
 
-      // Parse the JSON output
-      const videoInfo = JSON.parse(stdout);
+      if (!videoStatus.available || !videoStatus.info) {
+        throw new Error(`Video is not available: ${videoStatus.error || 'Unknown error'}`);
+      }
 
-      // Create a new video object
+      // Create a new video object using the info from checkVideoStatus
       const video: Video = {
-        id: videoInfo.id,
-        title: videoInfo.title,
-        url: videoInfo.webpage_url || videoUrl,
-        thumbnail: videoInfo.thumbnail,
-        duration: videoInfo.duration,
+        id: videoStatus.info.id,
+        title: videoStatus.info.title,
+        url: videoStatus.info.url,
+        thumbnail: videoStatus.info.thumbnail,
+        duration: videoStatus.info.duration,
         downloaded: false,
         addedAt: new Date().toISOString(),
-        status: 'available'
+        status: 'available',
+        maxQuality: videoStatus.info.maxQuality // Include the maximum quality information
       };
 
       // Add the video to the database

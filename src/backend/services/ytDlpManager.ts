@@ -12,6 +12,9 @@ import {
   getYtDlpInstance,
   initYtDlp,
   execAsync,
+  getFfmpegPath,
+  getBundledFfmpegDir,
+  initFFmpeg,
 
   // Configuration
   MAX_BUFFER_SIZE,
@@ -45,6 +48,11 @@ export { getYtDlpInstance };
  * Initialize the YtDlpWrap instance
  */
 export { initYtDlp };
+
+/**
+ * Initialize FFmpeg
+ */
+export { initFFmpeg };
 
 /**
  * Promisified exec function for running shell commands

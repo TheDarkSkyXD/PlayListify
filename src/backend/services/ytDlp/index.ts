@@ -1,11 +1,15 @@
 // Re-export all public functions from the ytDlp module
 
 // Binary and initialization
-export { 
+export {
   getBundledYtDlpPath,
   getYtDlpInstance,
   initYtDlp,
-  execAsync
+  execAsync,
+  getFfmpegPath,
+  getBundledFfmpegDir,
+  updateYtDlp,
+  initFFmpeg
 } from './binary';
 
 // Configuration
@@ -20,11 +24,28 @@ export {
 export {
   getPlaylistInfo,
   getPlaylistVideos,
-  importYoutubePlaylist
-} from './playlist';
+  importYoutubePlaylist,
+  extractPlaylistId,
+  isValidPlaylistUrl,
+  constructPlaylistUrl,
+  constructVideoUrl
+} from './playlist/index';
 
 // Video operations
 export {
   checkVideoStatus,
-  downloadVideo
+  downloadVideo,
+  cleanupPartialFiles,
+  getAvailableFormats,
+  getFormatString,
+  getBestFormatWithoutFFmpeg,
+  getBestAudioFormat,
+  getLowestQualityFormat,
+  executeFallbackStrategy,
+  executeLastResortStrategy,
+  verifyDownloadedFile,
+  truncateCommand
 } from './video';
+
+// Types
+export * from './types';

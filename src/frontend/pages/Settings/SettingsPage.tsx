@@ -274,7 +274,8 @@ export default function SettingsPage() {
                         onChange={handleChange}
                         className="w-full mt-1 px-3 py-2 bg-background border border-input rounded-md"
                       >
-                        <option value="best">Best</option>
+                        <option value="best">Best Available</option>
+                        <option value="4320p">8K (4320p)</option>
                         <option value="2160p">4K (2160p)</option>
                         <option value="1440p">QHD (1440p)</option>
                         <option value="1080p">Full HD (1080p)</option>

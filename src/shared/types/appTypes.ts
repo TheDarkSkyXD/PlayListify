@@ -37,7 +37,7 @@ export interface DownloadItem {
  */
 export interface DownloadOptions {
   format?: 'mp4' | 'webm' | 'mp3' | 'best';
-  quality?: '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p';
+  quality?: '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p' | '4320p' | 'best';
 }
 
 /**
@@ -57,6 +57,7 @@ export interface Video {
   status?: 'available' | 'unavailable' | 'processing' | 'unknown';
   downloadStatus?: 'pending' | 'downloading' | 'completed' | 'failed' | 'cancelled';
   playlistId?: string; // Reference to the parent playlist
+  maxQuality?: string; // Maximum available quality for this video (e.g., '1080p', '4K')
 }
 
 /**

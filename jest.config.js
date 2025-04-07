@@ -15,6 +15,8 @@ module.exports = {
     '^@shared/(.*)$': '<rootDir>/src/shared/$1',
     // Handle CSS imports (if you're using CSS modules)
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    // Mock problematic modules
+    '^p-queue$': '<rootDir>/tests/mocks/p-queue.ts',
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
   collectCoverageFrom: [
@@ -26,6 +28,9 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  transformIgnorePatterns: [
+    '/node_modules/(?!(p-queue|eventemitter3)/)'
+  ],
   globals: {
     'ts-jest': {
       tsconfig: 'tsconfig.json',

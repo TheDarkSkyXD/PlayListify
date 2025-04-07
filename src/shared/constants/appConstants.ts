@@ -60,7 +60,7 @@ export const VIDEO_FORMATS = ['mp4', 'webm', 'mkv'];
 export const AUDIO_FORMATS = ['mp3', 'aac', 'flac', 'opus', 'm4a'];
 
 // Video quality options
-export const VIDEO_QUALITIES = ['360p', '480p', '720p', '1080p', '1440p', '2160p'];
+export const VIDEO_QUALITIES = ['360p', '480p', '720p', '1080p', '1440p', '2160p', '4320p', 'best'];
 
 // Rate limiting constants
 export const RATE_LIMITS = {

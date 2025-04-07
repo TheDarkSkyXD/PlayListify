@@ -1,5 +1,6 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron';
 import * as playlistManagerDb from '../services/playlistManagerDb';
+import { updateVideoQuality, updatePlaylistVideoQualities, updateAllVideoQualities } from '../services/ytDlp/video';
 
 /**
  * Registers all IPC handlers for playlist operations using the SQLite database
@@ -53,7 +54,7 @@ export function registerPlaylistDbHandlers(): void {
   // Import YouTube playlist with progress updates
   ipcMain.handle('playlist-db:importYoutube', async (event: IpcMainInvokeEvent, playlistUrl: string, playlistInfo?: any) => {
     console.log('[BACKEND] Received playlist-db:importYoutube request');
-    
+
     return await playlistManagerDb.importYoutubePlaylist(
       playlistUrl,
       // Create a progress callback function that sends updates to the renderer
@@ -62,6 +63,44 @@ export function registerPlaylistDbHandlers(): void {
         event.sender.send('playlist-db:importProgress', { status, count, total });
       },
       playlistInfo
+    );
+  });
+
+  // Video quality update handlers
+  ipcMain.handle('playlist-db:updateVideoQuality', async (_: IpcMainInvokeEvent, videoId: string, playlistId: string) => {
+    // Get the video from the database
+    const playlist = await playlistManagerDb.getPlaylistById(playlistId);
+    if (!playlist) {
+      throw new Error(`Playlist with ID ${playlistId} not found`);
+    }
+
+    const video = playlist.videos.find(v => v.id === videoId);
+    if (!video) {
+      throw new Error(`Video with ID ${videoId} not found in playlist ${playlistId}`);
+    }
+
+    // Update the video quality
+    return await updateVideoQuality(video);
+  });
+
+  ipcMain.handle('playlist-db:updatePlaylistVideoQualities', async (event: IpcMainInvokeEvent, playlistId: string) => {
+    // Create a progress callback function that sends updates to the renderer
+    return await updatePlaylistVideoQualities(
+      playlistId,
+      (status: string, count: number = 0, total: number = 0) => {
+        console.log(`Sending quality update progress: ${status}, ${count}/${total}`);
+        event.sender.send('playlist-db:qualityUpdateProgress', { status, count, total });
+      }
+    );
+  });
+
+  ipcMain.handle('playlist-db:updateAllVideoQualities', async (event: IpcMainInvokeEvent) => {
+    // Create a progress callback function that sends updates to the renderer
+    return await updateAllVideoQualities(
+      (status: string, count: number = 0, total: number = 0) => {
+        console.log(`Sending quality update progress: ${status}, ${count}/${total}`);
+        event.sender.send('playlist-db:qualityUpdateProgress', { status, count, total });
+      }
     );
   });
 }

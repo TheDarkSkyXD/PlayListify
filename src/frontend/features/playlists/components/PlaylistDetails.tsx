@@ -3,17 +3,17 @@ import { Playlist, Video, DownloadOptions } from '../../../../shared/types/appTy
 import { Button } from '../../../components/ui/button';
 import { Download, Trash2, Clock, Check, AlertCircle, Play, Plus, Edit } from 'lucide-react';
 import { Skeleton } from '../../../components/ui/skeleton';
-import { formatDuration } from '../../../utils/formatting';
 import { useDownloadVideo, useRemoveVideoFromPlaylist, useDeletePlaylist, useDownloadPlaylist } from '../../../services/query/hooks';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../../../components/ui/alert-dialog';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { AddVideoDialog } from './AddVideoDialog';
 import { useState } from 'react';
 import { EditPlaylistDialog } from './EditPlaylistDialog';
 import { usePlayerStore } from '../../player/stores/playerStore';
 import VideoPlayer from '../../player/components/VideoPlayer';
-import DownloadOptionsDialog from '../../downloads/components/DownloadOptionsDialog';
+import DownloadPlaylistModal from '../../downloads/components/DownloadPlaylistModal';
 import { toast } from '../../../components/ui/use-toast';
+import { formatDuration } from '../../../utils/formatting';
 
 interface PlaylistDetailsProps {
   playlist: Playlist;
@@ -70,6 +70,7 @@ export function PlaylistDetailsSkeleton() {
 }
 
 export default function PlaylistDetails({ playlist, isLoading = false }: PlaylistDetailsProps) {
+  const navigate = useNavigate();
   const downloadVideoMutation = useDownloadVideo();
   const removeVideoMutation = useRemoveVideoFromPlaylist();
   const deletePlaylistMutation = useDeletePlaylist();
@@ -107,30 +108,87 @@ export default function PlaylistDetails({ playlist, isLoading = false }: Playlis
     setDownloadOptionsOpen(true);
   };
 
-  const handleDownloadWithOptions = async (options: DownloadOptions & { downloadLocation: string }) => {
+  const handleDownloadWithOptions = async (options: DownloadOptions & { downloadLocation: string, createPlaylistFolder: boolean }) => {
     try {
+      console.log('=== DOWNLOAD PROCESS START ===');
+      console.log('handleDownloadWithOptions called with options:', options);
+
       // Save the selected download location as the default for future downloads
       await window.api.settings.set('downloadLocation', options.downloadLocation);
+      console.log('Download location saved to settings:', options.downloadLocation);
 
       // Save the selected format and quality as defaults
       if (options.format) {
         await window.api.settings.set('downloadFormat', options.format);
+        console.log('Format saved to settings:', options.format);
       }
 
       if (options.quality) {
         await window.api.settings.set('maxQuality', options.quality);
+        console.log('Quality saved to settings:', options.quality);
       }
 
       // Close the dialog
       setDownloadOptionsOpen(false);
+      console.log('Download options dialog closed');
+
+      console.log('Starting download with mutation:', {
+        playlistId: playlist.id,
+        downloadLocation: options.downloadLocation,
+        createPlaylistFolder: options.createPlaylistFolder,
+        format: options.format,
+        quality: options.quality,
+
+      });
 
       // Start the download with the selected options
-      downloadPlaylistMutation.mutate(playlist.id);
+      console.log('Calling downloadPlaylistMutation.mutateAsync...');
+      const result = await downloadPlaylistMutation.mutateAsync({
+        playlistId: playlist.id,
+        downloadLocation: options.downloadLocation,
+        createPlaylistFolder: options.createPlaylistFolder,
+        format: options.format,
+        quality: options.quality,
 
+      });
+
+      console.log('Download mutation completed with result:', result);
+
+      // Check if the result is a special message about already downloaded videos
+      if (result && typeof result === 'object' && 'status' in result && result.status === 'already-downloaded') {
+        console.log('All videos already downloaded');
+        toast({
+          title: 'No Videos to Download',
+          description: result.message || 'All videos in this playlist are already downloaded.',
+          variant: 'default'
+        });
+
+        // Don't navigate to Downloads page if there's nothing to download
+        return;
+      }
+
+      // Only show the download started toast and navigate if there are videos to download
       toast({
         title: 'Download Started',
         description: `Downloading ${playlist.name} with ${options.format || 'mp4'} format at ${options.quality || '1080p'} quality`,
       });
+
+      // Navigate to the Downloads page to show progress
+      console.log('Navigating to Downloads page...');
+      navigate({ to: '/downloads' });
+
+      // Force a refresh of the download store after navigation
+      setTimeout(() => {
+        console.log('Forcing download store refresh...');
+        const api = window.api as any;
+        if (api?.downloads?.getAll) {
+          api.downloads.getAll().then((downloads: any) => {
+            console.log('Forced download refresh returned:', downloads);
+          }).catch((error: any) => {
+            console.error('Error in forced download refresh:', error);
+          });
+        }
+      }, 1000);
     } catch (error) {
       console.error('Error starting download:', error);
       toast({
@@ -451,7 +509,7 @@ export default function PlaylistDetails({ playlist, isLoading = false }: Playlis
         playlist={playlist}
       />
 
-      <DownloadOptionsDialog
+      <DownloadPlaylistModal
         open={downloadOptionsOpen}
         onOpenChange={setDownloadOptionsOpen}
         playlist={playlist}

@@ -27,7 +27,8 @@ contextBridge.exposeInMainWorld(
         'playlist-download-progress',
         'yt:importProgress',
         'download-update',
-        'format:progress:*'
+        'format:progress:*',
+        'playlist-db:qualityUpdateProgress'
       ];
 
       // Check if the channel is valid or matches a wildcard pattern
@@ -194,7 +195,22 @@ contextBridge.exposeInMainWorld(
       downloadVideo: (playlistId: string, videoId: string, options?: any) =>
         ipcRenderer.invoke('playlist:downloadVideo', playlistId, videoId, options),
       refresh: (playlistId: string) =>
-        ipcRenderer.invoke('playlist:refresh', playlistId)
+        ipcRenderer.invoke('playlist:refresh', playlistId),
+      updateVideoQuality: (playlistId: string, videoId: string) =>
+        ipcRenderer.invoke('playlist-db:updateVideoQuality', videoId, playlistId),
+      updatePlaylistVideoQualities: (playlistId: string) =>
+        ipcRenderer.invoke('playlist-db:updatePlaylistVideoQualities', playlistId),
+      updateAllVideoQualities: () =>
+        ipcRenderer.invoke('playlist-db:updateAllVideoQualities'),
+      onQualityUpdateProgress: (callback: (data: { status: string, count?: number, total?: number }) => void) => {
+        const listener = (_: any, data: any) => {
+          callback(data);
+        };
+        ipcRenderer.on('playlist-db:qualityUpdateProgress', listener);
+        return () => {
+          ipcRenderer.removeListener('playlist-db:qualityUpdateProgress', listener);
+        };
+      }
     },
 
     // Database management API

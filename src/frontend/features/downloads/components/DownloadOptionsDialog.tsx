@@ -14,24 +14,27 @@ import { Folder, Download, Loader2 } from 'lucide-react';
 import FormatSelector from './FormatSelector';
 import { DownloadOptions, Playlist } from '../../../../shared/types/appTypes';
 import { toast } from '../../../components/ui/use-toast';
+import { Checkbox } from '../../../components/ui/checkbox';
 
-interface DownloadOptionsDialogProps {
+interface DownloadPlaylistModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   playlist: Playlist;
-  onDownload: (options: DownloadOptions & { downloadLocation: string }) => void;
+  onDownload: (options: DownloadOptions & { downloadLocation: string, createPlaylistFolder: boolean, forceDownload?: boolean }) => void;
   isDownloading?: boolean;
 }
 
-export default function DownloadOptionsDialog({
+export default function DownloadPlaylistModal({
   open,
   onOpenChange,
   playlist,
   onDownload,
   isDownloading = false
-}: DownloadOptionsDialogProps) {
+}: DownloadPlaylistModalProps) {
   const [downloadLocation, setDownloadLocation] = useState<string>('');
   const [isSelectingFolder, setIsSelectingFolder] = useState(false);
+  const [createPlaylistFolder, setCreatePlaylistFolder] = useState(true);
+  const [forceDownload, setForceDownload] = useState(false);
   const [formatOptions, setFormatOptions] = useState<DownloadOptions>({
     format: 'mp4',
     quality: '1080p'
@@ -96,7 +99,9 @@ export default function DownloadOptionsDialog({
 
     onDownload({
       ...formatOptions,
-      downloadLocation
+      downloadLocation,
+      createPlaylistFolder,
+      forceDownload
     });
   };
 
@@ -145,6 +150,50 @@ export default function DownloadOptionsDialog({
             onFormatChange={handleFormatChange}
             disabled={isDownloading}
           />
+
+          {/* Playlist Folder Option */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="createPlaylistFolder"
+              checked={createPlaylistFolder}
+              onCheckedChange={(checked) => setCreatePlaylistFolder(checked as boolean)}
+              disabled={isDownloading}
+            />
+            <Label
+              htmlFor="createPlaylistFolder"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Create folder for playlist
+            </Label>
+          </div>
+          <div className="text-xs text-muted-foreground pl-6">
+            {createPlaylistFolder
+              ? `Videos will be saved in a folder named "${playlist.id}-${playlist.name}"`
+              : "Videos will be saved directly in the selected location"}
+          </div>
+
+          {/* Force Download Option */}
+          {playlist.videos.some(v => v.downloaded) && (
+            <div className="flex items-center space-x-2 mt-4">
+              <Checkbox
+                id="forceDownload"
+                checked={forceDownload}
+                onCheckedChange={(checked) => setForceDownload(checked as boolean)}
+                disabled={isDownloading}
+              />
+              <Label
+                htmlFor="forceDownload"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Force download all videos
+              </Label>
+            </div>
+          )}
+          {playlist.videos.some(v => v.downloaded) && forceDownload && (
+            <div className="text-xs text-muted-foreground pl-6">
+              This will download all videos, even if they are marked as already downloaded.
+            </div>
+          )}
 
           {/* Download Information */}
           <div className="text-sm text-muted-foreground">

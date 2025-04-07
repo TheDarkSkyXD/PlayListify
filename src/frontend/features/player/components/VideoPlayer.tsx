@@ -1,3 +1,8 @@
+/**
+ * This file is kept for backward compatibility.
+ * It re-exports the VideoPlayer component from the new modular structure.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player';
 import { Button } from '../../../components/ui/button';

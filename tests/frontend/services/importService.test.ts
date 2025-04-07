@@ -166,14 +166,24 @@ describe('ImportEventEmitter', () => {
     // Create a new job
     const jobId = 'test-job-5';
 
-    // Subscribe a listener
-    const unsubscribe = emitter.subscribe(mockListener);
+    // Create a new emitter and listener specifically for this test
+    const testEmitter = new ImportEventEmitter();
+    const testListener = jest.fn();
+
+    // Subscribe and get the unsubscribe function
+    const unsubscribe = testEmitter.subscribe(testListener);
+
+    // Verify the listener was called once during subscription
+    expect(testListener).toHaveBeenCalledTimes(1);
+
+    // Reset the mock to clear previous calls
+    testListener.mockClear();
 
     // Unsubscribe the listener
     unsubscribe();
 
     // Update a job
-    emitter.updateJob(jobId, {
+    testEmitter.updateJob(jobId, {
       id: jobId,
       url: 'https://www.youtube.com/playlist?list=123',
       name: 'Test Playlist',
@@ -183,7 +193,7 @@ describe('ImportEventEmitter', () => {
       _phase: 'initializing'
     });
 
-    // Verify the listener was only called once (from the beforeEach setup)
-    expect(mockListener).toHaveBeenCalledTimes(1);
+    // Verify the listener was not called after unsubscribing
+    expect(testListener).not.toHaveBeenCalled();
   });
 });

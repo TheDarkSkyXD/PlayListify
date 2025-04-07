@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from '@tanstack/react-router';
 import { Playlist } from '../../../../shared/types/appTypes';
-import { CachedImage } from '../../../components/common/CachedImage';
+import { CachedImage } from '../../../components/Media/CachedImage';
 import { Clock, Trash2, Youtube, Folder, Calendar } from 'lucide-react';
 
 interface PlaylistCardProps {
@@ -66,9 +66,29 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onDelete }) => {
 
   // Get appropriate thumbnail source
   const defaultThumbnail = '/assets/images/playlist-default.jpg';
-  const thumbnailSrc = playlist.thumbnail ||
-    (playlist.videos.length > 0 && playlist.videos[0]?.thumbnail) ||
-    defaultThumbnail;
+
+  // Try to get a valid thumbnail URL
+  let thumbnailSrc = defaultThumbnail;
+
+  // First try the playlist thumbnail
+  if (playlist.thumbnail && playlist.thumbnail.trim() !== '') {
+    thumbnailSrc = playlist.thumbnail;
+  }
+  // Then try the first video's thumbnail
+  else if (playlist.videos.length > 0 && playlist.videos[0]?.thumbnail && playlist.videos[0].thumbnail.trim() !== '') {
+    thumbnailSrc = playlist.videos[0].thumbnail;
+  }
+  // If it's a YouTube playlist, try to construct a thumbnail URL from the playlist ID
+  else if (playlist.source === 'youtube' && playlist.sourceUrl) {
+    // Extract playlist ID from URL
+    const playlistIdMatch = playlist.sourceUrl.match(/list=([^&]+)/);
+    if (playlistIdMatch && playlistIdMatch[1]) {
+      const playlistId = playlistIdMatch[1];
+      thumbnailSrc = `https://i.ytimg.com/vi/${playlistId}/hqdefault.jpg`;
+    }
+  }
+
+  console.log(`Playlist ${playlist.name} thumbnail: ${thumbnailSrc}`);
 
   // Source indicator
   const sourceLabel = playlist.source === 'youtube' ? 'YouTube' : 'Local';

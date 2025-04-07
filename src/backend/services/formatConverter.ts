@@ -58,7 +58,7 @@ export async function initFFmpeg(): Promise<void> {
   try {
     // Check if a custom path is set in settings
     const customPath = getSetting('ffmpegPath');
-    
+
     if (customPath && await fs.pathExists(customPath)) {
       ffmpeg.setFfmpegPath(customPath);
       logToFile('INFO', c.success(`Using custom FFmpeg from settings: ${customPath}`));
@@ -90,12 +90,12 @@ export async function initFFmpeg(): Promise<void> {
 export function getBundledFFmpegPath(): string {
   const platform = process.platform;
   const resourcesPath = process.resourcesPath;
-  
+
   let binaryName = 'ffmpeg';
   if (platform === 'win32') {
     binaryName = 'ffmpeg.exe';
   }
-  
+
   return path.join(resourcesPath, 'bin', binaryName);
 }
 
@@ -109,28 +109,28 @@ export async function convertFile(
 ): Promise<ConversionResult> {
   // Ensure FFmpeg is initialized
   await initFFmpeg();
-  
+
   // Determine output path based on input path and format
   const parsedPath = path.parse(inputPath);
   const outputPath = path.join(
     parsedPath.dir,
     `${parsedPath.name}.${options.format}`
   );
-  
+
   // Ensure the output directory exists
   await fs.ensureDir(parsedPath.dir);
-  
+
   // Log the conversion start
   logToFile('INFO', c.info(`Starting conversion: ${inputPath} -> ${outputPath}`));
   logToFile('INFO', c.info(`Conversion options: ${JSON.stringify(options)}`));
-  
+
   return new Promise((resolve, reject) => {
     // Create FFmpeg command
     const command = ffmpeg(inputPath);
-    
+
     // Set output format
     command.toFormat(options.format);
-    
+
     // Apply video options if not converting to audio-only format
     if (!['mp3', 'aac', 'flac', 'opus', 'm4a'].includes(options.format)) {
       // Set video codec based on format
@@ -139,12 +139,12 @@ export async function convertFile(
       } else if (options.format === 'webm') {
         command.videoCodec('libvpx-vp9');
       }
-      
+
       // Set video quality
       if (options.videoBitrate) {
         command.videoBitrate(options.videoBitrate);
       }
-      
+
       // Set resolution if specified
       if (options.width && options.height) {
         command.size(`${options.width}x${options.height}`);
@@ -169,15 +169,22 @@ export async function convertFile(
           case '2160p':
             command.size('3840x2160');
             break;
+          case '4320p':
+            command.size('7680x4320');
+            break;
+          case 'best':
+            // Don't set a specific size for 'best' quality
+            // This will use the original video resolution
+            break;
         }
       }
-      
+
       // Set frame rate if specified
       if (options.fps) {
         command.fps(options.fps);
       }
     }
-    
+
     // Apply audio options
     if (['mp3', 'aac', 'flac', 'opus', 'm4a'].includes(options.format)) {
       // Set audio codec based on format
@@ -193,7 +200,7 @@ export async function convertFile(
         command.audioCodec('aac');
       }
     }
-    
+
     // Set audio bitrate if specified
     if (options.audioBitrate) {
       command.audioBitrate(options.audioBitrate);
@@ -207,23 +214,23 @@ export async function convertFile(
         command.audioBitrate('128k');
       }
     }
-    
+
     // Set trim options if specified
     if (options.startTime) {
       command.seekInput(options.startTime);
     }
-    
+
     if (options.endTime) {
       command.duration(options.endTime);
     }
-    
+
     // Set metadata if specified
     if (options.metadata) {
       Object.entries(options.metadata).forEach(([key, value]) => {
         command.outputOptions(`-metadata ${key}="${value}"`);
       });
     }
-    
+
     // Set progress handler
     if (progressCallback) {
       command.on('progress', (progress) => {
@@ -238,19 +245,19 @@ export async function convertFile(
         });
       });
     }
-    
+
     // Set completion handlers
     command.on('end', async () => {
       try {
         // Get file stats
         const stats = await fs.stat(outputPath);
-        
+
         // Get duration using ffprobe
         const duration = await getVideoDuration(outputPath);
-        
+
         // Log success
         logToFile('INFO', c.success(`Conversion completed: ${inputPath} -> ${outputPath}`));
-        
+
         // Return result
         resolve({
           success: true,
@@ -270,7 +277,7 @@ export async function convertFile(
         });
       }
     });
-    
+
     command.on('error', (err) => {
       logToFile('ERROR', c.error(`Conversion failed: ${err.message}`));
       reject({
@@ -282,7 +289,7 @@ export async function convertFile(
         error: err.message
       });
     });
-    
+
     // Start the conversion
     command.save(outputPath);
   });
@@ -298,7 +305,7 @@ export async function getVideoDuration(filePath: string): Promise<number> {
         reject(err);
         return;
       }
-      
+
       resolve(metadata.format.duration || 0);
     });
   });
@@ -315,12 +322,12 @@ export async function convertDownloadedVideo(
   if (!downloadItem.outputPath) {
     throw new Error('Download item has no output path');
   }
-  
+
   // Check if the file exists
   if (!await fs.pathExists(downloadItem.outputPath)) {
     throw new Error(`File not found: ${downloadItem.outputPath}`);
   }
-  
+
   // Convert the file
   return convertFile(downloadItem.outputPath, options, progressCallback);
 }
@@ -348,12 +355,12 @@ export async function extractAudio(
  */
 export async function changeResolution(
   inputPath: string,
-  quality: '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p',
+  quality: '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p' | '4320p' | 'best',
   progressCallback?: (progress: ConversionProgress) => void
 ): Promise<ConversionResult> {
   // Determine format from input path
   const format = path.extname(inputPath).slice(1) as OutputFormat;
-  
+
   return convertFile(
     inputPath,
     {
@@ -375,7 +382,7 @@ export async function trimVideo(
 ): Promise<ConversionResult> {
   // Determine format from input path
   const format = path.extname(inputPath).slice(1) as OutputFormat;
-  
+
   return convertFile(
     inputPath,
     {
@@ -401,7 +408,7 @@ export function getAvailableFormats(): { video: OutputFormat[], audio: OutputFor
  * Get available quality options
  */
 export function getAvailableQualities(): string[] {
-  return ['360p', '480p', '720p', '1080p', '1440p', '2160p'];
+  return ['360p', '480p', '720p', '1080p', '1440p', '2160p', '4320p', 'best'];
 }
 
 /**
@@ -409,11 +416,11 @@ export function getAvailableQualities(): string[] {
  */
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
@@ -424,7 +431,7 @@ export function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
-  
+
   return [
     hours > 0 ? hours.toString().padStart(2, '0') : '',
     minutes.toString().padStart(2, '0'),

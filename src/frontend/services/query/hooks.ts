@@ -5,6 +5,7 @@ import { Playlist, Video } from '../../../shared/types/appTypes';
 import usePlaylistStore from '../../stores/playlistStore';
 import React from 'react';
 import { QUERY_KEYS } from './keys';
+import { useToast } from '../../components/ui/use-toast';
 
 /**
  * Hook to fetch all playlists and sync with store
@@ -180,15 +181,58 @@ export function useDownloadVideo() {
 export function useDownloadPlaylist() {
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
+  const { toast } = useToast();
 
   const mutation = useMutation({
-    mutationFn: (playlistId: string) =>
-      playlistService.downloadPlaylist(playlistId, (completed: number, total: number) => {
-        setProgress({ completed, total });
-      }),
-    onSuccess: (_, playlistId) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.playlist(playlistId) });
+    mutationFn: async (options: {
+      playlistId: string;
+      downloadLocation?: string;
+      createPlaylistFolder?: boolean;
+      format?: string;
+      quality?: string;
+    }) => {
+      console.log('=== DOWNLOAD MUTATION START ===');
+      console.log('useDownloadPlaylist: Starting download with options:', options);
+      try {
+        console.log('useDownloadPlaylist: Calling playlistService.downloadPlaylist...');
+        const result = await playlistService.downloadPlaylist(options, (completed: number, total: number) => {
+          console.log(`useDownloadPlaylist: Progress update - ${completed}/${total}`);
+          setProgress({ completed, total });
+        });
+        console.log('useDownloadPlaylist: Download completed with result:', result);
+        console.log('=== DOWNLOAD MUTATION COMPLETE ===');
+        return result;
+      } catch (error) {
+        console.error('useDownloadPlaylist: Error downloading playlist:', error);
+        console.log('=== DOWNLOAD MUTATION ERROR ===');
+        throw error;
+      }
     },
+    onSuccess: (result, options) => {
+      console.log('useDownloadPlaylist: onSuccess called with result:', result);
+
+      // Check if the result is a special message about already downloaded videos
+      if (result && typeof result === 'object' && 'status' in result && result.status === 'already-downloaded') {
+        console.log('useDownloadPlaylist: All videos already downloaded');
+        // Show a toast notification
+        toast({
+          title: 'No Videos to Download',
+          description: result.message || 'All videos in this playlist are already downloaded.',
+          variant: 'default'
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.playlist(options.playlistId) });
+    },
+    onError: (error) => {
+      console.error('useDownloadPlaylist: onError called with error:', error);
+      // Show an error toast
+      toast({
+        title: 'Download Error',
+        description: error instanceof Error ? error.message : 'An error occurred while downloading the playlist.',
+        variant: 'destructive'
+      });
+    }
   });
 
   return { ...mutation, progress };

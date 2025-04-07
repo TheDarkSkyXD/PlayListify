@@ -6,11 +6,11 @@ import { initializeSettings } from './services/settingsManager';
 import { initializeDatabase } from './services/playlistServiceProvider';
 import { initializeDatabaseAndMigrate } from './services/migrationManager';
 import { runDatabaseOptimization } from './services/databaseManager';
-import { downloadManager } from './services/downloadManager';
+import { downloadManager } from './services/downloadManager/index';
 import fs from 'fs-extra';
-import { initLogger, c as loggerC, getConsoleLogFilePath, getTerminalLogFilePath, logToFile, logToTerminalFile } from './services/logger';
+import { initLogger, c as loggerC, logToFile, getTerminalLogFilePath } from './services/logger';
 import { writeToConsoleLog, initFileLogger, cleanupFileLogger } from './services/fileLogger';
-import { writeDirectly } from './utils/directFileWriter';
+import { initFFmpeg } from './services/ytDlp/binary';
 
 // These are injected by Electron Forge's Webpack plugin
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
@@ -199,6 +199,26 @@ app.whenReady().then(async () => {
     c.warning('⚠️ YouTube features will be limited');
   }
 
+  // Initialize FFmpeg
+  try {
+    c.info('🎬 FFmpeg: Checking installation...');
+    const ffmpegPath = await initFFmpeg();
+
+    if (ffmpegPath) {
+      if (ffmpegPath === 'ffmpeg') {
+        c.success('✅ FFmpeg initialized successfully from system PATH');
+      } else {
+        c.success(`✅ FFmpeg initialized successfully from: ${ffmpegPath}`);
+      }
+    } else {
+      c.warning('⚠️ FFmpeg not found, will be downloaded when needed');
+      c.info('ℹ️ Video downloads will use best single format until FFmpeg is available');
+    }
+  } catch (error) {
+    c.error(`❌ FFmpeg initialization failed: ${error}`);
+    c.warning('⚠️ Some video download features will be limited');
+  }
+
   // Create the main window
   console.log('\n');
   c.section('🖥️', 'CREATING APPLICATION WINDOW');
@@ -208,13 +228,34 @@ app.whenReady().then(async () => {
 
   // Initialize the download manager and set the main window
   if (mainWindow) {
-    // First initialize the download manager
-    downloadManager.initialize();
-    c.info('🔄 Download manager initialized');
+    try {
+      // First initialize the download manager
+      downloadManager.initialize();
+      c.info('🔄 Download manager initialized');
+      logToFile('INFO', 'Download manager initialized in main.ts');
 
-    // Then set the main window
-    downloadManager.setMainWindow(mainWindow);
-    c.info('🔄 Download manager configured with main window');
+      // Then set the main window
+      downloadManager.setMainWindow(mainWindow);
+      c.info('🔄 Download manager configured with main window');
+      logToFile('INFO', 'Download manager configured with main window in main.ts');
+
+      // Log the current state of the download manager
+      const downloads = downloadManager.getAllDownloads();
+      c.info(`🔄 Download manager has ${downloads.length} downloads`);
+      logToFile('INFO', `Download manager has ${downloads.length} downloads in main.ts`);
+
+      // Verify the download manager is initialized
+      if (!downloadManager.isInitialized()) {
+        c.error('❌ Download manager is not initialized after initialization call');
+        logToFile('ERROR', 'Download manager is not initialized after initialization call in main.ts');
+      }
+    } catch (error) {
+      c.error(`❌ Error initializing download manager: ${error}`);
+      logToFile('ERROR', `Error initializing download manager in main.ts: ${error}`);
+    }
+  } else {
+    c.error('❌ Main window is null, cannot configure download manager');
+    logToFile('ERROR', 'Main window is null, cannot configure download manager in main.ts');
   }
 
   // Register IPC handlers
@@ -222,13 +263,13 @@ app.whenReady().then(async () => {
   registerIpcHandlers();
 
   // Set up IPC handler for console logs from renderer process
-  ipcMain.on('console:log', (event, level, ...args) => {
+  ipcMain.on('console:log', (_event, level, ...args) => {
     // Log to console log file (Electron app console)
     logToFile(level, ...args);
   });
 
   // Set up IPC handler for renderer logs
-  ipcMain.on('renderer:log', (event, data) => {
+  ipcMain.on('renderer:log', (_event, data) => {
     try {
       // Extract level and args from the data
       const { level, args } = data;

@@ -1,5 +1,5 @@
 import * as ytDlpManager from './ytDlpManager';
-import * as fileUtils from '../utils/fileUtils';
+import * as fileUtils from '../utils/fileUtils/index';
 import { Playlist, Video } from '../../shared/types/appTypes';
 import fs from 'fs-extra';
 import path from 'path';

@@ -91,8 +91,9 @@ const c = {
   }
 };
 
-// Get the absolute path to the ytdlp-setup.js script
-const setupScriptPath = path.resolve(__dirname, 'ytdlp-setup.js');
+// Get the absolute path to the setup scripts
+const ytdlpSetupScriptPath = path.resolve(__dirname, 'ytdlp-setup.js');
+const depsSetupScriptPath = path.resolve(__dirname, 'setup-dependencies.js');
 
 console.log('\n');
 console.log(colorFuncs.bright.cyan('═════════════════════════════════════════════════'));
@@ -222,14 +223,14 @@ async function main() {
     process.stdout.write(`  ${colors.bright}${colors.yellow}⏱️  ${colors.bright}${colors.white}Start time: ${colors.reset}`);
     process.stdout.write(`${colors.bright}${colors.cyan}${startTime.toLocaleTimeString()}${colors.reset}\n\n`);
 
-    // Check if the setup script exists
-    if (!fs.existsSync(setupScriptPath)) {
-      c.error('\n❌ ERROR: Setup script not found');
-      c.error(`📂 Expected path: ${setupScriptPath}`);
-      throw new Error('Setup script not found');
+    // Check if the setup scripts exist
+    if (!fs.existsSync(ytdlpSetupScriptPath) && !fs.existsSync(depsSetupScriptPath)) {
+      c.error('\n❌ ERROR: No setup scripts found');
+      c.error(`📂 Expected paths: ${ytdlpSetupScriptPath} or ${depsSetupScriptPath}`);
+      throw new Error('Setup scripts not found');
     }
 
-    c.section('📋', 'STEP 1/3: SQLITE CHECK');
+    c.section('📋', 'STEP 1/4: SQLITE CHECK');
     c.info(`🔍 Checking SQLite module...`);
 
     // Run the fix-sqlite-path script
@@ -258,31 +259,54 @@ async function main() {
     }
 
     console.log('\n');
-    c.section('📋', 'STEP 2/3: DEPENDENCY CHECK');
-    c.info(`🔍 Running setup script: ${setupScriptPath}`);
+    c.section('📋', 'STEP 2/4: YT-DLP CHECK');
+    c.info(`🔍 Running yt-dlp setup script: ${ytdlpSetupScriptPath}`);
 
     // Use spawnSync instead of execSync to get exit code
-    const setupProcess = spawnSync('node', [setupScriptPath], {
+    const ytdlpSetupProcess = spawnSync('node', [ytdlpSetupScriptPath], {
       stdio: 'inherit',
       encoding: 'utf-8'
     });
 
     // Check the exit code
-    if (setupProcess.status === 10) {
+    if (ytdlpSetupProcess.status === 10) {
       // User declined installation, do not start the app
       console.log('\n');
       c.section('🚫', 'APPLICATION STARTUP CANCELED');
       c.info('ℹ️ The application requires yt-dlp to function properly.');
       c.info('ℹ️ Run "npm start" again when you are ready to install yt-dlp.');
       process.exit(0);
-    } else if (setupProcess.status !== 0) {
+    } else if (ytdlpSetupProcess.status !== 0) {
       // Other error occurred
-      throw new Error(`Setup script failed with code ${setupProcess.status}`);
+      throw new Error(`yt-dlp setup script failed with code ${ytdlpSetupProcess.status}`);
+    }
+
+    console.log('\n');
+    c.section('📋', 'STEP 3/4: FFMPEG CHECK');
+    c.info(`🔍 Running dependencies setup script: ${depsSetupScriptPath}`);
+
+    // Only run the dependencies setup script if it exists
+    if (fs.existsSync(depsSetupScriptPath)) {
+      // Use spawnSync to run the dependencies setup script
+      const depsSetupProcess = spawnSync('node', [depsSetupScriptPath], {
+        stdio: 'inherit',
+        encoding: 'utf-8'
+      });
+
+      // Check the exit code
+      if (depsSetupProcess.status !== 0) {
+        // Error occurred but we can continue
+        c.warning(`\n⚠️ Dependencies setup script exited with code ${depsSetupProcess.status}`);
+        c.info('ℹ️ Continuing with startup, but some features may not work properly.');
+      }
+    } else {
+      c.warning(`\n⚠️ Dependencies setup script not found at ${depsSetupScriptPath}`);
+      c.info('ℹ️ Continuing with startup, but some features may not work properly.');
     }
 
     // If we get here, the setup was successful
     console.log('\n');
-    c.section('📋', 'STEP 3/3: ELECTRON APPLICATION STARTUP');
+    c.section('📋', 'STEP 4/4: ELECTRON APPLICATION STARTUP');
 
     // These messages are now more colorful with icons and spacing
     console.log('');

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Download, AlertTriangle } from 'lucide-react';
+import { Download } from 'lucide-react';
 import AppLayout from '../../../components/Layout/AppLayout';
+import DownloadStatus from '../components/DownloadStatus';
 
 const DownloadsPage: React.FC = () => {
   return (
@@ -12,22 +13,12 @@ const DownloadsPage: React.FC = () => {
             Downloads
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-300">
-            Manage your video downloads
+            Manage your video downloads and track progress
           </p>
         </header>
 
         <main>
-          <div className="bg-card text-card-foreground shadow rounded-lg p-8 text-center">
-            <div className="flex flex-col items-center">
-              <Download className="w-16 h-16 text-muted-foreground mb-4" />
-              <h2 className="text-xl font-semibold mb-2">
-                Downloads Coming Soon
-              </h2>
-              <p className="text-muted-foreground mb-6 max-w-sm">
-                This feature is under development. Check back soon for updates.
-              </p>
-            </div>
-          </div>
+          <DownloadStatus />
         </main>
       </div>
     </AppLayout>

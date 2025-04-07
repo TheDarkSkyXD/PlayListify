@@ -33,7 +33,7 @@ export default function CachedImage({
     setError(false);
 
     // Check if this is a YouTube thumbnail URL
-    const isYouTubeThumbnail = src.includes('i.ytimg.com/vi/');
+    const isYouTubeThumbnail = src.includes('i.ytimg.com/vi/') || src.includes('img.youtube.com/vi/');
 
     // Try to load the image
     const img = new Image();
@@ -105,21 +105,40 @@ export default function CachedImage({
         }
 
         const format = formats[index];
-        const newUrl = `https://i.ytimg.com/vi/${videoId}/${format}`;
 
-        const testImg = new Image();
-        testImg.src = newUrl;
+        // Try both YouTube thumbnail domains
+        const tryBothDomains = (domainIndex: number) => {
+          const domains = [
+            'https://i.ytimg.com/vi/',  // Primary domain
+            'https://img.youtube.com/vi/'  // Alternative domain
+          ];
 
-        testImg.onload = () => {
-          // This format works, use it
-          setImageSrc(newUrl);
-          setIsLoading(false);
+          if (domainIndex >= domains.length) {
+            // Try next format if both domains fail
+            tryNextFormat(index + 1);
+            return;
+          }
+
+          const domain = domains[domainIndex];
+          const newUrl = `${domain}${videoId}/${format}`;
+
+          const testImg = new Image();
+          testImg.src = newUrl;
+
+          testImg.onload = () => {
+            // This format works, use it
+            setImageSrc(newUrl);
+            setIsLoading(false);
+          };
+
+          testImg.onerror = () => {
+            // Try the next domain
+            tryBothDomains(domainIndex + 1);
+          };
         };
 
-        testImg.onerror = () => {
-          // Try the next format
-          tryNextFormat(index + 1);
-        };
+        // Start trying with the first domain
+        tryBothDomains(0);
       };
 
       // Start trying formats

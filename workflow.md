@@ -1253,69 +1253,90 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 export default VideoPlayer;
 ```
 
-### Phase 3.4: Download Status
+### Phase 3.4: Download Quality Selection
 
 **Tasks:**
-- [ ] Implement download status tracking
-- [ ] Create UI for displaying download progress
+- [x] Improve video quality selection for downloads
+- [x] Ensure downloads use the best available quality up to the requested maximum
+- [x] Add better logging for quality selection
+- [x] Add unit tests for quality selection
+- [x] Add support for 8K (4320p) video quality
+- [x] Add 'best' quality option to always select the highest available quality
 
-**Files to Create:**
-- [ ] `src/renderer/features/downloads/components/DownloadStatus.tsx` (~150 lines)
-  - Download progress and status display
-- [ ] `src/renderer/stores/downloadStore.ts` (~100 lines)
+**Files Modified:**
+- [x] `src/backend/services/ytDlp/video/formatSelection.ts` (~20 lines)
+  - Enhanced format string to better handle quality selection
+  - Improved fallback strategy for when requested quality isn't available
+  - Added support for 'best' quality option
+- [x] `src/backend/services/ytDlp/video/download.ts` (~15 lines)
+  - Added better logging for quality selection
+  - Improved user feedback about available quality
+  - Added support for 'best' quality option
+- [x] `src/backend/services/ytDlp/video/fallbackStrategies.ts` (~30 lines)
+  - Enhanced fallback strategy to select the best available quality
+  - Added more detailed logging for quality selection
+  - Added special handling for 'best' quality option
+- [x] `src/shared/constants/appConstants.ts` (~1 line)
+  - Added 8K (4320p) and 'best' to VIDEO_QUALITIES constant
+- [x] `src/shared/types/appTypes.ts` (~1 line)
+  - Updated DownloadOptions interface to include 4320p and 'best' quality options
+- [x] `src/frontend/features/downloads/components/FormatSelector.tsx` (~10 lines)
+  - Updated UI to show 8K and 'Best Available' quality options
+- [x] `src/frontend/pages/Settings/SettingsPage.tsx` (~10 lines)
+  - Updated settings page to include 8K and 'Best Available' quality options
+- [x] `src/backend/services/formatConverter.ts` (~10 lines)
+  - Updated to handle 8K and 'best' quality options
+- [x] `tests/backend/services/ytDlp/formatSelection.test.ts` (~50 lines)
+  - Added unit tests for quality selection
+  - Tests for when requested quality is available
+  - Tests for when requested quality is not available
+
+**Implementation Details:**
+- Modified the format string to better handle quality selection with proper fallbacks
+- Added logic to select the best available quality when the requested quality isn't available
+- Added support for 8K (4320p) video quality
+- Added 'best' quality option that always selects the highest available quality
+- Improved logging to show what quality is actually being downloaded
+- Updated UI components to show the new quality options
+- Added unit tests to verify the behavior
+
+### Phase 3.5: Download Status
+
+**Tasks:**
+- [x] Implement download status tracking
+- [x] Create UI for displaying download progress
+
+**Files Created:**
+- [x] `src/frontend/stores/downloadStore.ts` (~150 lines)
   - Zustand store for download state management
+  - Persistent storage with localStorage
+  - IPC communication with main process
+  - Filtering and statistics functions
+- [x] `src/frontend/features/downloads/components/DownloadStatus.tsx` (~70 lines)
+  - Main download status component
+  - Integration with download store
+  - Empty state handling
+- [x] `src/frontend/features/downloads/components/DownloadList.tsx` (~150 lines)
+  - Tabbed interface for filtering downloads by status
+  - Integration with download store and IPC API
+  - Actions for pause, resume, cancel, and remove
+- [x] `src/frontend/features/downloads/components/DownloadItem.tsx` (~200 lines)
+  - Individual download item display
+  - Progress bar with status-based styling
+  - Action buttons based on download status
+  - Tooltips for better UX
+- [x] `src/frontend/utils/formatUtils.ts` (~100 lines)
+  - Utility functions for formatting file sizes, durations, and dates
 
-**Sample Code for `src/renderer/features/downloads/components/DownloadStatus.tsx`:**
-```typescript
-import React from 'react';
-import { useStore } from '../../../stores/downloadStore';
-
-const DownloadStatus: React.FC = () => {
-  const downloads = useStore((state) => state.downloads);
-
-  return (
-    <div className="p-4">
-      <h2 className="text-xl font-semibold">Downloads</h2>
-      <ul className="space-y-2">
-        {downloads.map((d) => (
-          <li key={d.id} className="p-2 bg-gray-200 rounded">
-            {d.title} - {d.status}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-};
-
-export default DownloadStatus;
-```
-
-**Sample Code for `src/renderer/stores/downloadStore.ts`:**
-```typescript
-import { create } from 'zustand';
-
-interface Download {
-  id: string;
-  title: string;
-  status: 'pending' | 'downloading' | 'completed' | 'failed';
-}
-
-interface DownloadState {
-  downloads: Download[];
-  addDownload: (id: string, title: string) => void;
-  updateStatus: (id: string, status: Download['status']) => void;
-}
-
-export const useStore = create<DownloadState>((set) => ({
-  downloads: [],
-  addDownload: (id, title) => set((state) => ({
-    downloads: [...state.downloads, { id, title, status: 'pending' }],
-  })),
-  updateStatus: (id, status) => set((state) => ({
-    downloads: state.downloads.map((d) => (d.id === id ? { ...d, status } : d)),
-  })),
-}));
-```
+**Implementation Details:**
+- Created a Zustand store for managing download state with persistence
+- Implemented real-time updates from the main process via IPC
+- Added filtering by download status (all, active, paused, completed, failed)
+- Created a tabbed interface for easy navigation between download states
+- Added progress bars with status-based styling
+- Implemented action buttons that change based on download status
+- Added tooltips for better user experience
+- Integrated with existing download manager in the backend
 
 ### Phase 3.5: Single Video Management
 

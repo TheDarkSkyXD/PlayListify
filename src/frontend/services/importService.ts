@@ -4,6 +4,7 @@ import { ImportJob } from '../types/importTypes';
 export type { ImportJob } from '../types/importTypes';
 import { logger } from '../utils/logger';
 import { queryClient } from './queryClientProvider';
+import { Video } from '../../shared/types/appTypes';
 
 // Event emitter for import progress
 export class ImportEventEmitter {
@@ -319,7 +320,7 @@ export const importService = {
       // Keep job visible for a while so user can see progress, but allow manual dismissal
       // We will not auto-remove successfully completed jobs - user must dismiss them
 
-      return { videos: [] }; // Return empty array as we're not fetching videos separately anymore
+      return { videos: [] as Video[] }; // Return empty array as we're not fetching videos separately anymore
     } catch (error: any) {
       // Update job with error
       importEvents.updateJob(jobId, {

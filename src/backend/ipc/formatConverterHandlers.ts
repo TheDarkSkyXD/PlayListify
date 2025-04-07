@@ -1,6 +1,6 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron';
 import * as formatConverter from '../services/formatConverter';
-import { downloadManager } from '../services/downloadManager';
+import { downloadManager } from '../services/downloadManager/index';
 import { logToFile } from '../services/logger';
 import { ConversionOptions, ConversionProgress } from '../services/formatConverter';
 
@@ -29,10 +29,10 @@ export function registerFormatConverterHandlers(): void {
     ) => {
       try {
         logToFile('INFO', `Converting file: ${inputPath} to ${options.format}`);
-        
+
         // Create a progress tracker for this conversion
         const progressChannel = `format:progress:${Date.now()}`;
-        
+
         // Start the conversion
         const result = await formatConverter.convertFile(
           inputPath,
@@ -44,7 +44,7 @@ export function registerFormatConverterHandlers(): void {
             }
           }
         );
-        
+
         return {
           success: true,
           result,
@@ -74,12 +74,12 @@ export function registerFormatConverterHandlers(): void {
         if (!downloadItem) {
           throw new Error(`Download ${downloadId} not found`);
         }
-        
+
         logToFile('INFO', `Converting downloaded video: ${downloadItem.title} to ${options.format}`);
-        
+
         // Create a progress tracker for this conversion
         const progressChannel = `format:progress:${downloadId}`;
-        
+
         // Start the conversion
         const result = await formatConverter.convertDownloadedVideo(
           downloadItem,
@@ -91,7 +91,7 @@ export function registerFormatConverterHandlers(): void {
             }
           }
         );
-        
+
         return {
           success: true,
           result,
@@ -117,10 +117,10 @@ export function registerFormatConverterHandlers(): void {
     ) => {
       try {
         logToFile('INFO', `Extracting audio from: ${inputPath} to ${format}`);
-        
+
         // Create a progress tracker for this conversion
         const progressChannel = `format:progress:${Date.now()}`;
-        
+
         // Start the extraction
         const result = await formatConverter.extractAudio(
           inputPath,
@@ -132,7 +132,7 @@ export function registerFormatConverterHandlers(): void {
             }
           }
         );
-        
+
         return {
           success: true,
           result,
@@ -158,10 +158,10 @@ export function registerFormatConverterHandlers(): void {
     ) => {
       try {
         logToFile('INFO', `Changing resolution of: ${inputPath} to ${quality}`);
-        
+
         // Create a progress tracker for this conversion
         const progressChannel = `format:progress:${Date.now()}`;
-        
+
         // Start the resolution change
         const result = await formatConverter.changeResolution(
           inputPath,
@@ -173,7 +173,7 @@ export function registerFormatConverterHandlers(): void {
             }
           }
         );
-        
+
         return {
           success: true,
           result,
@@ -200,10 +200,10 @@ export function registerFormatConverterHandlers(): void {
     ) => {
       try {
         logToFile('INFO', `Trimming video: ${inputPath} from ${startTime} to ${endTime}`);
-        
+
         // Create a progress tracker for this conversion
         const progressChannel = `format:progress:${Date.now()}`;
-        
+
         // Start the trimming
         const result = await formatConverter.trimVideo(
           inputPath,
@@ -216,7 +216,7 @@ export function registerFormatConverterHandlers(): void {
             }
           }
         );
-        
+
         return {
           success: true,
           result,
