@@ -321,25 +321,16 @@ export const closeDatabase = async (): Promise<void> => {
     logger.info('Database closed successfully');
   } catch (error) {
     logger.error('Error closing database connection:', error);
-    // Reset the flag if we hit an error so we can try again
-    isShuttingDown = false;
     throw error;
   }
+  // Do not reset isShuttingDown after completion - we're shutting down the app
+  // so we don't need to accept any more database operations
 };
 
 // Set up app lifecycle handlers for clean shutdown
 if (app) {
-  // Central shutdown handler to prevent multiple close calls
-  const handleAppShutdown = async () => {
-    logger.info('Application is shutting down...');
-    
-    try {
-      await closeDatabase();
-    } catch (error) {
-      logger.error('Failed to close database during shutdown:', error);
-    }
-  };
+  // Disable the automatic app lifecycle handler since we're handling it in main/index.ts
+  // This prevents multiple close attempts when the app is shutting down
   
-  // Register single event listener for application shutdown
-  app.once('will-quit', handleAppShutdown);
+  // DO NOT register will-quit handlers here - they're handled in main/index.ts
 } 

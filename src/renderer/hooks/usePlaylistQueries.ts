@@ -27,6 +27,20 @@ export const playlistKeys = {
   detail: (id: number) => [...playlistKeys.details(), id] as const,
 };
 
+// Add this to the existing interface imports
+interface YouTubePlaylistInfoResponse {
+  success: boolean;
+  playlistInfo?: {
+    id: string;
+    title: string;
+    description?: string;
+    thumbnailUrl?: string;
+    channelTitle?: string;
+    videoCount?: number;
+  };
+  error?: string;
+}
+
 // Get all playlists
 export const useGetAllPlaylists = () => {
   const { invoke } = useIPC<void, PlaylistsResponse>(IPC_CHANNELS.PLAYLIST_GET_ALL);
@@ -310,6 +324,23 @@ export const useUpdateVideoPosition = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: playlistKeys.detail(variables.playlistId) });
+    },
+  });
+};
+
+// Get YouTube playlist info (to preview before importing)
+export const useGetYouTubePlaylistInfo = () => {
+  const { invoke } = useIPC<{ url: string }, YouTubePlaylistInfoResponse>(
+    IPC_CHANNELS.PLAYLIST_GET_YOUTUBE_INFO
+  );
+  
+  return useMutation({
+    mutationFn: async ({ url }: { url: string }) => {
+      const response = await invoke({ url });
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch YouTube playlist info');
+      }
+      return response.playlistInfo;
     },
   });
 }; 

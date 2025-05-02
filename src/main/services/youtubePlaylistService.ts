@@ -82,13 +82,12 @@ export const importYouTubePlaylist = async (
 };
 
 // Get information about a YouTube playlist
-export const getYouTubePlaylistInfo = async (playlistUrl: string): Promise<YouTubePlaylist> => {
+export const getYouTubePlaylistInfo = async (playlistUrl: string): Promise<YouTubePlaylist & { videoCount?: number }> => {
   return new Promise((resolve, reject) => {
     const ytdlpPath = ytdlpService.getYtdlpPath();
     const args = [
-      '--dump-json',
-      '--flat-playlist',
-      '--playlist-end', '1', // We just need playlist info, not all videos
+      '--dump-single-json',  // Get all playlist info in a single JSON object
+      '--flat-playlist',     // Don't extract video info
       playlistUrl
     ];
     
@@ -108,13 +107,60 @@ export const getYouTubePlaylistInfo = async (playlistUrl: string): Promise<YouTu
         try {
           const data = JSON.parse(output);
           
-          const playlistInfo: YouTubePlaylist = {
-            id: data.id,
+          // Extract the playlist ID
+          let playlistId = '';
+          if (data.id) {
+            playlistId = data.id;
+          } else if (playlistUrl.includes('list=')) {
+            // Try to extract playlist ID from URL if not provided in data
+            const match = playlistUrl.match(/list=([^&]+)/);
+            if (match && match[1]) {
+              playlistId = match[1];
+            }
+          }
+          
+          // Define potential thumbnail URL sources
+          let thumbnailUrl = null;
+          
+          // 1. First try the thumbnail provided by yt-dlp
+          if (data.thumbnail && !data.thumbnail.includes('no_thumbnail')) {
+            thumbnailUrl = data.thumbnail;
+          }
+          
+          // 2. If we have entries and the first option failed, try to get one from the first video
+          if (!thumbnailUrl && data.entries && data.entries.length > 0) {
+            const firstVideoId = data.entries[0].id;
+            if (firstVideoId) {
+              // Use multiple potential YouTube thumbnail formats - maxresdefault is higher quality
+              thumbnailUrl = `https://img.youtube.com/vi/${firstVideoId}/maxresdefault.jpg`;
+            }
+          }
+          
+          // 3. If we have a playlist ID, try the YouTube playlist thumbnail format
+          if (!thumbnailUrl && playlistId) {
+            // Try a standard YouTube playlist thumbnail format
+            thumbnailUrl = `https://i.ytimg.com/vi_webp/${playlistId}/maxresdefault.webp`;
+          }
+          
+          // 4. Final fallback for standard definition
+          if (!thumbnailUrl && data.entries && data.entries.length > 0) {
+            const firstVideoId = data.entries[0].id;
+            if (firstVideoId) {
+              thumbnailUrl = `https://img.youtube.com/vi/${firstVideoId}/hqdefault.jpg`;
+            }
+          }
+          
+          // Log the thumbnail URL for debugging
+          logger.info(`Using thumbnail URL: ${thumbnailUrl}`);
+          
+          const playlistInfo = {
+            id: playlistId,
             title: data.title || 'Unknown Playlist',
             description: data.description,
-            thumbnailUrl: data.thumbnail,
+            thumbnailUrl: thumbnailUrl,
             channelId: data.channel_id,
-            channelTitle: data.channel
+            channelTitle: data.channel,
+            videoCount: data.entries ? data.entries.length : undefined
           };
           
           resolve(playlistInfo);
@@ -279,4 +325,4 @@ export default {
   addYouTubePlaylistVideos,
   processYouTubeVideo,
   parseYouTubeDate
-}; 
+};

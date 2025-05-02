@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 import playlistService from '../services/playlistService';
+import youtubePlaylistService from '../services/youtubePlaylistService';
 import logger from '../services/logService';
 import { Playlist } from '../database/playlistQueries';
 
@@ -14,6 +15,31 @@ export const registerPlaylistHandlers = () => {
       return { success: true, playlistId };
     } catch (error) {
       logger.error('Failed to create custom playlist:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : String(error) 
+      };
+    }
+  });
+
+  // Get YouTube playlist info (before import)
+  ipcMain.handle(IPC_CHANNELS.PLAYLIST_GET_YOUTUBE_INFO, async (_, { url }: { url: string }) => {
+    logger.debug(`Fetching YouTube playlist info: ${url}`);
+    try {
+      const playlistInfo = await youtubePlaylistService.getYouTubePlaylistInfo(url);
+      return { 
+        success: true, 
+        playlistInfo: {
+          id: playlistInfo.id,
+          title: playlistInfo.title,
+          description: playlistInfo.description,
+          thumbnailUrl: playlistInfo.thumbnailUrl,
+          channelTitle: playlistInfo.channelTitle,
+          videoCount: playlistInfo.videoCount
+        }
+      };
+    } catch (error) {
+      logger.error('Failed to fetch YouTube playlist info:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : String(error) 

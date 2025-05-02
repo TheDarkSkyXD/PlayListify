@@ -25,12 +25,19 @@ export const IPC_CHANNELS = {
   PLAYLIST_DELETE: 'playlist:delete',
   PLAYLIST_REFRESH: 'playlist:refresh',
   PLAYLIST_EXPORT: 'playlist:export',
+  PLAYLIST_GET_YOUTUBE_INFO: 'playlist:get-youtube-info',
+  PLAYLIST_EXPORT_VIDEO: 'playlist:export-video',
   
   // Videos
   VIDEO_GET: 'video:get',
+  VIDEO_UPDATE: 'video:update',
+  VIDEO_DELETE: 'video:delete',
   VIDEO_ADD: 'video:add',
   VIDEO_REMOVE: 'video:remove',
   VIDEO_UPDATE_POSITION: 'video:update-position',
+  
+  // Thumbnails
+  THUMBNAIL_FETCH: 'thumbnail:fetch',
   
   // Downloads
   DOWNLOAD_ADD: 'download:add',

@@ -1,6 +1,10 @@
 module.exports = {
   packagerConfig: {
     asar: true,
+    extraResource: [
+      // Empty directories to be filled during build process
+      './resources/bin'
+    ]
   },
   rebuildConfig: {
     // Skip rebuilding native modules
@@ -9,7 +13,9 @@ module.exports = {
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
-      config: {},
+      config: {
+        setupIcon: './resources/icon.ico',
+      },
     },
     {
       name: '@electron-forge/maker-zip',
@@ -49,4 +55,45 @@ module.exports = {
       config: {},
     },
   ],
+  // Hook to download binaries before packaging
+  hooks: {
+    packageAfterCopy: async (config, buildPath, electronVersion, platform, arch) => {
+      const fs = require('fs-extra');
+      const path = require('path');
+      
+      console.log('Preparing binary dependencies for packaging...');
+      
+      // Ensure resources directory exists
+      const binDir = path.join(buildPath, '..', 'resources', 'bin');
+      await fs.ensureDir(binDir);
+      
+      try {
+        // Dynamically load our dependency services
+        const ytdlpService = require('./src/main/services/ytdlpService');
+        const ffmpegService = require('./src/main/services/ffmpegService');
+        
+        // Temporary override app.getPath to point to build resources
+        const electron = require('electron');
+        const originalGetPath = electron.app.getPath;
+        electron.app.getPath = (name) => {
+          if (name === 'userData') {
+            return path.join(buildPath, '..', 'resources');
+          }
+          return originalGetPath(name);
+        };
+        
+        // Download dependencies if needed
+        await ytdlpService.ensureYtdlp();
+        await ffmpegService.ensureFfmpeg();
+        
+        // Restore original function
+        electron.app.getPath = originalGetPath;
+        
+        console.log('Binary dependencies prepared successfully');
+      } catch (error) {
+        console.error('Failed to prepare binary dependencies:', error);
+        throw error;
+      }
+    }
+  }
 }; 

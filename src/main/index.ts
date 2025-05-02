@@ -1,12 +1,23 @@
 import { app, BrowserWindow, shell } from 'electron';
 import path from 'path';
+import fs from 'fs-extra';
 import { registerAppHandlers } from './ipc/appHandlers';
 import { registerSettingsHandlers } from './ipc/settingsHandlers';
 import { registerPlaylistHandlers } from './ipc/playlistHandlers';
+import { registerThumbnailHandlers } from './ipc/thumbnailHandlers';
 import logger, { setupGlobalErrorLogging } from './services/logService';
 import updateService from './services/updateService';
 import dependencyService from './services/dependencyService';
 import { getDatabase, closeDatabase } from './database';
+
+// Configure development app data directory if specified
+if (process.env.PLAYLISTIFY_DEV_APP_DATA) {
+  const devAppData = process.env.PLAYLISTIFY_DEV_APP_DATA;
+  logger.info(`Using development app data directory: ${devAppData}`);
+  
+  // Override the userData path before any other code accesses it
+  app.setPath('userData', devAppData);
+}
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -44,6 +55,28 @@ const createWindow = async (): Promise<void> => {
       },
     });
 
+    // Set Content Security Policy to allow loading images from YouTube
+    mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      
+      // In development mode, allow 'unsafe-eval' for webpack hot module replacement
+      const scriptSrc = isDevelopment 
+        ? "'self' 'unsafe-inline' 'unsafe-eval'" 
+        : "'self' 'unsafe-inline'";
+      
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            `default-src 'self' 'unsafe-inline' data:; ` +
+            `script-src ${scriptSrc}; ` +
+            `img-src 'self' data: https://*.youtube.com https://*.ytimg.com; ` +
+            `media-src 'self' file: data: blob:;`
+          ]
+        }
+      });
+    });
+
     // Set up update service with the main window
     updateService.setupUpdateService(mainWindow);
 
@@ -59,6 +92,7 @@ const createWindow = async (): Promise<void> => {
     registerAppHandlers();
     registerSettingsHandlers();
     registerPlaylistHandlers();
+    registerThumbnailHandlers();
 
     // Load the index.html of the app.
     if (MAIN_WINDOW_WEBPACK_ENTRY) {
@@ -111,12 +145,23 @@ app.on('activate', () => {
 
 // Allow graceful shutdown with a timeout
 let isClosing = false;
+let quitAttempted = false;
 const MAX_CLOSE_TIMEOUT = 3000; // 3 seconds max to close database
 
 // Listen for app before-quit event
 app.on('before-quit', async (event) => {
+  // Prevent handling this event multiple times
+  if (quitAttempted) {
+    logger.debug('Quit already attempted, ignoring duplicate before-quit event');
+    return;
+  }
+  quitAttempted = true;
+  
   // Only handle the first quit event
-  if (isClosing) return;
+  if (isClosing) {
+    logger.debug('App already closing, ignoring duplicate before-quit event');
+    return;
+  }
   
   // Prevent immediate quit and handle shutdown gracefully
   event.preventDefault();
@@ -129,8 +174,7 @@ app.on('before-quit', async (event) => {
     // Set a timeout to force quit if closing takes too long
     const timeout = setTimeout(() => {
       logger.warn(`Database close timed out after ${MAX_CLOSE_TIMEOUT}ms, forcing quit`);
-      isClosing = false;
-      app.quit();
+      app.exit(0); // Use exit instead of quit to avoid triggering before-quit again
     }, MAX_CLOSE_TIMEOUT);
     
     // Try to close gracefully
@@ -138,13 +182,11 @@ app.on('before-quit', async (event) => {
     clearTimeout(timeout);
     
     // Continue with quit
-    isClosing = false;
-    app.quit();
+    app.exit(0); // Use exit instead of quit to avoid triggering before-quit again
   } catch (error) {
     logger.error('Error during application shutdown:', error);
     // Continue with quit even if closing fails
-    isClosing = false;
-    app.quit();
+    app.exit(0); // Use exit instead of quit to avoid triggering before-quit again
   }
 });
 
