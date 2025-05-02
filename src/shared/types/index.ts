@@ -2,39 +2,45 @@
 
 // Playlist types
 export interface Playlist {
-  id: string;
-  title: string;
+  id?: number;
+  name: string;
   description?: string;
-  thumbnailUrl?: string;
-  isCustom: boolean;
-  source?: string; // YouTube, Spotify, etc.
-  sourceId?: string; // Original playlist ID in the source platform
-  createdAt: string;
-  updatedAt: string;
+  source?: string;
+  source_id?: string;
+  thumbnail?: string;
+  created_at: number;
+  updated_at: number;
+  video_count?: number;
+  duration_seconds?: number;
 }
 
 // Video types
 export interface Video {
-  id: string;
+  id?: number;
+  video_id: string;
   title: string;
   description?: string;
-  thumbnailUrl?: string;
-  url: string;
-  duration?: number; // in seconds
+  duration_seconds?: number;
+  thumbnail?: string;
   author?: string;
-  source: string; // YouTube, Vimeo, etc.
-  sourceId: string; // Original video ID in the source platform
-  createdAt: string;
-  updatedAt: string;
+  author_id?: string;
+  published_at?: number;
+  view_count?: number;
+  created_at: number;
+  updated_at: number;
+  file_path?: string;
+  file_format?: string;
+  file_size_bytes?: number;
+  download_status?: string;
 }
 
 // PlaylistVideo junction type
 export interface PlaylistVideo {
-  id: string;
-  playlistId: string;
-  videoId: string;
+  id?: number;
+  playlist_id: number;
+  video_id: number;
   position: number;
-  addedAt: string;
+  added_at: number;
 }
 
 // Download types
@@ -72,4 +78,92 @@ export interface HistoryItem {
   watchedAt: string;
   watchDuration: number; // in seconds
   completed: boolean;
+}
+
+// Playlist related types
+export interface PlaylistSummary {
+  id: number;
+  name: string;
+  thumbnail?: string;
+  video_count: number;
+  duration_seconds: number;
+}
+
+export interface PlaylistVideoWithDetails {
+  id: number;
+  playlist_id: number;
+  video_id: number;
+  position: number;
+  added_at: number;
+  video_external_id: string;
+  title: string;
+  thumbnail?: string;
+  duration_seconds?: number;
+  author?: string;
+  download_status?: string;
+}
+
+// Response types for IPC
+export interface PlaylistCreateResponse {
+  success: boolean;
+  playlistId?: number;
+  error?: string;
+}
+
+export interface PlaylistImportResponse {
+  success: boolean;
+  playlistId?: number;
+  error?: string;
+}
+
+export interface PlaylistsResponse {
+  success: boolean;
+  playlists?: PlaylistSummary[];
+  error?: string;
+}
+
+export interface PlaylistDetailsResponse {
+  success: boolean;
+  details?: {
+    playlist: Playlist;
+    videos: PlaylistVideoWithDetails[];
+  };
+  error?: string;
+}
+
+export interface PlaylistUpdateResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface PlaylistDeleteResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface PlaylistRefreshResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface PlaylistExportResponse {
+  success: boolean;
+  jsonData?: string;
+  error?: string;
+}
+
+export interface VideoAddResponse {
+  success: boolean;
+  playlistVideoId?: number;
+  error?: string;
+}
+
+export interface VideoRemoveResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface VideoUpdatePositionResponse {
+  success: boolean;
+  error?: string;
 } 

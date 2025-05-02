@@ -4,12 +4,12 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
-    // Send a message to the main process
-    invoke: (channel: string, data?: any) => {
+    // Send a message to the main process and get a response
+    invoke: <T = unknown, R = unknown>(channel: string, data?: T): Promise<R> => {
       return ipcRenderer.invoke(channel, data);
     },
     // Listen for messages from the main process
-    on: (channel: string, callback: (data: any) => void) => {
+    on: <T = unknown>(channel: string, callback: (data: T) => void) => {
       const subscription = (_event: IpcRendererEvent, ...args: any[]) => 
         callback(args.length > 1 ? args : args[0]);
       
@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld('electron', {
       };
     },
     // Listen for a message once
-    once: (channel: string, callback: (data: any) => void) => {
+    once: <T = unknown>(channel: string, callback: (data: T) => void) => {
       ipcRenderer.once(channel, (_event, ...args) => 
         callback(args.length > 1 ? args : args[0])
       );

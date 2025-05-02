@@ -10,9 +10,15 @@ export const IPC_CHANNELS = {
   SETTINGS_GET_ALL: 'settings:get-all',
   SETTINGS_RESET: 'settings:reset',
   
+  // Updates
+  CHECK_FOR_UPDATES: 'app:check-for-updates',
+  DOWNLOAD_UPDATE: 'app:download-update',
+  INSTALL_UPDATE: 'app:install-update',
+  
   // Playlists
   PLAYLIST_CREATE: 'playlist:create',
   PLAYLIST_IMPORT: 'playlist:import',
+  PLAYLIST_IMPORT_JSON: 'playlist:import-json',
   PLAYLIST_GET_ALL: 'playlist:get-all',
   PLAYLIST_GET: 'playlist:get',
   PLAYLIST_UPDATE: 'playlist:update',

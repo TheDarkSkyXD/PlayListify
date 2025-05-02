@@ -218,152 +218,173 @@ This document provides a structured workflow for implementing the PlayListify ap
 ## Phase 3: Core Infrastructure Setup
 
 ### 3.1: Implement Secure IPC Bridge (Preload Script)
-- [ ] Create Preload Script
+- [x] Create Preload Script
   - Path: `src/main/preload.ts`
-- [ ] Expose API via contextBridge
+- [x] Expose API via contextBridge
   - Path: `src/main/preload.ts`
-- [ ] Configure Main Process to Use Preload
+- [x] Configure Main Process to Use Preload
   - Path: `src/main/index.ts`
-- [ ] Update Build Configuration (if needed)
+- [x] Update Build Configuration (if needed)
   - Path: `forge.config.js` (or related Webpack config)
 
 ### 3.2: Setup Basic IPC Handlers
-- [ ] Create IPC Directory
+- [x] Create IPC Directory
   - Path: `src/main/ipc/`
-- [ ] Implement Ping Handler
+- [x] Implement Ping Handler
   - Path: `src/main/index.ts` or `src/main/ipc/appHandlers.ts`
-- [ ] Register Handlers (if separate file)
+- [x] Register Handlers (if separate file)
   - Path: `src/main/index.ts`
-- [ ] Test Handler from Renderer
+- [x] Test Handler from Renderer
   - Path: `src/renderer/App.tsx` (or similar test location)
 
 ### 3.3: Implement Settings Management (Electron Store)
-- [ ] Create Settings Service
+- [x] Create Settings Service
   - Path: `src/main/services/settingsService.ts`
-- [ ] Define Default Settings
+- [x] Define Default Settings
   - Path: `src/main/services/settingsService.ts`
-- [ ] Create Settings IPC Handlers
+- [x] Create Settings IPC Handlers
   - Path: `src/main/ipc/settingsHandlers.ts`
-- [ ] Register Settings Handlers
+- [x] Register Settings Handlers
   - Path: `src/main/index.ts`
 
 ### 3.4: Implement Logging (Winston)
-- [ ] Create Log Service
+- [x] Create Log Service
   - Path: `src/main/services/logService.ts`
-- [ ] Initialize Logger
+- [x] Initialize Logger
   - Path: `src/main/index.ts`
-- [ ] Implement Global Error Handler
+- [x] Implement Global Error Handler
   - Path: `src/main/index.ts`
 
 ### 3.5: Configure Application Updates (electron-updater)
-- [ ] Configure Publisher (GitHub)
+- [x] Configure Publisher (GitHub)
   - Path: `forge.config.js` or `package.json`
-- [ ] Create Update Service
+- [x] Create Update Service
   - Path: `src/main/services/updateService.ts`
-- [ ] Handle Update Events
+- [x] Handle Update Events
   - Path: `src/main/services/updateService.ts`
-- [ ] Create Update IPC Handlers
+- [x] Create Update IPC Handlers
   - Path: `src/main/ipc/appHandlers.ts`
-- [ ] Initialize Update Checks
+- [x] Initialize Update Checks
   - Path: `src/main/index.ts`
 
 ### 3.6: Setup Dependency Handling (yt-dlp/ffmpeg)
-- [ ] Decide on Strategy (Bundle vs. System)
+- [x] Decide on Strategy (Bundle vs. System)
   - Path: N/A (Architectural decision)
-- [ ] Create Dependency Service
+- [x] Create Dependency Service
   - Path: `src/main/services/dependencyService.ts`
-- [ ] Implement Path Resolution Logic
+- [x] Implement Path Resolution Logic
   - Path: `src/main/services/dependencyService.ts`
-- [ ] Integrate with Wrappers
-  - Path: `src/main/services/downloadService.ts`
+- [x] Integrate with Wrappers
+  - Path: `src/main/services/dependencyService.ts`
+- [x] Refactor Into Specialized Services
+  - Paths: 
+    - `src/main/services/ytdlpService.ts` - Service for yt-dlp functionality
+    - `src/main/services/ffmpegService.ts` - Service for ffmpeg functionality
+    - `src/main/services/dependencyService.ts` - Facade to coordinate specialized services
 
 ## Phase 4: Playlist Management Implementation
 
 ### 4.1: Implement Playlist Service Logic
-- [ ] Create Playlist Service File
+- [x] Create Playlist Service File
   - Path: `src/main/services/playlistService.ts`
-- [ ] Implement `createCustomPlaylist`
+- [x] Implement `createCustomPlaylist`
   - Path: `src/main/services/playlistService.ts`
-- [ ] Implement `importYouTubePlaylist`
+- [x] Implement `importYouTubePlaylist`
+  - Path: `src/main/services/youtubePlaylistService.ts`
+- [x] Implement `getAllPlaylists`
   - Path: `src/main/services/playlistService.ts`
-- [ ] Implement `getAllPlaylists`
+- [x] Implement `getPlaylistDetails`
   - Path: `src/main/services/playlistService.ts`
-- [ ] Implement `getPlaylistDetails`
+- [x] Implement `deletePlaylist`
   - Path: `src/main/services/playlistService.ts`
-- [ ] Implement `deletePlaylist`
-  - Path: `src/main/services/playlistService.ts`
-- [ ] Implement `refreshPlaylist`
-  - Path: `src/main/services/playlistService.ts`
-- [ ] Implement `exportPlaylist` / `importPlaylistFromJson`
-  - Path: `src/main/services/playlistService.ts`
+- [x] Implement `refreshPlaylist`
+  - Path: `src/main/services/playlistService.ts` (using `youtubePlaylistService`)
+- [x] Implement `exportPlaylist` / `importPlaylistFromJson`
+  - Path: `src/main/services/playlistImportExportService.ts`
+- [x] Implement Video Management Functions (add, remove, reorder)
+  - Path: `src/main/services/playlistVideoService.ts`
 
 ### 4.2: Implement Playlist IPC Handlers
-- [ ] Create Playlist Handlers File
+- [x] Create Playlist IPC Handler File
   - Path: `src/main/ipc/playlistHandlers.ts`
-- [ ] Implement Handlers (create, import, get-all, etc.)
+- [x] Implement Playlist Creation/Import Handlers
   - Path: `src/main/ipc/playlistHandlers.ts`
-- [ ] Register Playlist Handlers
+- [x] Implement Get All Playlists Handler
+  - Path: `src/main/ipc/playlistHandlers.ts`
+- [x] Implement Get Playlist Details Handler
+  - Path: `src/main/ipc/playlistHandlers.ts`
+- [x] Implement Update and Delete Playlist Handlers
+  - Path: `src/main/ipc/playlistHandlers.ts`
+- [x] Implement Refresh Playlist Handler
+  - Path: `src/main/ipc/playlistHandlers.ts`
+- [x] Implement Export/Import Handlers
+  - Path: `src/main/ipc/playlistHandlers.ts`
+- [x] Implement Video Operations Handlers (add, remove, reorder)
+  - Path: `src/main/ipc/playlistHandlers.ts`
+- [x] Register Handlers in Main Process
   - Path: `src/main/index.ts`
 
 ### 4.3: Implement Frontend Playlist State Management
-- [ ] Setup React Query Client
-  - Path: `src/renderer/App.tsx` or `src/renderer/index.tsx`
-- [ ] Create Playlist Queries/Mutations
+- [x] Create Shared Types for Playlist Operations
+  - Path: `src/shared/types/index.ts`
+- [x] Create React Query Hooks for Playlist Operations
   - Path: `src/renderer/hooks/usePlaylistQueries.ts`
-- [ ] Create Playlist UI Store (Zustand)
+- [x] Create Zustand Store for UI State Management
   - Path: `src/renderer/store/playlistStore.ts`
+- [x] Set Up React Query Client
+  - Path: `src/renderer/App.tsx`
 
 ### 4.4: Implement Playlist List UI
-- [ ] Create Playlist List Component
+- [x] Create Playlist List Component
   - Path: `src/renderer/components/PlaylistList/PlaylistList.tsx`
-- [ ] Create Playlist Item Component
+- [x] Create Playlist Item Component
   - Path: `src/renderer/components/PlaylistList/PlaylistItem.tsx`
-- [ ] Integrate into My Playlists Page
+- [x] Integrate into My Playlists Page
   - Path: `src/renderer/pages/MyPlaylists.tsx`
 
 ### 4.5: Implement Playlist Details UI
-- [ ] Create Playlist View Component
+- [x] Create Playlist View Component
   - Path: `src/renderer/components/PlaylistView/PlaylistView.tsx`
-- [ ] Create Video Item Component
+- [x] Create Video Item Component
   - Path: `src/renderer/components/PlaylistView/VideoItem.tsx`
-- [ ] Implement Video List Rendering
+- [x] Implement Video List Rendering
   - Path: `src/renderer/components/PlaylistView/PlaylistView.tsx`
-- [ ] Implement Search/Filter Bar
+- [x] Implement Search/Filter Bar
   - Path: `src/renderer/components/PlaylistView/PlaylistView.tsx`
-- [ ] Integrate into My Playlists Page
+- [x] Integrate into My Playlists Page
   - Path: `src/renderer/pages/MyPlaylists.tsx`
 
 ### 4.6: Implement Create/Import Playlist UI
-- [ ] Create Playlist Actions Bar
-  - Path: `src/renderer/pages/MyPlaylists.tsx` or `src/renderer/components/PlaylistList/PlaylistList.tsx`
-- [ ] Create "New Playlist" Modal
+- [x] Create Playlist Actions Bar
+  - Path: `src/renderer/components/PlaylistSidebar/PlaylistActionsBar.tsx`
+- [x] Create "New Playlist" Modal
   - Path: `src/renderer/components/Modals/CreatePlaylistModal.tsx`
-- [ ] Create "Import Playlist" Modal
+- [x] Create "Import Playlist" Modal
   - Path: `src/renderer/components/Modals/ImportPlaylistModal.tsx`
-- [ ] Connect Buttons to Modals
-  - Path: `src/renderer/pages/MyPlaylists.tsx` or `src/renderer/components/PlaylistList/PlaylistList.tsx`
+- [x] Connect Buttons to Modals
+  - Path: `src/renderer/pages/MyPlaylists.tsx`
 
 ### 4.7: Implement Playlist Actions (Rename, Delete, Duplicate, Refresh)
-- [ ] Add Action Buttons/Menu
-  - Path: `src/renderer/components/PlaylistList/PlaylistItem.tsx`
-- [ ] Implement Rename Logic
-  - Path: `src/renderer/components/PlaylistList/PlaylistItem.tsx` (and potentially new modal/service/handler)
-- [ ] Implement Delete Logic
-  - Path: `src/renderer/components/PlaylistList/PlaylistItem.tsx` (and potentially confirmation modal)
+- [x] Add Action Buttons/Menu
+  - Path: `src/renderer/components/PlaylistSidebar/PlaylistItem.tsx`
+- [x] Implement Rename Logic
+  - Path: `src/renderer/components/PlaylistSidebar/PlaylistItem.tsx` (and `src/renderer/components/Modals/RenamePlaylistModal.tsx`)
+- [x] Implement Delete Logic
+  - Path: `src/renderer/components/PlaylistSidebar/PlaylistItem.tsx` (and `src/renderer/components/Modals/ConfirmDeleteModal.tsx`)
 - [ ] Implement Duplicate Logic
-  - Path: `src/renderer/components/PlaylistList/PlaylistItem.tsx` (and potentially new service/handler)
-- [ ] Implement Refresh Logic
-  - Path: `src/renderer/components/PlaylistList/PlaylistItem.tsx`
+  - Path: `src/renderer/components/PlaylistSidebar/PlaylistItem.tsx` (and potentially new service/handler)
+- [x] Implement Refresh Logic
+  - Path: `src/renderer/components/PlaylistSidebar/PlaylistItem.tsx`
 
 ### 4.8: Implement Playlist Export/Import (JSON)
-- [ ] Add Export Button/Menu Item
-  - Path: `src/renderer/components/PlaylistList/PlaylistItem.tsx` (or other relevant location)
-- [ ] Implement Export Logic
-  - Path: Component containing the export button
-- [ ] Add Import Button/Menu Item
-  - Path: `src/renderer/pages/MyPlaylists.tsx` or `src/renderer/components/PlaylistList/PlaylistList.tsx`
-- [ ] Implement Import Logic
-  - Path: Component containing the import button
+- [x] Add Export Button/Menu Item
+  - Path: `src/renderer/components/PlaylistList/PlaylistItem.tsx` (export button in playlist item menu)
+- [x] Implement Export Logic
+  - Path: `src/renderer/pages/MyPlaylists.tsx` (handlePlaylistAction export case)
+- [x] Add Import Button/Menu Item
+  - Path: `src/renderer/components/PlaylistList/PlaylistActionsBar.tsx` (Import JSON button)
+- [x] Implement Import Logic
+  - Path: `src/renderer/pages/MyPlaylists.tsx` (handleImportJsonSubmit) and `src/renderer/components/Modals/ImportJsonModal.tsx`
 
 ## Phase 5: Video Download Implementation
 
@@ -422,9 +443,9 @@ This document provides a structured workflow for implementing the PlayListify ap
 ## Phase 6: User Experience & Core UI Implementation
 
 ### 6.1: Implement Main Layout & Navigation
-- [ ] Create Main Layout Component
+- [x] Create Main Layout Component
   - Path: `src/renderer/layouts/MainLayout.tsx`
-- [ ] Create Sidebar Component
+- [x] Create Sidebar Component
   - Path: `src/renderer/components/Sidebar/Sidebar.tsx`
 - [ ] Configure Router
   - Path: `src/renderer/router/index.ts`, `src/renderer/pages/*.tsx`
@@ -449,80 +470,4 @@ This document provides a structured workflow for implementing the PlayListify ap
 - [ ] Register History Handlers
   - Path: `src/main/index.ts`
 - [ ] Implement History Page UI
-  - Path: `src/renderer/pages/History.tsx`
-- [ ] Create History Item Component
-  - Path: `src/renderer/components/History/HistoryItem.tsx`
-
-### 6.4: Implement Video Player Integration
-- [ ] Create Player Component/Modal
-  - Path: `src/renderer/components/VideoPlayer/VideoPlayer.tsx`
-- [ ] Add Play Button/Action
-  - Path: `src/renderer/components/PlaylistView/VideoItem.tsx`
-- [ ] Trigger Player
-  - Path: `src/renderer/components/PlaylistView/VideoItem.tsx` (or parent component)
-- [ ] Implement Progress Tracking
-  - Path: `src/renderer/components/VideoPlayer/VideoPlayer.tsx`
-
-### 6.5: Implement Accessibility & Tooltips
-- [ ] Review Keyboard Navigation
-  - Path: Various components
-- [ ] Add ARIA Attributes
-  - Path: Various components
-- [ ] Implement Tooltips
-  - Path: Various components (`PlaylistItem.tsx`, `VideoItem.tsx`, `SettingsPage.tsx`, etc.)
-- [ ] Ensure Focus Indicators
-  - Path: N/A (Verification)
-
-### 6.6: Implement General UI Polish
-- [ ] Implement Loading States
-  - Path: Various components using React Query hooks
-- [ ] Implement Empty States
-  - Path: `PlaylistList.tsx`, `PlaylistView.tsx`, `DownloadsPage.tsx`, `HistoryPage.tsx`
-- [ ] Implement Toast Notifications
-  - Path: `App.tsx` (for Toaster), various components triggering mutations
-
-## Appendix: Using Context7 for Package Documentation
-
-Context7 is a powerful tool for accessing up-to-date library documentation during development. Use it to access specific documentation sections as needed:
-
-### Using Context7 for Documentation Retrieval
-- [ ] Use the document lookup helper script to fetch package documentation:
-  ```bash
-  # Fetch general documentation
-  node scripts/get-package-docs.js electron
-  
-  # Fetch documentation on specific topics
-  node scripts/get-package-docs.js electron "IPC communication"
-  node scripts/get-package-docs.js @tanstack/react-query "useQuery hook"
-  node scripts/get-package-docs.js zustand "create store"
-  node scripts/get-package-docs.js better-sqlite3 "prepared statements"
-  ```
-
-### Key Package Documentation to Retrieve
-- [ ] Electron Core Documentation:
-  - Electron IPC communication
-  - Electron main and renderer processes
-  - Electron security best practices
-- [ ] UI Framework Documentation:
-  - React components and hooks
-  - Shadcn/UI component usage
-  - TanStack Router configuration
-- [ ] Database Documentation:
-  - Better-SQLite3 transactions
-  - SQLite schema design
-- [ ] Media Processing Documentation:
-  - yt-dlp-wrap download methods
-  - fluent-ffmpeg video processing
-
-Regular usage of Context7 throughout the development process ensures you're working with the most current and accurate documentation for each library.
-
-## Progress Tracking
-
-- Phase 1: ⬜ Setup - 100% complete
-- Phase 2: ⬜ Database - 100% complete
-- Phase 3: ⬜ Infrastructure - 0% complete
-- Phase 4: ⬜ Playlist Management - 0% complete
-- Phase 5: ⬜ Video Download - 0% complete
-- Phase 6: ⬜ UI & UX - 0% complete
-
-Overall Progress: ⬜⬜⬜⬜⬜⬜ 33% 
+  - Path: `

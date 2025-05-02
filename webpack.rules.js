@@ -16,6 +16,32 @@ module.exports = [
       },
     },
   },
+  // Add specific loader for TanStack Router and tiny-warning
+  {
+    test: /\.m?js$/,
+    include: [
+      /node_modules\/@tanstack[\\/]react-router/,
+      /node_modules[\\/]tiny-warning/,
+    ],
+    use: {
+      loader: 'babel-loader',
+      options: {
+        presets: ['@babel/preset-env'],
+        plugins: []
+      },
+    },
+  },
+  // Add specific loader for CommonJS (.cjs) files
+  {
+    test: /\.cjs$/,
+    include: /node_modules/,
+    use: {
+      loader: 'babel-loader',
+      options: {
+        presets: ['@babel/preset-env'],
+      },
+    },
+  },
   {
     test: /\.tsx?$/,
     exclude: /(node_modules|\.webpack)/,

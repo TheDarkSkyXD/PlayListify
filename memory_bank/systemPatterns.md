@@ -172,6 +172,48 @@ export const useGetAllPlaylists = () => {
 };
 ```
 
+## 11. Specialized Services Pattern
+
+We use specialized service modules for specific external tools or dependencies, following the Single Responsibility Principle:
+
+```typescript
+// ytdlpService.ts - Handles only yt-dlp related functionality
+export const getYtdlpPath = (): string => {
+  // Implementation specific to yt-dlp
+};
+
+// ffmpegService.ts - Handles only ffmpeg related functionality
+export const getFfmpegPath = (): string => {
+  // Implementation specific to ffmpeg
+};
+```
+
+## 12. Facade Pattern for Service Coordination
+
+We use the Facade pattern to provide a simplified interface to a set of specialized services:
+
+```typescript
+// dependencyService.ts - Acts as a facade for specialized services
+export const getDependencyPath = (type: DependencyType): string => {
+  return type === DependencyType.YTDLP 
+    ? ytdlpService.getYtdlpPath() 
+    : ffmpegService.getFfmpegPath();
+};
+
+// The facade also re-exports the specialized services for direct access
+export default {
+  // Simplified common API
+  getDependencyPath,
+  verifyDependency,
+  ensureDependencies,
+  // Specialized services for direct access when needed
+  ytdlp: ytdlpService,
+  ffmpeg: ffmpegService
+};
+```
+
+This pattern provides a balance between simplicity for common operations and direct access when specialized functionality is needed.
+
 These patterns provide a consistent structure to the PlayListify application and help ensure code quality and maintainability.
 
 ## Architecture Patterns

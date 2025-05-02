@@ -15,29 +15,28 @@
 - ✅ Task 2.3: Implement Basic CRUD Helpers
 - ✅ Task 2.4: Implement Database Migrations (Basic)
 
-## In Progress Tasks
-
 ### Phase 3: Core Infrastructure Setup
-- 🔄 Task 3.1: Implement Secure IPC Bridge (Preload Script)
-- 🔄 Task 3.2: Setup Basic IPC Handlers
+- ✅ Task 3.1: Implement Secure IPC Bridge (Preload Script)
+- ✅ Task 3.2: Setup Basic IPC Handlers
+- ✅ Task 3.3: Implement Settings Management (Electron Store)
+- ✅ Task 3.4: Implement Logging (Winston)
+- ✅ Task 3.5: Configure Application Updates (electron-updater)
+- ✅ Task 3.6: Setup Dependency Handling (yt-dlp/ffmpeg)
+- ✅ Task 3.7: Refactor Dependency Services for Better Separation of Concerns
+
+### Phase 4: Playlist Management Implementation
+- ✅ Task 4.1: Implement Playlist Service Logic (with refactoring into specialized modules)
+- ✅ Task 4.2: Implement Playlist IPC Handlers
+- ✅ Task 4.3: Implement Frontend Playlist State Management
+- ✅ Task 4.4: Implement Playlist List UI
+- ✅ Task 4.5: Implement Playlist Details UI
 
 ## Upcoming Tasks
 
-### Phase 3: Core Infrastructure Setup (Continued)
-- Task 3.3: Implement Settings Management (Electron Store)
-- Task 3.4: Implement Logging (Winston)
-- Task 3.5: Configure Application Updates (electron-updater)
-- Task 3.6: Setup Dependency Handling (yt-dlp/ffmpeg)
-
-### Phase 4: Playlist Management Implementation
-- Task 4.1: Implement Playlist Service Logic
-- Task 4.2: Implement Playlist IPC Handlers
-- Task 4.3: Implement Frontend Playlist State Management
-- Task 4.4: Implement Playlist List UI
-- Task 4.5: Implement Playlist Details UI
+### Phase 4: Playlist Management Implementation (continued)
 - Task 4.6: Implement Create/Import Playlist UI
 - Task 4.7: Implement Playlist Actions (Rename, Delete, Duplicate, Refresh)
-- Task 4.8: Implement Playlist Export/Import (JSON)
+- Task 4.8: Implement Playlist Export/Import UI
 
 ## Notes
 
@@ -47,6 +46,18 @@
 - Created CRUD helpers for all main entities (playlists, videos, playlist-video, history)
 - Added sqlite-adapter.ts as temporary solution for better-sqlite3 build issues
 - Added .gitignore file to exclude database files, build artifacts, and node_modules
-- Next focus: Implementing secure IPC bridge and handlers for database operations
+- Implemented secure IPC bridge and handlers for app core functionality
+- Implemented settings management with electron-store
+- Set up comprehensive logging with Winston
+- Configured application updates with electron-updater
+- Set up dependency handling for external tools (yt-dlp and ffmpeg)
+- Refactored dependency services into specialized modules for better separation of concerns
+- Implemented comprehensive playlist management functionality
+- Refactored playlist service into specialized modules using the Facade pattern:
+  - Core playlist management in playlistService.ts
+  - YouTube-specific functionality in youtubePlaylistService.ts
+  - Playlist video operations in playlistVideoService.ts
+  - Import/export functionality in playlistImportExportService.ts
+- Next focus: Implementing playlist IPC handlers
 
 *This document tracks implementation tasks for the PlayListify application.* 

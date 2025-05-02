@@ -1,70 +1,74 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useIPC } from './hooks/useIPC';
 import { IPC_CHANNELS } from '../shared/constants/ipc-channels';
 import { useAppStore } from './store/appStore';
-import { Button } from './components/ui/Button';
+import { router } from './router';
 import { AppInfo } from '../shared/types/app';
+import { Outlet, RouterProvider } from '@tanstack/react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-const App: React.FC = () => {
-  const { invoke: pingInvoke, data: pingResponse, loading: pingLoading } = useIPC<void, string>(IPC_CHANNELS.PING);
-  const { invoke: getAppInfo, data: appInfo } = useIPC<void, AppInfo>(IPC_CHANNELS.APP_INFO);
-  const [isLoading, setIsLoading] = useState(false);
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
-  // Testing global app store
-  const { isLoading: appLoading, setIsLoading: setAppLoading } = useAppStore();
-
+// Main App component with layout
+const AppLayout: React.FC = () => {
+  const { invoke: getAppInfo, data: appInfo, loading: appInfoLoading } = useIPC<void, AppInfo>(IPC_CHANNELS.APP_INFO);
+  
   useEffect(() => {
-    // Test ping IPC
-    pingInvoke();
-    
-    // Get app info
+    // Get app info on mount
     getAppInfo();
-  }, [pingInvoke, getAppInfo]);
+  }, [getAppInfo]);
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">PlayListify</h1>
-      <p className="mb-4">Welcome to PlayListify - Your YouTube Playlist Manager</p>
-      
-      <div className="flex space-x-2 mb-4">
-        <Button 
-          onClick={() => setAppLoading(!appLoading)}
-          variant="default"
-        >
-          Toggle Global Loading: {appLoading ? 'On' : 'Off'}
-        </Button>
-        
-        <Button 
-          onClick={() => setIsLoading(!isLoading)}
-          variant="secondary"
-        >
-          Toggle Local Loading: {isLoading ? 'On' : 'Off'}
-        </Button>
-        
-        <Button 
-          onClick={() => pingInvoke()}
-          variant="outline"
-          disabled={pingLoading}
-        >
-          Ping Again
-        </Button>
-      </div>
-      
-      <div className="mt-4 p-4 border rounded bg-secondary/20">
-        <h2 className="text-xl mb-2">System Info</h2>
-        <p>IPC Test: {pingLoading ? 'Pinging...' : pingResponse}</p>
-        
-        {appInfo && (
-          <div className="mt-2">
-            <p>App: {appInfo.name} v{appInfo.version}</p>
-            <p>Platform: {appInfo.platform} ({appInfo.arch})</p>
-            <p>Electron: v{appInfo.electronVersion}</p>
-            <p>Node.js: v{appInfo.nodeVersion}</p>
-            <p>Chromium: v{appInfo.chromiumVersion}</p>
+    <div className="h-screen flex flex-col">
+      {/* Header */}
+      <header className="bg-primary text-primary-foreground p-4 shadow">
+        <div className="container mx-auto flex justify-between items-center">
+          <div className="flex items-center">
+            <h1 className="text-xl font-bold">PlayListify</h1>
+            {appInfo && (
+              <span className="ml-2 text-xs opacity-70">v{appInfo.version}</span>
+            )}
           </div>
-        )}
-      </div>
+          {appInfo && (
+            <div className="text-xs opacity-70">
+              {appInfo.platform} ({appInfo.arch})
+            </div>
+          )}
+        </div>
+      </header>
+      
+      {/* Main content */}
+      <main className="flex-grow overflow-hidden">
+        <Outlet />
+      </main>
+      
+      {/* Footer */}
+      <footer className="bg-secondary text-secondary-foreground p-2 text-xs text-center">
+        <div className="container mx-auto">
+          <p>
+            PlayListify &copy; {new Date().getFullYear()} - Built with Electron, React, and TanStack Router
+          </p>
+        </div>
+      </footer>
     </div>
+  );
+};
+
+// Wrapper component that provides all contexts
+const App: React.FC = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
   );
 };
 

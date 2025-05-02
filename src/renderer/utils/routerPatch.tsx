@@ -1,5 +1,14 @@
 import { useRouter as tanstackUseRouter } from '@tanstack/react-router';
-import warning from 'tiny-warning';
+
+// Our own warning implementation
+const warning = (condition: any, message: string) => {
+  if (process.env.NODE_ENV !== 'production') {
+    if (!condition) {
+      console.warn('Warning:', message);
+    }
+  }
+  return undefined;
+};
 
 // This is a wrapper around the useRouter hook that handles the warning issue
 export const useRouter = () => {

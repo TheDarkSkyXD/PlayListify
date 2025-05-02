@@ -3,7 +3,7 @@ import path from 'path';
 import { app } from 'electron';
 
 // Define the settings schema
-interface SettingsSchema {
+export interface SettingsSchema {
   downloadPath: string;
   maxConcurrentDownloads: number;
   autoUpdateCheck: boolean;

@@ -1,69 +1,65 @@
 const fs = require('fs');
 const path = require('path');
 
-// Function to create a warning function
+console.log('Applying TanStack Router warning patch...');
+
+// Function to create a warning function with both ESM and CommonJS exports
 const createWarningFunction = `
-// Simple warning function
+/**
+ * Simple warning function
+ */
 function warning(condition, message) {
   if (process.env.NODE_ENV !== 'production') {
     if (!condition) {
       console.warn('Warning:', message);
     }
   }
+  return undefined;
 }
 
-module.exports = warning;
+// Export for CommonJS
+if (typeof module !== 'undefined') {
+  module.exports = warning;
+  module.exports.default = warning;
+}
+
+// Export for ESM
+export default warning;
 `;
 
 // Path to the node_modules directory
 const nodeModulesPath = path.join(__dirname, '..', 'node_modules');
 
-// Create a modified tiny-warning/index.js file
+// Create a tiny-warning directory if it doesn't exist
 const tinyWarningPath = path.join(nodeModulesPath, 'tiny-warning');
 if (!fs.existsSync(tinyWarningPath)) {
   fs.mkdirSync(tinyWarningPath, { recursive: true });
 }
+
+// Create both CommonJS and ESM files
 fs.writeFileSync(path.join(tinyWarningPath, 'index.js'), createWarningFunction);
 
-// Function to search for files containing "warning is not a function" error
-function findAndPatchFiles(directoryPath, pattern) {
-  if (!fs.existsSync(directoryPath)) return;
-  
-  const files = fs.readdirSync(directoryPath);
-  
-  for (const file of files) {
-    const filePath = path.join(directoryPath, file);
-    const stats = fs.statSync(filePath);
-    
-    if (stats.isDirectory()) {
-      findAndPatchFiles(filePath, pattern);
-    } else if (stats.isFile() && file.endsWith('.js') || file.endsWith('.cjs')) {
-      try {
-        let content = fs.readFileSync(filePath, 'utf8');
-        
-        // Look for warning usage in the file
-        if (content.includes('require("tiny-warning")') || content.includes("require('tiny-warning')")) {
-          console.log(`Patching file: ${filePath}`);
-          
-          // Fix the warning import
-          content = content.replace(/var warning\s*=\s*require\(['"]tiny-warning['"]\);?/g, 
-            'var warning = function(condition, message) { if (!condition && process.env.NODE_ENV !== "production") { console.warn("Warning:", message); } };');
-          
-          // Write the patched file
-          fs.writeFileSync(filePath, content);
-        }
-      } catch (error) {
-        console.error(`Error processing file ${filePath}: ${error.message}`);
-      }
+// Create an index.mjs file for ESM imports
+fs.writeFileSync(path.join(tinyWarningPath, 'index.mjs'), createWarningFunction);
+
+// Create a package.json to specify module type
+const packageJson = {
+  "name": "tiny-warning",
+  "version": "1.0.0",
+  "description": "A tiny warning function",
+  "main": "index.js",
+  "module": "index.mjs",
+  "exports": {
+    ".": {
+      "import": "./index.mjs",
+      "require": "./index.js"
     }
   }
-}
+};
 
-// Look for TanStack router files to patch
-const routerPath = path.join(nodeModulesPath, '@tanstack', 'react-router');
-if (fs.existsSync(routerPath)) {
-  console.log('Searching for @tanstack/react-router files to patch...');
-  findAndPatchFiles(routerPath, 'tiny-warning');
-}
+fs.writeFileSync(
+  path.join(tinyWarningPath, 'package.json'),
+  JSON.stringify(packageJson, null, 2)
+);
 
 console.log('Warning patch applied successfully!'); 
