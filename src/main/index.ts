@@ -10,6 +10,7 @@ import updateService from './services/updateService';
 import dependencyService from './services/dependencyService';
 import { getDatabase, closeDatabase } from './database';
 import registerDownloadHandlers from './ipc/downloadHandlers';
+import { registerFileHandlers } from './ipc/fileHandlers';
 
 // Configure development app data directory if specified
 if (process.env.PLAYLISTIFY_DEV_APP_DATA) {
@@ -95,6 +96,7 @@ const createWindow = async (): Promise<void> => {
     registerPlaylistHandlers();
     registerThumbnailHandlers();
     registerDownloadHandlers();
+    registerFileHandlers();
 
     // Load the index.html of the app.
     if (MAIN_WINDOW_WEBPACK_ENTRY) {

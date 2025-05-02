@@ -143,6 +143,18 @@ export function registerDownloadHandlers() {
     }
   });
 
+  // Additional handler with the name used by the hook
+  ipcMain.handle('download:get-queue-status', async () => {
+    try {
+      const queueStatus = await downloadService.getQueueStatus();
+      return { success: true, data: queueStatus };
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      logger.error(`Failed to get queue status: ${errorMessage}`, { error });
+      return { success: false, error: `Failed to get queue status: ${errorMessage}` };
+    }
+  });
+
   // Cancel a download
   ipcMain.handle('download:cancel', async (event, downloadId: string) => {
     try {

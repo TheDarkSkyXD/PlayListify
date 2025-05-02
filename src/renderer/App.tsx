@@ -8,6 +8,7 @@ import { Outlet, RouterProvider } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import useDownloadStore, { DownloadProgress, QueueStatus } from './store/downloadStore';
 import { DownloadOptionsModal } from './components/Modals/DownloadOptionsModal';
+import { ToastProvider } from './hooks/useToast';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -57,8 +58,10 @@ const App: React.FC = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <DownloadOptionsModal />
+      <ToastProvider>
+        <RouterProvider router={router} />
+        <DownloadOptionsModal />
+      </ToastProvider>
     </QueryClientProvider>
   );
 };

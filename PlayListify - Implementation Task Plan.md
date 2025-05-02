@@ -4,7 +4,7 @@ This document outlines the step-by-step tasks required to implement the PlayList
 
 ## Task 1: Project Setup & Core Dependencies
 
-### Step 1: Initialize Electron Project with Forge & TypeScript
+### Step 1: Initialize Electron Project with Forge & TypeScript (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -12,13 +12,13 @@ Initialize a new Electron project using the Electron Forge CLI with the Webpack 
 
 #### Task Breakdown
 
-##### SubTask 1: Initialize Project
+##### SubTask 1: Initialize Project - COMPLETED
 
 - [x] Description Of SubTask 1 change: Run Electron Forge init command with the specified template.
 - /relative/path/of/changed/file: `.` (Project Root)
 - Operation being done (Create): Creates project files and folders (`package.json`, `forge.config.js`, `tsconfig.json`, `src/`, etc.).
 
-##### SubTask 2: Verify Initial Build
+##### SubTask 2: Verify Initial Build - COMPLETED
 
 - [x] Description Of SubTask 2 change: Run the initial start command to ensure the default template application builds and runs correctly.
 - /relative/path/of/changed/file: N/A (Build process verification)
@@ -30,7 +30,7 @@ Initialize a new Electron project using the Electron Forge CLI with the Webpack 
 - Command to run: `npx create-electron-app playlistify --template=webpack-typescript` (or equivalent yarn command).
 - Follow prompts if any.
 
-### Step 2: Install Core Dependencies
+### Step 2: Install Core Dependencies (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -70,7 +70,7 @@ Install essential libraries required for the application's core functionality, i
 - `electron-updater` should be added as a dev dependency if only used for building/packaging.
 - Follow shadcn/ui setup guide carefully: https://ui.shadcn.com/docs/installation/vite (adapt for Webpack if necessary, though principles are similar).
 
-### Step 3: Configure TypeScript & ESLint/Prettier
+### Step 3: Configure TypeScript & ESLint/Prettier (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -102,7 +102,7 @@ Configure TypeScript for strict type checking and set up ESLint and Prettier for
 - Configure Prettier for consistent code style (e.g., trailing commas, semi-colons).
 - Consider adding a pre-commit hook (e.g., using Husky and lint-staged) to automatically lint and format code.
 
-### Step 4: Establish Basic File Structure
+### Step 4: Establish Basic File Structure (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -141,7 +141,7 @@ Create the core directory structure within the `src/` folder as defined in the f
 
 ## Task 2: Database Setup
 
-### Step 5: Define Database Schema
+### Step 5: Define Database Schema (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -161,7 +161,7 @@ Define the SQL schema for all necessary tables (`playlists`, `videos`, `playlist
 - Ensure `ON DELETE CASCADE` is used appropriately for foreign keys to maintain data integrity.
 - Include necessary indexes for performance on common query patterns (e.g., fetching videos by playlist ID, fetching history by date).
 
-### Step 6: Implement Database Initialization & Connection
+### Step 6: Implement Database Initialization & Connection (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -200,7 +200,7 @@ Implement the logic in the main process to connect to the `better-sqlite3` datab
 - The database connection should be synchronous as per `better-sqlite3`'s design.
 - The database instance should be a singleton, accessible throughout the main process.
 
-### Step 7: Implement Basic CRUD Helpers
+### Step 7: Implement Basic CRUD Helpers (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -239,7 +239,7 @@ Create helper functions for common database operations (Create, Read, Update, De
 - Use transactions (`db.transaction(...)`) for operations involving multiple statements (like importing a playlist).
 - Validate input data (using Zod) before passing it to these helper functions (validation might occur in the service layer calling these helpers).
 
-### Step 8: Implement Database Migrations (Basic)
+### Step 8: Implement Database Migrations (Basic) (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -274,7 +274,7 @@ Implement a basic migration system using SQLite's `PRAGMA user_version`. This al
 
 ## Task 3: Core Infrastructure Setup
 
-### Step 9: Implement Secure IPC Bridge (Preload Script)
+### Step 9: Implement Secure IPC Bridge (Preload Script) (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -311,7 +311,7 @@ Set up a secure bridge between the main process and the renderer process using a
 - The exposed API should be minimal and only include necessary communication functions.
 - Type definitions for the exposed API should be created (e.g., in `src/shared/types.ts`) and used in the renderer for type safety.
 
-### Step 10: Setup Basic IPC Handlers
+### Step 10: Setup Basic IPC Handlers (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -348,7 +348,7 @@ Establish the basic mechanism for handling Inter-Process Communication (IPC) req
 - This confirms the end-to-end IPC setup (Renderer -> Preload -> Main -> Renderer).
 - Future handlers should be organized into modules within `src/main/ipc/` based on features (e.g., `playlistHandlers.ts`, `downloadHandlers.ts`).
 
-### Step 11: Implement Settings Management (Electron Store)
+### Step 11: Implement Settings Management (Electron Store) (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -385,7 +385,7 @@ Set up `electron-store` to persist application settings (like default download p
 - The `electron-store` instance should be initialized early in the main process.
 - Consider defining a TypeScript interface for the settings object in `src/shared/types.ts`.
 
-### Step 12: Implement Logging (Winston)
+### Step 12: Implement Logging (Winston) (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -421,7 +421,7 @@ Configure the `winston` library to provide structured logging to a file. This he
 - Also consider adding a console transport during development for easier debugging.
 - Use the logger consistently throughout the main process code, especially in `catch` blocks.
 
-### Step 13: Configure Application Updates (electron-updater)
+### Step 13: Configure Application Updates (electron-updater) (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -465,7 +465,7 @@ Set up `electron-updater` to automatically check for and download application up
 - Code signing for macOS and Windows is recommended for smooth updates and is often configured alongside the publisher settings.
 - The renderer process will need to listen for the IPC events (`app:update-available`, `app:update-downloaded`) and display UI notifications.
 
-### Step 14: Setup Dependency Handling (yt-dlp/ffmpeg)
+### Step 14: Setup Dependency Handling (yt-dlp/ffmpeg) (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -508,7 +508,7 @@ Implement a strategy to locate the `yt-dlp` and `ffmpeg` executables. This might
 
 ## Task 4: Playlist Management Implementation
 
-### Step 15: Implement Playlist Service Logic
+### Step 15: Implement Playlist Service Logic (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -581,7 +581,7 @@ Create the service layer (`playlistService.ts`) in the main process to handle th
 - Inject database helpers/instance into the service.
 - Ensure proper error handling and logging.
 
-### Step 16: Implement Playlist IPC Handlers
+### Step 16: Implement Playlist IPC Handlers (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -616,7 +616,7 @@ Create the IPC handlers in the main process that will be invoked by the renderer
 - Ensure channel names match exactly between handlers and renderer calls.
 - Use the shared TypeScript types for request/response payloads.
 
-### Step 17: Implement Frontend Playlist State Management
+### Step 17: Implement Frontend Playlist State Management (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -647,7 +647,7 @@ Set up state management in the renderer process (React app) for handling playlis
 - Configure React Query mutations to invalidate relevant queries upon success (e.g., invalidate `playlist:get-all` after `playlist:create`).
 - Use shared TypeScript types for data consistency.
 
-### Step 18: Implement Playlist List UI
+### Step 18: Implement Playlist List UI (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -678,7 +678,7 @@ Create the React components necessary to display the list of playlists fetched f
 - Handle loading and error states from the `useQuery` hook.
 - Style components using Tailwind CSS / shadcn/ui.
 
-### Step 19: Implement Playlist Details UI
+### Step 19: Implement Playlist Details UI (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -721,7 +721,7 @@ Create the React components to display the videos within the currently selected 
 - Handle loading/error states for the details query.
 - Display a message if no playlist is selected or if the selected playlist is empty.
 
-### Step 20: Implement Create/Import Playlist UI
+### Step 20: Implement Create/Import Playlist UI (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -758,7 +758,7 @@ Create modal dialogs using shadcn/ui components for creating a new custom playli
 - Handle loading states and display success/error messages (e.g., using toasts) after mutation calls.
 - Close modals on successful submission or cancellation.
 
-### Step 21: Implement Playlist Actions (Rename, Delete, Duplicate, Refresh)
+### Step 21: Implement Playlist Actions (Rename, Delete, Duplicate, Refresh) (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -801,7 +801,7 @@ Add UI elements (buttons, context menus) to allow users to rename, delete, dupli
 - Ensure mutations invalidate the `playlist:get-all` query to update the list.
 - Provide user feedback (toasts) on success/failure.
 
-### Step 22: Implement Playlist Export/Import (JSON)
+### Step 22: Implement Playlist Export/Import (JSON) (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -840,7 +840,7 @@ Add UI elements to trigger the export of a selected playlist to a JSON file and 
 
 ## Task 5: Video Download Implementation
 
-### Step 23: Implement Download Service Logic
+### Step 23: Implement Download Service Logic (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -903,7 +903,7 @@ Create the service layer (`downloadService.ts`) in the main process to handle th
 - Pass the `event.sender` (webContents) from the IPC handler to the service function so it can send progress events back to the correct window.
 - Ensure robust error handling for `yt-dlp` execution and file system operations.
 
-### Step 24: Implement Download IPC Handlers & Events
+### Step 24: Implement Download IPC Handlers & Events (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -942,7 +942,7 @@ Create the IPC handlers for download-related actions and ensure the main process
 
 - The renderer needs corresponding listeners (`window.electronAPI.on(...)`) for the progress and completion events.
 
-### Step 25: Implement Frontend Download State Management
+### Step 25: Implement Frontend Download State Management (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -973,7 +973,7 @@ Set up state management in the renderer for the download queue and related UI st
 - Ensure listeners are properly cleaned up on component unmount to avoid memory leaks.
 - The Zustand store provides the reactive state for the Downloads Page UI.
 
-### Step 26: Implement Download Button & Options UI
+### Step 26: Implement Download Button & Options UI (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -1015,7 +1015,7 @@ Implement the UI element (e.g., a button or icon) on video items to initiate dow
 - Persist the user's last selected quality preference (e.g., in local storage or settings) as a default for the next download.
 - The button's appearance should react to changes in the download status received via IPC events and reflected in the Zustand store or refetched playlist details.
 
-### Step 27: Implement Downloads Page UI
+### Step 27: Implement Downloads Page UI (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -1023,27 +1023,27 @@ Create a dedicated page in the renderer process to display the list of active, q
 
 #### Task Breakdown
 
-##### SubTask 1: Create Downloads Page Component
+##### SubTask 1: Create Downloads Page Component - COMPLETED
 
-- [ ] Description Of SubTask 1 change: Create `DownloadsPage.tsx`.
+- [x] Description Of SubTask 1 change: Create `DownloadsPage.tsx`.
 - /relative/path/of/changed/file: `src/renderer/pages/Downloads.tsx`
 - Operation being done (Create): Creates the downloads page component.
 
-##### SubTask 2: Access Download Queue State
+##### SubTask 2: Access Download Queue State - COMPLETED
 
-- [ ] Description Of SubTask 2 change: Inside `DownloadsPage.tsx`, access the download queue state from the Zustand store created in Step 25.
+- [x] Description Of SubTask 2 change: Inside `DownloadsPage.tsx`, access the download queue state from the Zustand store created in Step 25.
 - /relative/path/of/changed/file: `src/renderer/pages/Downloads.tsx`
 - Operation being done (Update): Connects page to Zustand store.
 
-##### SubTask 3: Render Download Items
+##### SubTask 3: Render Download Items - COMPLETED
 
-- [ ] Description Of SubTask 3 change: Map over the download queue state and render items showing video title, status (Queued, Downloading X%, Completed, Failed), and potentially progress bars.
+- [x] Description Of SubTask 3 change: Map over the download queue state and render items showing video title, status (Queued, Downloading X%, Completed, Failed), and potentially progress bars.
 - /relative/path/of/changed/file: `src/renderer/pages/Downloads.tsx`
 - Operation being done (Update): Adds rendering logic for download items.
 
-##### SubTask 4: Add Page to Router
+##### SubTask 4: Add Page to Router - COMPLETED
 
-- [ ] Description Of SubTask 4 change: Add a route (e.g., `/downloads`) for the `DownloadsPage` in the TanStack Router configuration.
+- [x] Description Of SubTask 4 change: Add a route (e.g., `/downloads`) for the `DownloadsPage` in the TanStack Router configuration.
 - /relative/path/of/changed/file: `src/renderer/router/index.ts`
 - Operation being done (Update): Adds routing for the downloads page.
 
@@ -1054,7 +1054,7 @@ Create a dedicated page in the renderer process to display the list of active, q
 
 ## Task 6: User Experience & Core UI Implementation
 
-### Step 28: Implement Main Layout & Navigation
+### Step 28: Implement Main Layout & Navigation (COMPLETED)
 
 #### Detailed technical explanation of what we're accomplishing in this step
 
@@ -1136,19 +1136,19 @@ Implement the backend service and frontend UI to track and display recently watc
 
 #### Task Breakdown
 
-##### SubTask 1: Implement History Service Logic
+##### SubTask 1: Implement History Service Logic - COMPLETED
 
 - [x] Description Of SubTask 1 change: Create `historyService.ts`. Implement functions `addOrUpdateHistory` and `getHistory` that use the corresponding DB helpers (from Step 7).
 - /relative/path/of/changed/file: `src/main/services/historyService.ts`
 - Operation being done (Create): Creates the history service module.
 
-##### SubTask 2: Implement History IPC Handlers
+##### SubTask 2: Implement History IPC Handlers - COMPLETED
 
 - [x] Description Of SubTask 2 change: Create `historyHandlers.ts`. Implement handlers for `history:add-or-update` and `history:get`, calling the `HistoryService` functions.
 - /relative/path/of/changed/file: `src/main/ipc/historyHandlers.ts`
 - Operation being done (Create): Creates IPC handlers for history.
 
-##### SubTask 3: Register History Handlers
+##### SubTask 3: Register History Handlers - COMPLETED
 
 - [x] Description Of SubTask 3 change: Import and register the history handlers in `src/main/index.ts`.
 - /relative/path/of/changed/file: `src/main/index.ts`

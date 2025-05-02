@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import useDownloadStore, { DownloadItem, QueueStatus } from '../store/downloadStore';
 import { useDownloadQueueStatus, useCancelDownload, useRetryDownload, useClearDownloads } from '../hooks/useDownloadQueries';
-import { Trash, RefreshCw, XCircle, RotateCw } from 'lucide-react';
+import { Trash, RefreshCw, XCircle, RotateCw, Play, Folder } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { useToast } from '../hooks/useToast';
 
 type DownloadFilter = 'all' | 'active' | 'completed' | 'failed';
 
 export const DownloadsPage: React.FC = () => {
   const { downloads } = useDownloadStore();
   const [filter, setFilter] = useState<DownloadFilter>('all');
+  const { toast } = useToast();
   
   // Get queue status
   const { data: queueStatus, isLoading: isLoadingQueue, refetch: refetchQueueStatus } = useDownloadQueueStatus();
@@ -59,6 +61,46 @@ export const DownloadsPage: React.FC = () => {
     refetchQueueStatus();
   };
   
+  // New function to open a file in the default player
+  const handlePlayFile = async (filePath: string) => {
+    try {
+      const result = await window.electron.ipcRenderer.invoke('file:open', { filePath });
+      if (!result || (result && typeof result === 'object' && 'success' in result && !result.success)) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: `Failed to open file: ${result && typeof result === 'object' && 'error' in result ? result.error : 'Unknown error'}`,
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'An unexpected error occurred while trying to open the file',
+      });
+    }
+  };
+  
+  // New function to open the file location in the explorer/finder
+  const handleOpenFolder = async (filePath: string) => {
+    try {
+      const result = await window.electron.ipcRenderer.invoke('file:show-in-folder', { filePath });
+      if (!result || (result && typeof result === 'object' && 'success' in result && !result.success)) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: `Failed to show file in folder: ${result && typeof result === 'object' && 'error' in result ? result.error : 'Unknown error'}`,
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'An unexpected error occurred while trying to open the folder',
+      });
+    }
+  };
+  
   // Render download progress bar
   const renderProgressBar = (progress: number) => (
     <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
@@ -87,7 +129,7 @@ export const DownloadsPage: React.FC = () => {
               title="Cancel Download"
             >
               <XCircle className="h-4 w-4 mr-1" />
-              Cancel
+              <span className="hidden sm:inline">Cancel</span>
             </Button>
           )}
           
@@ -100,8 +142,32 @@ export const DownloadsPage: React.FC = () => {
               disabled={retryDownload.isPending}
             >
               <RefreshCw className={`h-4 w-4 mr-1 ${retryDownload.isPending ? 'animate-spin' : ''}`} />
-              Retry
+              <span className="hidden sm:inline">Retry</span>
             </Button>
+          )}
+          
+          {download.status === 'completed' && download.filePath && (
+            <>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handlePlayFile(download.filePath as string)}
+                title="Play Video"
+              >
+                <Play className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Play</span>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleOpenFolder(download.filePath as string)}
+                title="Open Folder"
+              >
+                <Folder className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Folder</span>
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -140,7 +206,13 @@ export const DownloadsPage: React.FC = () => {
       
       {download.status === 'completed' && download.filePath && (
         <div className="mt-2 text-xs text-muted-foreground truncate">
-          Saved to: {download.filePath}
+          Saved to: <button 
+            onClick={() => handleOpenFolder(download.filePath as string)}
+            className="hover:underline hover:text-primary focus:outline-none"
+            title="Open Folder"
+          >
+            {download.filePath}
+          </button>
         </div>
       )}
     </div>
@@ -235,10 +307,10 @@ export const DownloadsPage: React.FC = () => {
   
   return (
     <div className="container mx-auto py-6 px-4">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
         <h1 className="text-2xl font-bold">Downloads</h1>
         
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 w-full sm:w-auto">
           <Button 
             variant="outline" 
             size="sm" 
@@ -264,7 +336,7 @@ export const DownloadsPage: React.FC = () => {
       {renderQueueStatus()}
       
       <div className="mb-6">
-        <div className="flex space-x-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           <Button
             variant={filter === 'all' ? 'default' : 'outline'}
             size="sm"
