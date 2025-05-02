@@ -25,11 +25,15 @@ class Statement {
     
     return new Promise<{ lastInsertRowid?: number, changes?: number }>((resolve, reject) => {
       this.stmt.run(...params, function(this: {lastID: number, changes: number}, err: Error | null) {
-        if (err) reject(err);
-        resolve({ 
-          lastInsertRowid: this.lastID, 
-          changes: this.changes 
-        });
+        if (err) {
+          logger.error(`Statement run error: ${err.message}`);
+          reject(err);
+        } else {
+          resolve({ 
+            lastInsertRowid: this.lastID, 
+            changes: this.changes 
+          });
+        }
       });
     });
   }
@@ -41,8 +45,12 @@ class Statement {
     
     return new Promise<any>((resolve, reject) => {
       this.stmt.get(...params, (err: Error | null, row: any) => {
-        if (err) reject(err);
-        resolve(row);
+        if (err) {
+          logger.error(`Statement get error: ${err.message}`);
+          reject(err);
+        } else {
+          resolve(row);
+        }
       });
     });
   }
@@ -54,8 +62,12 @@ class Statement {
     
     return new Promise<any[]>((resolve, reject) => {
       this.stmt.all(...params, (err: Error | null, rows: any[]) => {
-        if (err) reject(err);
-        resolve(rows);
+        if (err) {
+          logger.error(`Statement all error: ${err.message}`);
+          reject(err);
+        } else {
+          resolve(rows);
+        }
       });
     });
   }
@@ -69,6 +81,7 @@ class Statement {
     return new Promise<void>((resolve, reject) => {
       this.stmt.finalize((err: Error | null) => {
         if (err) {
+          logger.error(`Statement finalize error: ${err.message}`);
           reject(err);
         } else {
           this.finalized = true;
@@ -85,17 +98,44 @@ class Database {
   private db: sqlite3.Database;
   private activeStatements: Set<Statement> = new Set();
   private isClosing: boolean = false;
+  private transactionDepth: number = 0;
 
   constructor(dbPath: string) {
+    // Configure sqlite3 with busy timeout to avoid SQLITE_BUSY errors
+    // Wait up to 30 seconds (30000 ms) for locks to be released - increased from 10s
     this.db = new sqlite3.Database(dbPath);
-    logger.info(`Database opened: ${dbPath}`);
+    this.db.configure('busyTimeout', 30000);
+    
+    // Enable foreign keys
+    this.db.exec('PRAGMA foreign_keys = ON', (err) => {
+      if (err) {
+        logger.error('Failed to enable foreign keys:', err);
+      } else {
+        logger.debug('Foreign keys enabled');
+      }
+    });
+    
+    // Set journal mode to WAL for better concurrency
+    this.db.exec('PRAGMA journal_mode = WAL', (err) => {
+      if (err) {
+        logger.error('Failed to set journal mode to WAL:', err);
+      } else {
+        logger.debug('Journal mode set to WAL');
+      }
+    });
+    
+    logger.info(`Database opened: ${dbPath} with 30s busy timeout and WAL mode`);
   }
 
   pragma(statement: string) {
     return new Promise<any>((resolve, reject) => {
       this.db.get(`PRAGMA ${statement}`, (err: Error | null, row: any) => {
-        if (err) reject(err);
-        resolve(row);
+        if (err) {
+          logger.error(`PRAGMA error: ${err.message}`);
+          reject(err);
+        } else {
+          resolve(row);
+        }
       });
     });
   }
@@ -142,6 +182,52 @@ class Database {
   untrackStatement(statement: Statement): void {
     this.activeStatements.delete(statement);
     logger.debug(`Statement untracked. Total active: ${this.activeStatements.size}`);
+  }
+  
+  // Add a transaction method to properly handle atomic operations
+  async transaction<T>(callback: (db: Database) => Promise<T>): Promise<T> {
+    if (this.isClosing) {
+      return Promise.reject(new Error('Cannot start transaction on closing database'));
+    }
+    
+    // Nested transaction support
+    const isOutermostTransaction = this.transactionDepth === 0;
+    this.transactionDepth++;
+    
+    try {
+      // Only begin transaction at the outermost level
+      if (isOutermostTransaction) {
+        await this.exec('BEGIN TRANSACTION');
+        logger.debug('Transaction started');
+      } else {
+        logger.debug(`Nested transaction at depth ${this.transactionDepth}`);
+      }
+      
+      // Execute the callback
+      const result = await callback(this);
+      
+      // Commit transaction only at the outermost level
+      if (isOutermostTransaction) {
+        await this.exec('COMMIT');
+        logger.debug('Transaction committed');
+      }
+      
+      return result;
+    } catch (error) {
+      // If there's an error, roll back the transaction (only at outermost level)
+      if (isOutermostTransaction) {
+        try {
+          await this.exec('ROLLBACK');
+          logger.debug('Transaction rolled back due to error');
+        } catch (rollbackError) {
+          logger.error('Error rolling back transaction:', rollbackError);
+        }
+      }
+      
+      throw error;
+    } finally {
+      this.transactionDepth--;
+    }
   }
 
   async close(): Promise<void> {

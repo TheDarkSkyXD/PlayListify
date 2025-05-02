@@ -6,6 +6,8 @@ import { router } from './router';
 import { AppInfo } from '../shared/types/app';
 import { Outlet, RouterProvider } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import useDownloadStore, { DownloadProgress, QueueStatus } from './store/downloadStore';
+import { DownloadOptionsModal } from './components/Modals/DownloadOptionsModal';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -18,56 +20,45 @@ const queryClient = new QueryClient({
   },
 });
 
-// Main App component with layout
-const AppLayout: React.FC = () => {
-  const { invoke: getAppInfo, data: appInfo, loading: appInfoLoading } = useIPC<void, AppInfo>(IPC_CHANNELS.APP_INFO);
-  
-  useEffect(() => {
-    // Get app info on mount
-    getAppInfo();
-  }, [getAppInfo]);
-
-  return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground p-4 shadow">
-        <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold">PlayListify</h1>
-            {appInfo && (
-              <span className="ml-2 text-xs opacity-70">v{appInfo.version}</span>
-            )}
-          </div>
-          {appInfo && (
-            <div className="text-xs opacity-70">
-              {appInfo.platform} ({appInfo.arch})
-            </div>
-          )}
-        </div>
-      </header>
-      
-      {/* Main content */}
-      <main className="flex-grow overflow-hidden">
-        <Outlet />
-      </main>
-      
-      {/* Footer */}
-      <footer className="bg-secondary text-secondary-foreground p-2 text-xs text-center">
-        <div className="container mx-auto">
-          <p>
-            PlayListify &copy; {new Date().getFullYear()} - Built with Electron, React, and TanStack Router
-          </p>
-        </div>
-      </footer>
-    </div>
-  );
-};
-
 // Wrapper component that provides all contexts
 const App: React.FC = () => {
+  // Get download store actions
+  const { setDownloadProgress, setDownloadComplete, updateQueueStatus } = useDownloadStore();
+  
+  // Set up event listeners for download progress and status
+  useEffect(() => {
+    // Listen for download progress updates
+    const removeProgressListener = window.electron.ipcRenderer.on('download:progress', (data: { id: string; progress: DownloadProgress }) => {
+      setDownloadProgress(data.id, data.progress);
+    });
+    
+    // Listen for download completion
+    const removeCompleteListener = window.electron.ipcRenderer.on('download:complete', (data: { 
+      id: string; 
+      status: 'completed' | 'failed' | 'cancelled';
+      filePath?: string;
+      errorMessage?: string;
+    }) => {
+      setDownloadComplete(data.id, data.status, data.filePath, data.errorMessage);
+    });
+    
+    // Listen for queue status updates
+    const removeQueueListener = window.electron.ipcRenderer.on('download:queue-update', (data: QueueStatus) => {
+      updateQueueStatus(data);
+    });
+    
+    return () => {
+      // Clean up listeners
+      removeProgressListener();
+      removeCompleteListener();
+      removeQueueListener();
+    };
+  }, [setDownloadProgress, setDownloadComplete, updateQueueStatus]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
+      <DownloadOptionsModal />
     </QueryClientProvider>
   );
 };

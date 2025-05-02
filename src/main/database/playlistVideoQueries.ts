@@ -1,6 +1,20 @@
 import Database from './sqlite-adapter';
 import logger from '../services/logService';
 import { updatePlaylistStats } from './playlistQueries';
+import { getDatabase } from './index';
+
+// Database variable to be initialized
+let db: any;
+
+// Initialize the database
+async function initDb() {
+  db = await getDatabase();
+}
+
+// Call initDb immediately
+initDb().catch(error => {
+  logger.error('Failed to initialize database in playlistVideoQueries:', error);
+});
 
 // Type definitions for PlaylistVideo entities
 export interface PlaylistVideo {

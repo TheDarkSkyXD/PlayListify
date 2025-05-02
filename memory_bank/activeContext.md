@@ -225,4 +225,35 @@ We've implemented comprehensive query functions for all main entities:
 
 ## Current Focus
 
-The main focus is now on creating a secure bridge between the main and renderer processes to expose database operations to the UI, and implementing the settings management system. 
+The main focus is now on creating a secure bridge between the main and renderer processes to expose database operations to the UI, and implementing the settings management system.
+
+## Current Focus: Video Download Implementation
+
+### Completed Components
+We've completed the backend components of the video download implementation:
+
+1. **Download Service**: 
+   - Implemented in `src/main/services/downloadService.ts`
+   - Handles queue management, download execution, and status tracking
+   - Uses yt-dlp for downloading videos with format selection
+
+2. **Download IPC Handlers**:
+   - Implemented in `src/main/ipc/downloadHandlers.ts`
+   - Exposes download functionality to the renderer process
+   - Includes handlers for formats, video downloads, playlist downloads
+
+3. **Database Support**:
+   - Added download queries in `src/main/database/downloadQueries.ts`
+   - Updated schema to support the download tracking system
+
+### Next Steps
+1. Fix TypeScript/linter errors in the download service implementation
+2. Implement the frontend download state management (5.3)
+3. Create the download button and options UI (5.4)
+4. Implement the Downloads page UI (5.5)
+
+### Current Issues
+There are several TypeScript/linter errors that need to be addressed:
+- Import issues for `YtDlpWrap`, `logger`, and `db` references
+- Type issues with error handling
+- Need to ensure database functions are correctly implemented 

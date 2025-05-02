@@ -1,5 +1,45 @@
 # Tasks
 
+## Current Tasks
+
+### Completed Tasks
+- [x] Setup project structure and core dependencies
+- [x] Configure database with schema and migrations
+- [x] Implement secure IPC bridge and handlers
+- [x] Create playlist management system (backend)
+- [x] Implement playlist UI (frontend)
+- [x] Download service implementation (backend)
+- [x] Download IPC handlers (backend)
+- [x] Frontend download state management (frontend)
+- [x] Download button and options UI (frontend)
+
+### In Progress
+- [ ] Downloads page UI (frontend)
+
+### Upcoming Tasks
+- [ ] Fix TypeScript/linter errors in download service implementation
+- [ ] History feature implementation
+- [ ] Settings page implementation
+- [ ] Video player integration
+
+## Task Details
+
+### Fix Download Service Linter Errors
+- Fix import issues for `YtDlpWrap`, `logger`, and `db` references
+- Add proper type assertions for error objects
+- Ensure database functions are properly implemented and exported
+
+### Frontend Download State Management
+- Create download store with Zustand
+- Implement IPC event listeners for download progress and completion
+- Create format query hook with React Query
+
+### Download Button and Options UI
+- Create download button component with different states
+- Add button to video items
+- Implement download options modal
+- Connect button to modal
+
 ## Completed Tasks
 
 ### Phase 1: Project Setup & Core Dependencies

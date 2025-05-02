@@ -67,17 +67,18 @@ CREATE TABLE IF NOT EXISTS history (
 
 -- Downloads table for tracking download history and status
 CREATE TABLE IF NOT EXISTS downloads (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  video_id INTEGER NOT NULL,
-  format TEXT NOT NULL, -- mp4, mp3, etc.
-  quality TEXT, -- 360p, 720p, etc.
-  size_bytes INTEGER,
-  started_at INTEGER NOT NULL, -- Unix timestamp
-  completed_at INTEGER, -- Unix timestamp
-  status TEXT NOT NULL, -- 'pending', 'downloading', 'complete', 'error', etc.
-  progress REAL DEFAULT 0, -- 0-100
-  error_message TEXT, -- Error message if status is 'error'
-  FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE
+  id TEXT PRIMARY KEY,
+  video_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  progress REAL DEFAULT 0,
+  download_path TEXT NOT NULL,
+  format_id TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  final_path TEXT,
+  error_message TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY(video_id) REFERENCES videos(video_id) ON DELETE CASCADE
 );
 
 -- Tags table for organizing playlists

@@ -4,6 +4,114 @@ import { Modal } from '../ui/Modal';
 import { useGetYouTubePlaylistInfo, useImportPlaylist } from '../../hooks/usePlaylistQueries';
 import { useThumbnail } from '../../hooks/useThumbnail';
 
+// ThumbnailImage component for playlist preview
+const PlaylistThumbnail = ({ thumbnailUrl, title }: { thumbnailUrl?: string, title: string }) => {
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 2; // Maximum number of retries if thumbnail loading fails
+  
+  // Extract video ID from the thumbnail URL if needed for fallbacks
+  const extractVideoId = thumbnailUrl ? 
+    thumbnailUrl.match(/\/vi(?:_webp)?\/([a-zA-Z0-9_-]{11})\//)?.at(1) || 
+    thumbnailUrl.match(/\/([a-zA-Z0-9_-]{11})\//)?.at(1) : 
+    null;
+  
+  // For YouTube videos, prioritize reliable formats to avoid 404s
+  let thumbUrl = thumbnailUrl;
+  let fallbackUrl = '';
+  
+  if (extractVideoId) {
+    // Always use hqdefault as primary - it's the most reliable format across all videos
+    thumbUrl = `https://img.youtube.com/vi/${extractVideoId}/hqdefault.jpg`;
+    
+    // Set up multiple fallbacks
+    fallbackUrl = [
+      `https://i.ytimg.com/vi/${extractVideoId}/hqdefault.jpg`,
+      `https://img.youtube.com/vi/${extractVideoId}/mqdefault.jpg`,
+      `https://i.ytimg.com/vi/${extractVideoId}/mqdefault.jpg`
+    ].join('|');
+  }
+  
+  // If no video ID was extracted but we have a thumbnail URL, use it with no fallbacks
+  if (!extractVideoId && thumbnailUrl) {
+    thumbUrl = thumbnailUrl;
+  }
+  
+  // Use a key for the useThumbnail to force a complete re-render when retrying
+  const thumbnailKey = `${thumbUrl}-${retryCount}`;
+  
+  // Only call useThumbnail if we have a URL to fetch
+  const { dataUrl, isLoading, error } = useThumbnail(thumbUrl || '', thumbUrl ? fallbackUrl : '');
+  
+  // Retry loading thumbnail if we get an error
+  useEffect(() => {
+    if (error && retryCount < maxRetries) {
+      const timer = setTimeout(() => {
+        // Silent retry without logging
+        setRetryCount(prev => prev + 1);
+      }, 1000); // Wait 1 second before retrying
+      
+      return () => clearTimeout(timer);
+    }
+  }, [error, retryCount]);
+  
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-[480px] h-48 bg-secondary/50 rounded-md flex items-center justify-center">
+        <svg 
+          className="h-8 w-8 animate-spin text-primary/70" 
+          xmlns="http://www.w3.org/2000/svg" 
+          fill="none" 
+          viewBox="0 0 24 24"
+        >
+          <circle 
+            className="opacity-25" 
+            cx="12" 
+            cy="12" 
+            r="10" 
+            stroke="currentColor" 
+            strokeWidth="4"
+          ></circle>
+          <path 
+            className="opacity-75" 
+            fill="currentColor" 
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
+        </svg>
+      </div>
+    );
+  }
+  
+  if (error || !dataUrl) {
+    // Only log fatal errors after all retries are exhausted
+    if (retryCount >= maxRetries) {
+      console.error('Unable to load thumbnail after multiple attempts:', thumbUrl);
+    }
+    
+    return (
+      <div className="w-full max-w-[480px] h-48 bg-secondary/50 rounded-md flex items-center justify-center">
+        <span className="text-secondary-foreground/70">No thumbnail available</span>
+      </div>
+    );
+  }
+  
+  return (
+    <img 
+      src={dataUrl} 
+      alt={title || 'Playlist thumbnail'} 
+      className="w-full h-auto object-cover max-h-48 rounded-md" 
+      style={{ 
+        maxWidth: '480px',
+        aspectRatio: '16/9',
+        objectPosition: 'center'
+      }}
+      onError={(e) => {
+        // Silent error handling to avoid log spam
+        e.currentTarget.src = '';
+      }}
+    />
+  );
+};
+
 interface ImportPlaylistModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,10 +135,6 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({
   const isImporting = importMutation.isPending;
   const infoError = youtubeInfoMutation.error?.message;
   const playlistInfo = youtubeInfoMutation.data;
-  
-  // Use the thumbnail hook to proxy the image through the main process
-  const { dataUrl: thumbnailDataUrl, isLoading: isThumbnailLoading, error: thumbnailError } = 
-    useThumbnail(playlistInfo?.thumbnailUrl);
   
   // Reference for debounce timer
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -219,45 +323,10 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({
               {playlistInfo.thumbnailUrl && (
                 <div className="overflow-hidden rounded-md relative">
                   <div className="flex justify-center">
-                    {isThumbnailLoading ? (
-                      <div className="w-full max-w-[480px] h-48 bg-secondary/50 rounded-md flex items-center justify-center">
-                        <svg 
-                          className="h-8 w-8 animate-spin text-primary/70" 
-                          xmlns="http://www.w3.org/2000/svg" 
-                          fill="none" 
-                          viewBox="0 0 24 24"
-                        >
-                          <circle 
-                            className="opacity-25" 
-                            cx="12" 
-                            cy="12" 
-                            r="10" 
-                            stroke="currentColor" 
-                            strokeWidth="4"
-                          ></circle>
-                          <path 
-                            className="opacity-75" 
-                            fill="currentColor" 
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                      </div>
-                    ) : thumbnailDataUrl ? (
-                      <img 
-                        src={thumbnailDataUrl} 
-                        alt={playlistInfo.title || 'Playlist thumbnail'} 
-                        className="w-full h-auto object-cover max-h-48 rounded-md" 
-                        style={{ 
-                          maxWidth: '480px',
-                          aspectRatio: '16/9',
-                          objectPosition: 'center'
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full max-w-[480px] h-48 bg-secondary/50 rounded-md flex items-center justify-center">
-                        <span className="text-secondary-foreground/70">No thumbnail available</span>
-                      </div>
-                    )}
+                    <PlaylistThumbnail 
+                      thumbnailUrl={playlistInfo.thumbnailUrl}
+                      title={playlistInfo.title || 'YouTube Playlist'}
+                    />
                   </div>
                 </div>
               )}

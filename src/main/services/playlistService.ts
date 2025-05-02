@@ -1,4 +1,4 @@
-import { getDatabase } from '../database';
+import { getDatabase } from '../database/index';
 import {
   Playlist,
   PlaylistSummary,
@@ -24,6 +24,7 @@ import {
 import logger from './logService';
 import ytdlpService from './ytdlpService';
 import { spawn } from 'child_process';
+import Database from '../database/sqlite-adapter';
 
 // Interface for YouTube playlist info
 interface YouTubePlaylist {
@@ -90,44 +91,73 @@ export const importYouTubePlaylist = async (
   playlistUrl: string
 ): Promise<number> => {
   try {
-    // Validate URL format (basic validation)
-    if (!playlistUrl.includes('youtube.com/playlist') && !playlistUrl.includes('list=')) {
-      throw new Error('Invalid YouTube playlist URL');
+    logger.info(`Importing YouTube playlist from ${playlistUrl}`);
+    
+    // Validate URL format
+    if (!playlistUrl.includes('youtube.com') && !playlistUrl.includes('youtu.be')) {
+      throw new Error('Invalid YouTube URL');
     }
     
-    // Get playlist info using yt-dlp
+    // Get playlist information
     const playlistInfo = await getYouTubePlaylistInfo(playlistUrl);
+    
     if (!playlistInfo) {
       throw new Error('Failed to fetch playlist information');
     }
     
-    // Create the playlist in our database
+    // Get database connection
     const db = await getDatabase();
-    const now = Math.floor(Date.now() / 1000);
     
-    const playlist: Playlist = {
-      name: playlistInfo.title,
-      description: playlistInfo.description,
-      source: 'youtube',
-      source_id: playlistInfo.id,
-      thumbnail: playlistInfo.thumbnailUrl,
-      created_at: now,
-      updated_at: now,
-      video_count: 0, // Will be updated as videos are added
-      duration_seconds: 0 // Will be updated as videos are added
-    };
-    
-    // Create the playlist
-    const playlistId = await createPlaylist(db, playlist);
-    logger.info(`Created YouTube playlist "${playlistInfo.title}" with ID ${playlistId}`);
-    
-    // Fetch and add videos to the playlist
-    await addYouTubePlaylistVideos(playlistId, playlistUrl);
-    
-    // Update playlist stats
-    await updatePlaylistStats(db, playlistId);
-    
-    return playlistId;
+    // Use transaction to ensure all database operations succeed or fail together
+    return await db.transaction(async (db) => {
+      const now = Math.floor(Date.now() / 1000);
+      
+      const playlist: Playlist = {
+        name: playlistInfo.title,
+        description: playlistInfo.description,
+        source: 'youtube',
+        source_id: playlistInfo.id,
+        thumbnail: playlistInfo.thumbnailUrl,
+        created_at: now,
+        updated_at: now,
+        video_count: 0, // Will be updated as videos are added
+        duration_seconds: 0 // Will be updated as videos are added
+      };
+      
+      // Create the playlist
+      const playlistId = await createPlaylist(db, playlist);
+      logger.info(`Created YouTube playlist "${playlistInfo.title}" with ID ${playlistId}`);
+      
+      // Fetch videos data outside the transaction to avoid long-running transaction
+      const videosData = await fetchYouTubePlaylistVideos(playlistUrl);
+      
+      // Now process the videos within the transaction
+      if (videosData && videosData.length > 0) {
+        let position = 1;
+        for (const videoData of videosData) {
+          try {
+            // Skip if this isn't a video entry
+            if (!videoData.id || videoData._type !== 'url' || !videoData.url.includes('youtube.com/watch')) {
+              continue;
+            }
+            
+            await processYouTubeVideoWithTransaction(db, playlistId, videoData, position);
+            position++;
+          } catch (error) {
+            logger.error(`Error processing video in playlist ${playlistId}:`, error);
+            // Continue with next video even if this one fails
+          }
+        }
+        logger.info(`Added ${position - 1} videos to playlist ID ${playlistId}`);
+      } else {
+        logger.warn(`No videos found in playlist ${playlistUrl}`);
+      }
+      
+      // Update playlist stats
+      await updatePlaylistStats(db, playlistId);
+      
+      return playlistId;
+    });
   } catch (error: unknown) {
     if (error instanceof Error) {
       logger.error(`Failed to import YouTube playlist ${playlistUrl}:`, error);
@@ -193,8 +223,8 @@ const getYouTubePlaylistInfo = async (playlistUrl: string): Promise<YouTubePlayl
   });
 };
 
-// Add videos from a YouTube playlist to our database
-const addYouTubePlaylistVideos = async (playlistId: number, playlistUrl: string): Promise<void> => {
+// Fetch YouTube playlist videos as a separate step
+const fetchYouTubePlaylistVideos = async (playlistUrl: string): Promise<any[]> => {
   return new Promise((resolve, reject) => {
     const ytdlpPath = ytdlpService.getYtdlpPath();
     const args = [
@@ -214,43 +244,23 @@ const addYouTubePlaylistVideos = async (playlistId: number, playlistUrl: string)
       logger.warn(`yt-dlp stderr: ${data}`);
     });
     
-    process.on('close', async (code) => {
+    process.on('close', (code) => {
       if (code === 0 && videosData) {
         try {
           // Process the JSON data line by line (each line is a separate JSON object)
           const videoLines = videosData.trim().split('\n');
-          let position = 1;
-          
-          for (const line of videoLines) {
+          const videos = videoLines.map(line => {
             try {
-              const videoData = JSON.parse(line);
-              
-              // Skip if this isn't a video entry
-              if (!videoData.id || videoData._type !== 'url' || !videoData.url.includes('youtube.com/watch')) {
-                continue;
-              }
-              
-              // Create or update the video
-              await processYouTubeVideo(playlistId, videoData, position);
-              position++;
-            } catch (error: unknown) {
-              if (error instanceof Error) {
-                logger.error(`Error processing video entry: ${error.message}`);
-              } else {
-                logger.error(`Error processing video entry: ${String(error)}`);
-              }
-              // Continue with next video even if this one fails
+              return JSON.parse(line);
+            } catch (error) {
+              logger.error(`Error parsing video JSON: ${error}`);
+              return null;
             }
-          }
+          }).filter(video => video !== null);
           
-          logger.info(`Added ${position - 1} videos to playlist ID ${playlistId}`);
-          resolve();
-        } catch (error: unknown) {
-          if (error instanceof Error) {
-            reject(new Error(`Failed to process YouTube playlist videos: ${error.message}`));
-          } else {
-            reject(new Error(`Failed to process YouTube playlist videos: ${String(error)}`));
-          }
+          resolve(videos);
+        } catch (error) {
+          reject(new Error(`Failed to process YouTube playlist videos: ${error}`));
         }
       } else {
         reject(new Error(`yt-dlp exited with code ${code}`));
@@ -263,14 +273,14 @@ const addYouTubePlaylistVideos = async (playlistId: number, playlistUrl: string)
   });
 };
 
-// Process a YouTube video and add it to a playlist
-const processYouTubeVideo = async (
+// Process a YouTube video and add it to a playlist (within transaction)
+const processYouTubeVideoWithTransaction = async (
+  db: Database,
   playlistId: number, 
   videoData: any, 
   position: number
 ): Promise<void> => {
   try {
-    const db = await getDatabase();
     const now = Math.floor(Date.now() / 1000);
     
     // Convert duration to seconds if available
@@ -298,14 +308,10 @@ const processYouTubeVideo = async (
     // Create or update the video
     const videoId = await createOrUpdateVideo(db, video);
     
-    // Check if video is already in the playlist
-    const exists = await videoExistsInPlaylist(db, playlistId, videoId);
-    if (!exists) {
-      // Add video to playlist
-      await addVideoToPlaylist(db, playlistId, videoId, position);
-    }
+    // Add to playlist
+    await addVideoToPlaylist(db, playlistId, videoId, position);
   } catch (error) {
-    logger.error(`Failed to process YouTube video:`, error);
+    logger.error(`Failed to process YouTube video ${videoData?.id || 'unknown'}:`, error);
     throw error;
   }
 };

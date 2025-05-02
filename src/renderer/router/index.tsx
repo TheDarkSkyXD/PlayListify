@@ -8,6 +8,7 @@ import {
   useRouter
 } from '@tanstack/react-router';
 import { MyPlaylists } from '../pages/MyPlaylists';
+import { DownloadsPage } from '../pages/Downloads';
 
 // Root layout component - replaced with proper AppLayout import
 import { useEffect } from 'react';
@@ -15,6 +16,7 @@ import { useIPC } from '../hooks/useIPC';
 import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 import { AppInfo } from '../../shared/types/app';
 import { Sidebar } from '../components/Sidebar/Sidebar';
+import TopNavbar from '../components/TopNavbar/TopNavbar';
 
 // Placeholder components for routes that don't have an implementation yet
 const DownloadsPlaceholder = () => (
@@ -52,32 +54,22 @@ const AppLayout = () => {
     router.navigate({ to: path });
   };
 
+  const currentPath = router.state.location.pathname;
+
   return (
     <div className="h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground p-4 shadow">
-        <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold">PlayListify</h1>
-            {appInfo && (
-              <span className="ml-2 text-xs opacity-70">v{appInfo.version}</span>
-            )}
-          </div>
-          {appInfo && (
-            <div className="text-xs opacity-70">
-              {appInfo.platform} ({appInfo.arch})
-            </div>
-          )}
-        </div>
-      </header>
+      {/* Top Navbar */}
+      <TopNavbar appVersion={appInfo?.version} />
       
-      {/* Main content with sidebar */}
+      {/* Main content area with sidebar and outlet */}
       <div className="flex flex-grow overflow-hidden">
-        {/* Sidebar - only render once */}
-        <Sidebar 
-          currentPath={router.state.location.pathname} 
-          onNavigate={handleNavigate} 
-        />
+        {/* Fixed width sidebar */}
+        <aside className="w-64 bg-secondary h-full border-r border-border">
+          <Sidebar 
+            currentPath={currentPath} 
+            onNavigate={handleNavigate} 
+          />
+        </aside>
         
         {/* Content area */}
         <main className="flex-grow overflow-auto p-6">
@@ -132,7 +124,7 @@ const playlistsRoute = new Route({
 const downloadsRoute = new Route({
   getParentRoute: () => rootRoute,
   path: '/downloads',
-  component: DownloadsPlaceholder
+  component: DownloadsPage
 });
 
 // History route

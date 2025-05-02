@@ -78,4 +78,49 @@
 - Memory usage optimized for desktop environment
 - CPU usage minimized for background operation
 
+## Download System Architecture
+
+### Download Service
+We've implemented a download service that manages video downloads using yt-dlp and a queue system:
+
+- **Queue Management**: Uses `p-queue` to manage concurrent downloads with configurable limits
+- **Download Tracking**: Downloads are tracked in the database with status, progress, and file information
+- **Format Detection**: Fetches and presents available video formats using yt-dlp's format detection
+- **Progress Tracking**: Monitors download progress in real-time and sends events to the renderer
+- **Error Handling**: Manages download failures and provides retry capabilities
+- **Recovery**: Automatically recovers interrupted downloads on application restart
+
+### IPC Communication
+Download events flow from main process to renderer using these channels:
+
+- `download:progress` - Real-time progress updates (percent complete, speed, etc.)
+- `download:complete` - Notification when download completes, fails, or is cancelled
+- `download:queue-update` - Updates on the overall queue status
+
+### Database Structure
+Downloads are stored in the `downloads` table with the following structure:
+```sql
+CREATE TABLE IF NOT EXISTS downloads (
+  id TEXT PRIMARY KEY,
+  video_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  progress REAL DEFAULT 0,
+  download_path TEXT NOT NULL,
+  format_id TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  final_path TEXT,
+  error_message TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY(video_id) REFERENCES videos(video_id) ON DELETE CASCADE
+);
+```
+
+### External Dependencies
+The download system relies on these external tools:
+
+- **yt-dlp**: Command-line tool for downloading videos from YouTube
+- **ffmpeg**: Required by yt-dlp for video processing and format conversion
+- Both are bundled/installed by our dependency management system
+
 *This document provides technical context for development decisions and infrastructure planning.* 

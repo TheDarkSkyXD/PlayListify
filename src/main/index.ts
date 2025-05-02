@@ -9,6 +9,7 @@ import logger, { setupGlobalErrorLogging } from './services/logService';
 import updateService from './services/updateService';
 import dependencyService from './services/dependencyService';
 import { getDatabase, closeDatabase } from './database';
+import registerDownloadHandlers from './ipc/downloadHandlers';
 
 // Configure development app data directory if specified
 if (process.env.PLAYLISTIFY_DEV_APP_DATA) {
@@ -93,6 +94,7 @@ const createWindow = async (): Promise<void> => {
     registerSettingsHandlers();
     registerPlaylistHandlers();
     registerThumbnailHandlers();
+    registerDownloadHandlers();
 
     // Load the index.html of the app.
     if (MAIN_WINDOW_WEBPACK_ENTRY) {

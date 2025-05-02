@@ -19,12 +19,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <div className="w-64 bg-secondary h-full flex flex-col">
-      <div className="p-4 border-b border-border">
-        <h1 className="text-xl font-bold">PlayListify</h1>
-      </div>
-      
-      <nav className="flex-1 p-4 space-y-1">
+    <div className="flex flex-col h-full">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {navItems.map((item) => (
           <Button
             key={item.path}

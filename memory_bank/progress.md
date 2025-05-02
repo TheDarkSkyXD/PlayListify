@@ -340,4 +340,46 @@
 - Prepare for Phase 5 (Video Download Implementation)
 - Begin work on UI components for playlist management
 
+## 2024-05-02: Implemented Download Service and IPC Handlers
+
+### Implemented Video Download System
+
+Today we successfully implemented the video download system for PlayListify, completing both the backend service and IPC handlers components:
+
+#### Download Service Implementation (5.1)
+- Created `downloadService.ts` as a singleton class that handles all download-related functionality
+- Implemented a download queue using `p-queue` with configurable concurrency
+- Added functions to fetch available video formats from YouTube using `yt-dlp-wrap`
+- Implemented core download functionality that:
+  - Manages a queue of downloads
+  - Tracks progress and updates database
+  - Handles success, failure, and cancellation cases
+  - Recovers interrupted downloads on application restart
+- Implemented playlist download functionality that:
+  - Creates a dedicated folder for each playlist
+  - Downloads all videos in a playlist with the same settings
+  - Returns download IDs for tracking
+
+#### Download IPC Handlers Implementation (5.2)
+- Created `downloadHandlers.ts` for exposing download functionality to the renderer process
+- Implemented handlers for:
+  - Getting available formats for a video
+  - Starting downloads for individual videos
+  - Starting downloads for entire playlists
+  - Getting queue status
+  - Canceling and retrying downloads
+- Used Zod for input validation with clear error messages
+- Set up proper event communication for progress updates and download completion
+
+#### Database Support
+- Added download CRUD functions in `downloadQueries.ts`
+- Added `updateVideoDownloadStatus` function to `videoQueries.ts`
+
+#### Issues to Address in Future Commits
+- There are some TypeScript/linter errors related to importing and error handling:
+  - Fix import issues for `YtDlpWrap`, `logger`, and `db`
+  - Add proper type assertions for error objects
+  - Ensure database functions are properly implemented and exported
+- Need to integrate with the renderer process UI (next phase)
+
 *This document tracks progress on implementation tasks.* 

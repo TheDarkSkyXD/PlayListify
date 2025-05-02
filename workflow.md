@@ -389,46 +389,46 @@ This document provides a structured workflow for implementing the PlayListify ap
 ## Phase 5: Video Download Implementation
 
 ### 5.1: Implement Download Service Logic
-- [ ] Create Download Service File
+- [x] Create Download Service File
   - Path: `src/main/services/downloadService.ts`
-- [ ] Initialize Download Queue
+- [x] Initialize Download Queue
   - Path: `src/main/services/downloadService.ts`
-- [ ] Implement `getFormats`
+- [x] Implement `getFormats`
   - Path: `src/main/services/downloadService.ts`
-- [ ] Implement `addDownload` (Core Logic)
+- [x] Implement `addDownload` (Core Logic)
   - Path: `src/main/services/downloadService.ts`
-- [ ] Implement `startVideoDownload` / `startPlaylistDownload`
+- [x] Implement `startVideoDownload` / `startPlaylistDownload`
   - Path: `src/main/services/downloadService.ts`
-- [ ] Implement `getQueueStatus`
+- [x] Implement `getQueueStatus`
   - Path: `src/main/services/downloadService.ts`
 
 ### 5.2: Implement Download IPC Handlers & Events
-- [ ] Create Download Handlers File
+- [x] Create Download Handlers File
   - Path: `src/main/ipc/downloadHandlers.ts`
-- [ ] Implement Handlers
+- [x] Implement Handlers
   - Path: `src/main/ipc/downloadHandlers.ts`
-- [ ] Register Download Handlers
+- [x] Register Download Handlers
   - Path: `src/main/index.ts`
-- [ ] Verify Event Sending
+- [x] Verify Event Sending
   - Path: `src/main/services/downloadService.ts`
 
 ### 5.3: Implement Frontend Download State Management
-- [ ] Create Download Store (Zustand)
+- [x] Create Download Store (Zustand)
   - Path: `src/renderer/store/downloadStore.ts`
-- [ ] Implement IPC Event Listeners
-  - Path: `src/renderer/App.tsx` (or similar)
-- [ ] Create Format Query Hook
+- [x] Implement IPC Event Listeners
+  - Path: `src/renderer/App.tsx`
+- [x] Create Format Query Hook
   - Path: `src/renderer/hooks/useDownloadQueries.ts`
 
 ### 5.4: Implement Download Button & Options UI
-- [ ] Create Download Button Component
-  - Path: `src/renderer/components/DownloadButton/DownloadButton.tsx`
-- [ ] Add Button to Video Item
+- [x] Create Download Button Component
+  - Path: `src/renderer/components/ui/DownloadButton.tsx`
+- [x] Add Button to Video Item
   - Path: `src/renderer/components/PlaylistView/VideoItem.tsx`
-- [ ] Create Download Options Modal
+- [x] Create Download Options Modal
   - Path: `src/renderer/components/Modals/DownloadOptionsModal.tsx`
-- [ ] Connect Button to Modal
-  - Path: `src/renderer/components/DownloadButton/DownloadButton.tsx`
+- [x] Connect Button to Modal
+  - Path: `src/renderer/components/ui/DownloadButton.tsx`
 
 ### 5.5: Implement Downloads Page UI
 - [ ] Create Downloads Page Component

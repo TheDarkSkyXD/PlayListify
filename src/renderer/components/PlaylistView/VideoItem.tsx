@@ -1,6 +1,8 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import { PlaylistVideoWithDetails } from '../../../shared/types';
+import { DownloadButton } from '../ui/DownloadButton';
+import { useThumbnail } from '../../hooks/useThumbnail';
 
 interface VideoItemProps {
   video: PlaylistVideoWithDetails;
@@ -12,6 +14,80 @@ interface VideoItemProps {
   onDragOver?: (video: PlaylistVideoWithDetails) => void;
   onDragEnd?: () => void;
 }
+
+// ThumbnailImage component to handle YouTube thumbnail loading with fallbacks
+const ThumbnailImage = ({ videoId, thumbnail, title }: { videoId?: string, thumbnail?: string, title: string }) => {
+  // Extract video ID from the thumbnail URL if not provided directly
+  const extractedVideoId = !videoId && thumbnail ? 
+    thumbnail.match(/\/vi(?:_webp)?\/([a-zA-Z0-9_-]{11})\//)?.at(1) || 
+    thumbnail.match(/\/([a-zA-Z0-9_-]{11})\//)?.at(1) : null;
+  
+  // Use extracted or provided videoId
+  const ytVideoId = videoId || extractedVideoId;
+  
+  // For YouTube videos, prioritize reliable formats to avoid 404s
+  let thumbUrl = thumbnail;
+  let fallbackUrl;
+  
+  if (ytVideoId) {
+    // Always use hqdefault as primary - it's the most reliable format across all videos
+    thumbUrl = `https://img.youtube.com/vi/${ytVideoId}/hqdefault.jpg`;
+    
+    // Set up multiple fallbacks
+    fallbackUrl = [
+      `https://i.ytimg.com/vi/${ytVideoId}/hqdefault.jpg`,
+      `https://img.youtube.com/vi/${ytVideoId}/mqdefault.jpg`,
+      `https://i.ytimg.com/vi/${ytVideoId}/mqdefault.jpg`
+    ].join('|');
+  }
+  
+  const { dataUrl, isLoading, error } = useThumbnail(thumbUrl, fallbackUrl);
+  
+  if (isLoading) {
+    return (
+      <div className="w-full h-full bg-secondary flex items-center justify-center">
+        <svg className="animate-spin h-5 w-5 text-secondary-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+    );
+  }
+  
+  if (error || !dataUrl) {
+    return (
+      <div className="w-full h-full bg-secondary flex items-center justify-center text-secondary-foreground">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+          />
+        </svg>
+      </div>
+    );
+  }
+  
+  return (
+    <img
+      src={dataUrl}
+      alt={title}
+      className="w-full h-full object-cover"
+      onError={(e) => {
+        // Add additional error handling if image fails to load
+        console.error("Image load error", e);
+        // The component will re-render with error state
+      }}
+    />
+  );
+};
 
 export const VideoItem: React.FC<VideoItemProps> = ({
   video,
@@ -81,30 +157,11 @@ export const VideoItem: React.FC<VideoItemProps> = ({
       
       {/* Thumbnail */}
       <div className="flex-shrink-0 w-20 h-12 rounded overflow-hidden mr-3 relative">
-        {video.thumbnail ? (
-          <img
-            src={video.thumbnail}
-            alt={video.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-secondary flex items-center justify-center text-secondary-foreground">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
-        )}
+        <ThumbnailImage 
+          videoId={video.video_external_id} 
+          thumbnail={video.thumbnail} 
+          title={video.title} 
+        />
         
         {/* Duration overlay */}
         <div className="absolute bottom-0 right-0 bg-black/70 text-white text-xs px-1 py-0.5 rounded-tl">
@@ -238,6 +295,11 @@ export const VideoItem: React.FC<VideoItemProps> = ({
             />
           </svg>
         </button>
+      </div>
+
+      {/* Download button */}
+      <div className="flex items-center space-x-2">
+        <DownloadButton videoId={String(video.video_id)} videoTitle={video.title} size="sm" />
       </div>
     </div>
   );

@@ -1,5 +1,19 @@
-import Database from './sqlite-adapter';
+import { getDatabase } from './index';
 import logger from '../services/logService';
+import Database from './sqlite-adapter';
+
+// Database variable to be initialized
+let db: any;
+
+// Initialize the database
+async function initDb() {
+  db = await getDatabase();
+}
+
+// Call initDb immediately
+initDb().catch(error => {
+  logger.error('Failed to initialize database in videoQueries:', error);
+});
 
 // Type definitions for Video entities
 export interface Video {
@@ -19,6 +33,7 @@ export interface Video {
   file_format?: string;
   file_size_bytes?: number;
   download_status?: string;
+  local_file_path?: string; // Path to downloaded file
 }
 
 export interface VideoSummary {
@@ -267,4 +282,31 @@ export const searchVideos = async (
     logger.error(`Failed to search videos with term '${searchTerm}':`, error);
     throw error;
   }
-}; 
+};
+
+/**
+ * Update video download status
+ */
+export function updateVideoDownloadStatus(
+  videoId: string, 
+  status: 'not_downloaded' | 'queued' | 'downloading' | 'downloaded' | 'download_failed',
+  localFilePath?: string
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      const updateQuery = localFilePath
+        ? 'UPDATE videos SET download_status = ?, local_file_path = ? WHERE id = ?'
+        : 'UPDATE videos SET download_status = ? WHERE id = ?';
+      
+      const params = localFilePath
+        ? [status, localFilePath, videoId]
+        : [status, videoId];
+      
+      db.prepare(updateQuery).run(...params);
+      resolve();
+    } catch (error) {
+      logger.error(`Failed to update video download status: ${videoId}`, { error });
+      reject(error);
+    }
+  });
+} 
