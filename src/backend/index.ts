@@ -11,6 +11,12 @@ import dependencyService from './services/dependencyService';
 import { getDatabase, closeDatabase } from './database';
 import registerDownloadHandlers from './ipc/downloadHandlers';
 import { registerFileHandlers } from './ipc/fileHandlers';
+import downloadService from './services/downloadService';
+import registerFormatConverterHandlers from './ipc/formatConverter';
+import formatConverter from './services/formatConverter';
+
+// Store a reference to the main window for later use by services
+let mainWindow: BrowserWindow | null = null;
 
 // Configure development app data directory if specified
 if (process.env.PLAYLISTIFY_DEV_APP_DATA) {
@@ -44,7 +50,7 @@ const createWindow = async (): Promise<void> => {
     logger.info('Database initialized successfully');
     
     // Create the browser window only after database is ready
-    const mainWindow = new BrowserWindow({
+    mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
       webPreferences: {
@@ -97,6 +103,26 @@ const createWindow = async (): Promise<void> => {
     registerThumbnailHandlers();
     registerDownloadHandlers();
     registerFileHandlers();
+    registerFormatConverterHandlers();
+
+    // Initialize FFmpeg in the background
+    formatConverter.initFFmpeg().catch(error => {
+      logger.error('Failed to initialize FFmpeg:', error);
+    });
+
+    // Set up download service progress notifications
+    // Note: We DON'T initialize the download service here - it will be initialized lazily when needed
+    downloadService.setNotifyProgressCallback((downloadId, progress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('download:progress', { downloadId, progress });
+      }
+    });
+    
+    downloadService.setNotifyCompleteCallback((downloadId, status, filePath, error) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('download:complete', { downloadId, status, filePath, error });
+      }
+    });
 
     // Load the index.html of the app.
     if (MAIN_WINDOW_WEBPACK_ENTRY) {
@@ -192,6 +218,12 @@ app.on('before-quit', async (event) => {
     // Continue with quit even if closing fails
     app.exit(0); // Use exit instead of quit to avoid triggering before-quit again
   }
+});
+
+// Clean up resources on app exit
+app.on('quit', () => {
+  // Set mainWindow to null
+  mainWindow = null;
 });
 
 // In this file you can include the rest of your app's specific main process

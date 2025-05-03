@@ -16,7 +16,7 @@
       "*": ["node_modules/*"],
       "@/*": ["src/*"],
       "@main/*": ["src/backend/*"],
-      "@renderer/*": ["src/renderer/*"],
+      "@renderer/*": ["src/frontend/*"],
       "@shared/*": ["src/shared/*"]
     },
     "strict": true,

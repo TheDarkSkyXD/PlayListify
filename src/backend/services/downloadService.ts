@@ -9,6 +9,7 @@ import logger from './logService';
 import ytdlpService from './ytdlpService';
 import { getDatabase } from '../database/index';
 import settingsService from './settingsService';
+import { EventEmitter } from 'events';
 
 // Import empty interfaces for now, we'll implement the queries later
 // These will be properly implemented in their respective files
@@ -37,7 +38,8 @@ const getDownloadById = async (id: string): Promise<any> => {
 
 const getVideoByExternalId = async (videoId: string, db: any) => ({
   title: 'Video Title',
-  video_id: videoId
+  video_id: videoId,
+  url: `https://www.youtube.com/watch?v=${videoId}`
 });
 
 const updateVideoDownloadStatus = async (videoId: string, status: string) => {};
@@ -101,18 +103,44 @@ type NotifyDownloadCompleteCallback = (
 
 // Download Service Class
 class DownloadService {
-  private queue: PQueue;
-  private activeDownloads: Map<string, { isCancelled: boolean }>;
+  private queue: PQueue | null = null;
+  private activeDownloads: Map<string, { isCancelled: boolean; eventEmitter?: EventEmitter }>;
   private notifyProgressCallback: NotifyDownloadProgressCallback | null = null;
   private notifyCompleteCallback: NotifyDownloadCompleteCallback | null = null;
+  private mainWindow?: BrowserWindow;
+  private isInitialized: boolean;
   
   constructor() {
-    this.queue = new PQueue({ concurrency: 2 });
     this.activeDownloads = new Map();
+    this.isInitialized = false;
+    
+    logger.info('Download service created - awaiting initialization');
+  }
+  
+  // Check if the service is initialized
+  public isServiceInitialized(): boolean {
+    return this.isInitialized;
+  }
+  
+  // Method to initialize the service
+  public initialize(mainWindow?: BrowserWindow): void {
+    if (this.isInitialized) {
+      logger.info('Download service already initialized, skipping');
+      return;
+    }
     
     try {
+      // Store main window reference if provided
+      if (mainWindow) {
+        this.mainWindow = mainWindow;
+      }
+      
       // Get user settings
       const settings = getSettings();
+      
+      // Create queue with concurrency from settings
+      const concurrentDownloads = settings.maxConcurrentDownloads || 2;
+      this.queue = new PQueue({ concurrency: concurrentDownloads });
       
       // Ensure download directory exists - safely handle app initialization
       let downloadPath = '';
@@ -126,15 +154,13 @@ class DownloadService {
       
       fs.ensureDirSync(downloadPath);
       
-      // Set queue concurrency from settings
-      if (settings && settings.maxConcurrentDownloads) {
-        this.queue.concurrency = settings.maxConcurrentDownloads;
-      }
-      
       logger.info(`Download service initialized with concurrency: ${this.queue.concurrency}`);
+      logger.info(`Download path: ${downloadPath}`);
       
       // Recover any interrupted downloads
       this.recoverDownloads();
+      
+      this.isInitialized = true;
     } catch (error) {
       logger.error('Error initializing download service:', error);
     }
@@ -197,6 +223,11 @@ class DownloadService {
     formatId: string,
     quality: string
   ): Promise<void> {
+    // Ensure we're initialized
+    if (!this.isInitialized) {
+      this.initialize();
+    }
+    
     try {
       // Get video info - videoId is the external ID (string)
       const video = await getVideoByExternalId(videoId, getDatabase());
@@ -217,7 +248,7 @@ class DownloadService {
       });
       
       // Add to download queue
-      return this.queue.add(() => this.processDownload(downloadId, videoId, formatId));
+      return this.queue!.add(() => this.processDownload(downloadId, videoId, formatId));
     } catch (error: unknown) {
       logger.error(`Failed to queue download for video ${videoId}`, { error });
       
@@ -245,6 +276,11 @@ class DownloadService {
     videoId: string,
     formatId: string
   ): Promise<void> {
+    // Ensure we're initialized
+    if (!this.isInitialized) {
+      this.initialize();
+    }
+    
     try {
       // Get video info - videoId is the external ID (string)
       const video = await getVideoByExternalId(videoId, getDatabase());
@@ -255,249 +291,202 @@ class DownloadService {
       // Update download status to downloading
       await addOrUpdateDownload({
         id: downloadId,
+        video_id: videoId,
         status: 'downloading',
         progress: 0,
         updated_at: new Date().toISOString()
       });
       
-      // Create a record for tracking this download
+      // Register this as an active download that can be cancelled
       this.activeDownloads.set(downloadId, { isCancelled: false });
       
-      // Get settings for download location
+      // Get settings for download path
       const settings = getSettings();
+      const downloadPath = settings.downloadPath || app.getPath('downloads');
       
-      // Ensure download directory exists
-      const downloadPath = settings.downloadPath || path.join(app.getPath('userData'), 'downloads');
-      fs.ensureDirSync(downloadPath);
+      // Create the output file path
+      const outputFilePath = path.join(downloadPath, `${videoId}.mp4`);
       
-      // Create a normalized filename
-      const safeTitle = video.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-      const outputFilename = `${safeTitle}_${videoId}.%(ext)s`;
-      const outputPath = path.join(downloadPath, outputFilename);
+      // Make sure the download directory exists
+      await fs.ensureDir(downloadPath);
       
-      // Prepare arguments - access video URL from the correct property
-      const args = [
-        videoId, // Use the videoId directly as the URL since the actual video_url property might not exist
-        '-f', formatId,
-        '-o', outputPath,
-        '--newline',  // Important for progress parsing
-      ];
-      
-      logger.info(`Starting download for "${video.title}" (${videoId}) with format ${formatId}`);
-      
-      // Execute download with yt-dlp
+      // Get yt-dlp path
       const ytDlpPath = ytdlpService.getYtdlpPath();
       const ytDlp = new YtDlpWrap(ytDlpPath);
       
-      return new Promise((resolve, reject) => {
-        let lastProgressUpdate = 0;
-        let isCancelled = false;
+      // Construct format string based on the provided format
+      const formatString = formatId === 'best' 
+        ? 'bestvideo+bestaudio/best' 
+        : formatId;
+      
+      // Track progress with event emitter
+      let eventEmitter: EventEmitter;
+      
+      // Start download with progress tracking
+      try {
+        eventEmitter = ytDlp.exec(
+          [
+            video.url || `https://www.youtube.com/watch?v=${videoId}`,
+            '-f', formatString,
+            '-o', outputFilePath,
+            '--newline', // Important for progress parsing
+            '--progress'
+          ]
+        );
         
-        // Check if download was already cancelled
-        const downloadState = this.activeDownloads.get(downloadId);
-        if (downloadState && downloadState.isCancelled) {
-          isCancelled = true;
-          reject(new Error('Download cancelled'));
-          return;
+        // Save the event emitter to be able to cancel
+        const activeDownload = this.activeDownloads.get(downloadId);
+        if (activeDownload) {
+          activeDownload.eventEmitter = eventEmitter;
+          this.activeDownloads.set(downloadId, activeDownload);
         }
         
-        // Create the event emitter for the download
-        const eventEmitter = ytDlp.exec(args);
-        
-        // Add event listeners
-        eventEmitter.on('progress', ((progress: any) => {
-          // Only update progress every 500ms to avoid flooding the renderer
-          const now = Date.now();
-          if (now - lastProgressUpdate > 500) {
-            lastProgressUpdate = now;
-            
-            // Ensure percent is a number
-            const percent = typeof progress.percent === 'number' ? progress.percent : 0;
-            
-            // Notify progress
-            this.notifyDownloadProgress(downloadId, percent);
-            
-            // Update progress in database
-            addOrUpdateDownload({
-              id: downloadId,
-              status: 'downloading',
-              progress: percent,
-              updated_at: new Date().toISOString()
-            }).catch((err: Error) => {
-              logger.error(`Failed to update download progress in DB`, { error: err });
-            });
+        // Set up progress handler
+        eventEmitter.on('progress', (progress: YtDlpProgress) => {
+          // Check if this download has been cancelled
+          const activeDownload = this.activeDownloads.get(downloadId);
+          if (activeDownload && activeDownload.isCancelled) {
+            // Just exit the handler, the download will be cancelled elsewhere
+            return;
           }
-        }) as any);
-        
-        eventEmitter.on('ytDlpEvent', (eventType: string, eventData: string) => {
-          if (eventType === 'finished') {
-            const parts = eventData.split(' ');
-            const filePath = parts[0];
-            
-            logger.info(`Download completed: ${filePath}`);
-          }
+          
+          // Update progress
+          const percent = progress.percent || 0;
+          this.notifyDownloadProgress(downloadId, percent);
+          
+          // Update download in database
+          addOrUpdateDownload({
+            id: downloadId,
+            video_id: videoId,
+            status: 'downloading',
+            progress: percent,
+            updated_at: new Date().toISOString()
+          }).catch(err => logger.error(`Failed to update download progress: ${err}`));
         });
         
-        eventEmitter.on('error', (error: Error) => {
-          if (isCancelled) {
-            resolve(); // Don't reject if cancelled
-          } else {
+        // Wait for download to complete
+        await new Promise<void>((resolve, reject) => {
+          eventEmitter.on('error', (error) => {
             reject(error);
-          }
+          });
+          
+          eventEmitter.on('close', () => {
+            resolve();
+          });
         });
         
-        // Handle completion
-        eventEmitter.on('close', async () => {
-          try {
-            // If download wasn't cancelled, mark as complete
-            const downloadState = this.activeDownloads.get(downloadId);
-            if (!downloadState || !downloadState.isCancelled) {
-              // Get the actual file path (need to replace the extension placeholder)
-              let actualFilePath = outputPath.replace('%(ext)s', '');
-              
-              // Find the actual file (with proper extension)
-              const filePattern = actualFilePath.replace('.%(ext)s', '.*');
-              const files = await fs.promises.readdir(downloadPath);
-              const matchingFile = files.find(file => {
-                const fullPath = path.join(downloadPath, file);
-                return fullPath.startsWith(filePattern.replace('.%(ext)s', ''));
-              });
-              
-              if (matchingFile) {
-                actualFilePath = path.join(downloadPath, matchingFile);
-                
-                // Update download in DB
-                await addOrUpdateDownload({
-                  id: downloadId,
-                  status: 'completed',
-                  progress: 100,
-                  file_path: actualFilePath,
-                  updated_at: new Date().toISOString()
-                });
-                
-                // Update video download status
-                await updateVideoDownloadStatus(videoId, 'downloaded');
-                
-                // Notify completion
-                this.notifyDownloadComplete(downloadId, 'completed', actualFilePath);
-                
-                logger.info(`Download for "${video.title}" completed successfully`);
-                resolve();
-              } else {
-                const err = new Error('Could not find downloaded file');
-                logger.error(`Download failed for "${video.title}"`, { error: err });
-                
-                // Update download in DB
-                await addOrUpdateDownload({
-                  id: downloadId,
-                  status: 'failed',
-                  error_message: err.message,
-                  updated_at: new Date().toISOString()
-                });
-                
-                // Update video download status
-                await updateVideoDownloadStatus(videoId, 'download_failed');
-                
-                // Notify failure
-                this.notifyDownloadComplete(downloadId, 'failed', undefined, err.message);
-                
-                reject(err);
-              }
-            } else {
-              resolve(); // Don't update if cancelled
-            }
-          } catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            logger.error(`Error processing download completion for "${video.title}"`, { error: err });
-            
-            // Update download in DB
-            await addOrUpdateDownload({
-              id: downloadId,
-              status: 'failed',
-              error_message: err.message,
-              updated_at: new Date().toISOString()
-            });
-            
-            // Update video download status
-            await updateVideoDownloadStatus(videoId, 'download_failed');
-            
-            // Notify failure
-            this.notifyDownloadComplete(downloadId, 'failed', undefined, err.message);
-            
-            reject(err);
-          }
+        // Download completed successfully
+        await addOrUpdateDownload({
+          id: downloadId,
+          video_id: videoId,
+          status: 'completed',
+          progress: 100,
+          file_path: outputFilePath,
+          updated_at: new Date().toISOString()
         });
-      });
-    } catch (error: unknown) {
-      logger.error(`Failed to process download for video ${videoId}`, { error });
+        
+        await updateVideoDownloadStatus(videoId, 'downloaded');
+        this.notifyDownloadComplete(downloadId, 'completed', outputFilePath);
+        
+        logger.info(`Download completed: ${video.title} (${videoId})`);
+      } catch (error: any) {
+        // Check if this was a cancellation
+        const activeDownload = this.activeDownloads.get(downloadId);
+        if (activeDownload && activeDownload.isCancelled) {
+          logger.info(`Download cancelled: ${videoId}`);
+          return; // Exit without recording as error
+        }
+        
+        logger.error(`Download failed: ${videoId}`, { error });
+        
+        // Update download status to failed
+        await addOrUpdateDownload({
+          id: downloadId,
+          video_id: videoId,
+          status: 'failed',
+          error_message: error.message,
+          updated_at: new Date().toISOString()
+        });
+        
+        await updateVideoDownloadStatus(videoId, 'download_failed');
+        this.notifyDownloadComplete(downloadId, 'failed', undefined, error.message);
+      } finally {
+        // Clean up this download from the active downloads map
+        this.cleanupActiveDownload(downloadId);
+      }
+    } catch (error: any) {
+      logger.error(`Error setting up download: ${error.message}`);
       
       // Update download status to failed
       await addOrUpdateDownload({
         id: downloadId,
         video_id: videoId,
         status: 'failed',
-        error_message: error instanceof Error ? error.message : 'Unknown error',
+        error_message: error.message,
         updated_at: new Date().toISOString()
       });
       
       await updateVideoDownloadStatus(videoId, 'download_failed');
-      this.notifyDownloadComplete(downloadId, 'failed', undefined, error instanceof Error ? error.message : 'Unknown error');
+      this.notifyDownloadComplete(downloadId, 'failed', undefined, error.message);
       
-      throw error;
-    } finally {
+      // Clean up
       this.cleanupActiveDownload(downloadId);
     }
   }
   
-  // Cancel a download
+  // Cancel an active download
   async cancelDownload(downloadId: string): Promise<void> {
     try {
-      const downloadState = this.activeDownloads.get(downloadId);
-      if (downloadState) {
-        // Mark as cancelled to prevent updates
-        downloadState.isCancelled = true;
+      // Check if this download is active
+      const activeDownload = this.activeDownloads.get(downloadId);
+      if (activeDownload) {
+        // Mark as cancelled
+        activeDownload.isCancelled = true;
+        this.activeDownloads.set(downloadId, activeDownload);
         
-        logger.info(`Cancelling download ${downloadId}`);
+        // Kill the download process if we have an event emitter
+        if (activeDownload.eventEmitter) {
+          try {
+            // Try to emit an error to break the download
+            activeDownload.eventEmitter.emit('error', new Error('Download cancelled by user'));
+          } catch (err) {
+            logger.warn(`Failed to emit error to cancel download: ${err}`);
+          }
+        }
         
-        // Update status in DB
+        // Update status in database
         await addOrUpdateDownload({
           id: downloadId,
           status: 'cancelled',
           updated_at: new Date().toISOString()
         });
         
-        // Get download info to update video status
-        const download = await getDownloadById(downloadId);
-        if (download) {
-          // Use a valid status
-          await updateVideoDownloadStatus(download.video_id, 'not_downloaded');
-        }
-        
-        // Notify cancellation
-        this.notifyDownloadComplete(downloadId, 'cancelled');
+        logger.info(`Download marked for cancellation: ${downloadId}`);
+      } else {
+        logger.warn(`Attempted to cancel non-active download: ${downloadId}`);
       }
     } catch (error) {
-      logger.error(`Error cancelling download ${downloadId}`, { error });
+      logger.error(`Error cancelling download ${downloadId}:`, error);
       throw error;
     }
   }
   
-  // Clean up after download (remove from active downloads tracking)
+  // Helper to remove a download from active downloads
   private cleanupActiveDownload(downloadId: string): void {
     this.activeDownloads.delete(downloadId);
   }
   
-  // Attempt to recover interrupted downloads from previous sessions
+  // Recover interrupted downloads
   private async recoverDownloads(): Promise<void> {
     try {
-      // Get downloads that were in progress
-      const interruptedDownloads = await getDownloadsByStatus(['downloading', 'queued']);
+      // Get all downloads with status 'downloading' or 'queued'
+      const incompleteDownloads = await getDownloadsByStatus(['downloading', 'queued']);
       
-      if (interruptedDownloads.length > 0) {
-        logger.info(`Found ${interruptedDownloads.length} interrupted downloads, marking as failed`);
+      if (incompleteDownloads.length > 0) {
+        logger.info(`Found ${incompleteDownloads.length} incomplete downloads to recover`);
         
-        // Mark all as failed since we can't resume partial downloads
-        for (const download of interruptedDownloads) {
+        // Mark all as failed due to interruption
+        for (const download of incompleteDownloads) {
           await addOrUpdateDownload({
             id: download.id,
             status: 'failed',
@@ -505,97 +494,118 @@ class DownloadService {
             updated_at: new Date().toISOString()
           });
           
-          await updateVideoDownloadStatus(download.video_id, 'download_failed');
+          // Let the UI know
+          this.notifyDownloadComplete(
+            download.id, 
+            'failed', 
+            undefined, 
+            'Download interrupted by application restart'
+          );
         }
       }
     } catch (error) {
-      logger.error('Failed to recover downloads', { error });
+      logger.error('Error recovering downloads:', error);
     }
   }
   
   // Retry a failed download
   async retryDownload(downloadId: string): Promise<void> {
+    // Ensure we're initialized
+    if (!this.isInitialized) {
+      this.initialize();
+    }
+    
     try {
+      // Get download info
       const download = await getDownloadById(downloadId);
       if (!download) {
         throw new Error(`Download with ID ${downloadId} not found`);
       }
       
-      if (download.status !== 'failed' && download.status !== 'cancelled') {
-        throw new Error(`Can only retry failed or cancelled downloads`);
+      if (download.status !== 'failed') {
+        throw new Error(`Cannot retry download that is not in failed state: ${download.status}`);
       }
       
-      logger.info(`Retrying download ${downloadId} for video ${download.video_id}`);
+      // Reset download status to queued
+      await addOrUpdateDownload({
+        id: downloadId,
+        status: 'queued',
+        progress: 0,
+        error_message: null,
+        updated_at: new Date().toISOString()
+      });
       
-      // Create a new download ID
-      const newDownloadId = uuidv4();
-      
-      // Queue the download with the same parameters
-      return this.downloadVideo(
-        newDownloadId,
-        download.video_id,
-        download.format,
-        download.quality
-      );
+      // Add to download queue
+      return this.queue!.add(() => this.processDownload(downloadId, download.video_id, download.format));
     } catch (error) {
-      logger.error(`Failed to retry download ${downloadId}`, { error });
+      logger.error(`Failed to retry download ${downloadId}:`, error);
       throw error;
     }
   }
   
-  // Clear completed downloads from DB
+  // Clear completed and failed downloads from history
   async clearCompletedDownloads(): Promise<void> {
     try {
-      const completedDownloads = await getDownloadsByStatus(['completed']);
+      // Get all completed and failed downloads
+      const completedDownloads = await getDownloadsByStatus(['completed', 'failed', 'cancelled']);
       
-      logger.info(`Clearing ${completedDownloads.length} completed downloads from history`);
-      
-      // Update each download to 'cleared' status
-      for (const download of completedDownloads) {
-        await addOrUpdateDownload({
-          id: download.id,
-          status: 'cleared',
-          updated_at: new Date().toISOString()
-        });
+      if (completedDownloads.length > 0) {
+        logger.info(`Clearing ${completedDownloads.length} completed/failed downloads from history`);
+        
+        // Delete each download
+        for (const download of completedDownloads) {
+          await addOrUpdateDownload({
+            id: download.id,
+            status: 'deleted',
+            updated_at: new Date().toISOString()
+          });
+        }
       }
     } catch (error) {
-      logger.error('Failed to clear completed downloads', { error });
+      logger.error('Error clearing completed downloads:', error);
       throw error;
     }
   }
   
-  // Get queue status
+  // Get the current status of the download queue
   async getQueueStatus(): Promise<QueueStatus> {
+    // Ensure we're initialized
+    if (!this.isInitialized) {
+      this.initialize();
+    }
+    
     try {
-      // Get download counts by status
-      const activeDownloads = await getDownloadsByStatus(['downloading']);
-      const pendingDownloads = await getDownloadsByStatus(['queued']);
-      const completedDownloads = await getDownloadsByStatus(['completed']);
-      const failedDownloads = await getDownloadsByStatus(['failed', 'cancelled']);
+      if (!this.queue) {
+        return {
+          active: 0,
+          pending: 0,
+          completed: 0,
+          failed: 0
+        };
+      }
       
-      // Format active downloads for UI
-      const formattedActiveDownloads = await Promise.all(
-        activeDownloads.map(async (download: any) => {
-          const video = await getVideoByExternalId(download.video_id, getDatabase());
-          return {
-            id: download.id,
-            videoId: download.video_id,
-            title: video ? video.title : 'Unknown video',
-            progress: download.progress,
-            status: download.status
-          };
-        })
-      );
+      // Get all downloads by status
+      const [active, pending, completed, failed] = await Promise.all([
+        getDownloadsByStatus(['downloading']),
+        getDownloadsByStatus(['queued']),
+        getDownloadsByStatus(['completed']),
+        getDownloadsByStatus(['failed'])
+      ]);
       
       return {
-        active: activeDownloads.length,
-        pending: pendingDownloads.length,
-        completed: completedDownloads.length,
-        failed: failedDownloads.length
+        active: active.length,
+        pending: pending.length, 
+        completed: completed.length,
+        failed: failed.length
       };
     } catch (error) {
-      logger.error('Failed to get queue status', { error });
-      throw error;
+      logger.error('Error getting queue status:', error);
+      return {
+        active: 0,
+        pending: 0,
+        completed: 0,
+        failed: 0
+      };
     }
   }
   
@@ -605,39 +615,33 @@ class DownloadService {
     formatId: string,
     quality: string
   ): Promise<string[]> {
+    // Ensure we're initialized
+    if (!this.isInitialized) {
+      this.initialize();
+    }
+    
     try {
-      // Get all videos in playlist
-      const playlistVideos = await getPlaylistVideos(parseInt(playlistId, 10), getDatabase());
-      
-      if (!playlistVideos.length) {
-        throw new Error(`No videos found in playlist ${playlistId}`);
-      }
-      
-      logger.info(`Starting download for ${playlistVideos.length} videos in playlist ${playlistId}`);
-      
-      // Create download entries for each video
+      // Get all videos in the playlist
+      const playlistVideos = await getPlaylistVideos(parseInt(playlistId), getDatabase());
       const downloadIds: string[] = [];
       
+      // Queue up each video for download
       for (const video of playlistVideos) {
         const downloadId = uuidv4();
         downloadIds.push(downloadId);
         
-        // Queue the download
-        this.downloadVideo(downloadId, video.video_external_id, formatId, quality)
-          .catch(error => {
-            logger.error(`Failed to download video ${video.video_external_id} from playlist`, { error });
-          });
+        // Add to download queue
+        await this.downloadVideo(downloadId, video.video_external_id, formatId, quality);
       }
       
       return downloadIds;
     } catch (error) {
-      logger.error(`Failed to download playlist ${playlistId}`, { error });
+      logger.error(`Failed to download playlist ${playlistId}:`, error);
       throw error;
     }
   }
 }
 
-// Create singleton instance
+// Create and export singleton instance
 const downloadService = new DownloadService();
-
 export default downloadService; 

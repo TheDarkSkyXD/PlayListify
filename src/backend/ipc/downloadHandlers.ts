@@ -1,4 +1,4 @@
-import { ipcMain, dialog } from 'electron';
+import { ipcMain, dialog, BrowserWindow } from 'electron';
 import { z } from 'zod';
 import downloadService, { FormatSelection } from '../services/downloadService';
 import logger from '../services/logService';
@@ -50,6 +50,15 @@ function getErrorMessage(error: unknown): string {
   return String(error);
 }
 
+// Helper function to ensure download service is initialized
+function ensureDownloadServiceInitialized() {
+  if (!downloadService.isServiceInitialized()) {
+    logger.info('Lazy-initializing download service');
+    const mainWindow = BrowserWindow.getFocusedWindow();
+    downloadService.initialize(mainWindow || undefined);
+  }
+}
+
 // Register all download-related handlers
 export function registerDownloadHandlers() {
   // Get available formats for a video
@@ -57,6 +66,9 @@ export function registerDownloadHandlers() {
     try {
       // Validate the video URL
       videoUrlSchema.parse(videoUrl);
+      
+      // Ensure download service is initialized
+      ensureDownloadServiceInitialized();
       
       logger.info(`Getting formats for ${videoUrl}`);
       const formats = await downloadService.getFormats(videoUrl);
@@ -79,6 +91,9 @@ export function registerDownloadHandlers() {
     try {
       // Validate options
       const validatedOptions = startVideoDownloadSchema.parse(options);
+      
+      // Ensure download service is initialized
+      ensureDownloadServiceInitialized();
       
       logger.info(`Starting download for video ${validatedOptions.videoId}`);
       // Use downloadVideo method which exists in the service
@@ -110,6 +125,9 @@ export function registerDownloadHandlers() {
       const validatedOptions = startPlaylistDownloadSchema.parse(options);
       const { playlistId } = validatedOptions;
       
+      // Ensure download service is initialized
+      ensureDownloadServiceInitialized();
+      
       logger.info(`Starting download for playlist ${playlistId}`);
       // Use downloadPlaylist method which exists in the service
       const downloadIds = await downloadService.downloadPlaylist(
@@ -134,6 +152,9 @@ export function registerDownloadHandlers() {
   // Get current download queue status
   ipcMain.handle('download:get-queue', async () => {
     try {
+      // Ensure download service is initialized
+      ensureDownloadServiceInitialized();
+      
       const queueStatus = await downloadService.getQueueStatus();
       return { success: true, data: queueStatus };
     } catch (error) {
@@ -146,6 +167,9 @@ export function registerDownloadHandlers() {
   // Additional handler with the name used by the hook
   ipcMain.handle('download:get-queue-status', async () => {
     try {
+      // Ensure download service is initialized
+      ensureDownloadServiceInitialized();
+      
       const queueStatus = await downloadService.getQueueStatus();
       return { success: true, data: queueStatus };
     } catch (error) {
@@ -158,6 +182,9 @@ export function registerDownloadHandlers() {
   // Cancel a download
   ipcMain.handle('download:cancel', async (event, downloadId: string) => {
     try {
+      // Ensure download service is initialized
+      ensureDownloadServiceInitialized();
+      
       await downloadService.cancelDownload(downloadId);
       return { success: true, data: { cancelled: true } };
     } catch (error) {
@@ -170,6 +197,9 @@ export function registerDownloadHandlers() {
   // Retry a failed download
   ipcMain.handle('download:retry', async (event, downloadId: string) => {
     try {
+      // Ensure download service is initialized
+      ensureDownloadServiceInitialized();
+      
       await downloadService.retryDownload(downloadId);
       return { success: true, data: { retried: true } };
     } catch (error) {
@@ -196,6 +226,21 @@ export function registerDownloadHandlers() {
       const errorMessage = getErrorMessage(error);
       logger.error(`Failed to select directory: ${errorMessage}`, { error });
       return { success: false, error: `Failed to select directory: ${errorMessage}` };
+    }
+  });
+  
+  // Clear completed and failed downloads
+  ipcMain.handle('download:clear-completed', async () => {
+    try {
+      // Ensure download service is initialized
+      ensureDownloadServiceInitialized();
+      
+      await downloadService.clearCompletedDownloads();
+      return { success: true, data: { cleared: true } };
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      logger.error(`Failed to clear completed downloads: ${errorMessage}`, { error });
+      return { success: false, error: `Failed to clear completed downloads: ${errorMessage}` };
     }
   });
 }

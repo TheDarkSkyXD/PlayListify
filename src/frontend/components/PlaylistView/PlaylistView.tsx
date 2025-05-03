@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useGetPlaylistDetails, useUpdateVideoPosition } from '../../hooks/usePlaylistQueries';
-import { Playlist } from '../../../shared/types/appTypes';
+import { Playlist, PlaylistVideo } from '../../../shared/types/appTypes';
 import { VideoItem, PlaylistVideoFromDb } from './VideoItem';
 import { usePlaylistStore } from '../../store/playlistStore';
 import { Button } from '../ui/Button';
+import { Download, Pencil, Trash, ExternalLink } from 'lucide-react';
+import DownloadOptionsDialog from '../../features/downloads/components/DownloadOptionsDialog';
+import { formatDuration, formatDate } from '../../utils/formatting';
+
+// Define the structure of the data returned by useGetPlaylistDetails
+interface PlaylistDetails {
+  playlist: Playlist & { 
+    source?: string; 
+    videos: PlaylistVideoFromDb[];
+    duration_seconds?: number;
+  };
+  videos: PlaylistVideoFromDb[];
+}
 
 interface PlaylistViewProps {
   playlistId: number;
@@ -16,7 +29,11 @@ export const PlaylistView: React.FC<PlaylistViewProps> = ({
   onVideoAction,
   onPlaylistAction,
 }) => {
-  const { data, isLoading, error } = useGetPlaylistDetails(playlistId);
+  const { data, isLoading, error } = useGetPlaylistDetails(playlistId) as { 
+    data: PlaylistDetails | undefined; 
+    isLoading: boolean; 
+    error: Error | null 
+  };
   const updatePositionMutation = useUpdateVideoPosition();
   
   const { selectedVideoId, setSelectedVideoId } = usePlaylistStore();
@@ -29,6 +46,9 @@ export const PlaylistView: React.FC<PlaylistViewProps> = ({
   const [draggedVideoId, setDraggedVideoId] = useState<number | null>(null);
   const [dragOverVideoId, setDragOverVideoId] = useState<number | null>(null);
 
+  // State for download options
+  const [showDownloadOptions, setShowDownloadOptions] = useState(false);
+  
   // Update filtered videos when data or search term changes
   useEffect(() => {
     if (!data?.videos) {
@@ -37,7 +57,7 @@ export const PlaylistView: React.FC<PlaylistViewProps> = ({
     }
     
     if (!searchTerm) {
-      setFilteredVideos(data.videos as PlaylistVideoFromDb[]);
+      setFilteredVideos(data.videos);
       return;
     }
     
@@ -49,7 +69,7 @@ export const PlaylistView: React.FC<PlaylistViewProps> = ({
       );
     });
     
-    setFilteredVideos(filtered as PlaylistVideoFromDb[]);
+    setFilteredVideos(filtered);
   }, [data?.videos, searchTerm]);
 
   // Handle search input change
@@ -104,6 +124,38 @@ export const PlaylistView: React.FC<PlaylistViewProps> = ({
       return `${hours} hr ${minutes} min`;
     }
     return `${minutes} min`;
+  };
+
+  // Calculate total duration and estimate size (rough estimate)
+  const totalDuration = data?.videos.reduce((total, video) => 
+    total + (video.duration_seconds || 0), 0) || 0;
+  
+  // Rough estimation: ~50MB per 10 minutes at 1080p
+  const estimatedSize = (totalDuration / 600) * 50 * 1024 * 1024; // in bytes
+  
+  const handleDownloadAll = () => {
+    setShowDownloadOptions(true);
+  };
+  
+  const handleDownloadConfirm = (options: any) => {
+    if (!data || !data.videos || data.videos.length === 0) return;
+    
+    // Log the download request
+    console.log('Download playlist with options:', options);
+    
+    // If downloadAllVideos is true, download all videos in the playlist
+    // Otherwise, only download selected videos (this would require additional UI for selection)
+    if (options.downloadAllVideos) {
+      data.videos.forEach(video => {
+        // Only download videos that haven't been downloaded yet
+        if (!video.downloaded) {
+          onVideoAction('download', video);
+        }
+      });
+    }
+    
+    // Here we would call the API to start downloading the playlist
+    // window.api.downloads.addPlaylistToQueue could be implemented in the future
   };
 
   // Component to display when loading
@@ -247,6 +299,15 @@ export const PlaylistView: React.FC<PlaylistViewProps> = ({
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold truncate">{playlist.name}</h2>
           <div className="flex space-x-2">
+            <Button 
+              variant="default" 
+              onClick={handleDownloadAll}
+              className="flex items-center"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download All
+            </Button>
+            
             {playlist.source === 'youtube' && (
               <Button
                 onClick={() => onPlaylistAction('refresh', playlist)}
@@ -439,6 +500,55 @@ export const PlaylistView: React.FC<PlaylistViewProps> = ({
           </div>
         )}
       </div>
+      
+      {/* Action buttons */}
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          {onPlaylistAction && (
+            <Button 
+              variant="outline" 
+              onClick={() => onPlaylistAction('rename', playlist)}
+              className="flex items-center"
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
+          
+          {onPlaylistAction && (
+            <Button 
+              variant="destructive" 
+              onClick={() => onPlaylistAction('delete', playlist)}
+              className="flex items-center"
+            >
+              <Trash className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          )}
+        </div>
+        
+        {playlist.source === 'youtube' && playlist.videos && playlist.videos.length > 0 && playlist.videos[0].url && (
+          <Button
+            variant="outline"
+            onClick={() => window.open(playlist.videos[0].url, '_blank', 'noopener,noreferrer')}
+            className="flex items-center"
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open in YouTube
+          </Button>
+        )}
+      </div>
+      
+      {/* Download Options Dialog */}
+      <DownloadOptionsDialog
+        open={showDownloadOptions}
+        onOpenChange={setShowDownloadOptions}
+        onDownload={handleDownloadConfirm}
+        playlistName={playlist.name}
+        videoCount={playlist.videos?.length || 0}
+        estimatedSize={estimatedSize}
+        isPlaylist={true}
+      />
     </div>
   );
 }; 

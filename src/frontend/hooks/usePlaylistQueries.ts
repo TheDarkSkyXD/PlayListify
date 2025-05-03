@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIPC } from './useIPC';
-import { IPC_CHANNELS } from '@shared/constants/ipc-channels';
+import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 import {
   Playlist,
   PlaylistSummary,
@@ -16,7 +16,7 @@ import {
   VideoAddResponse,
   VideoRemoveResponse,
   VideoUpdatePositionResponse,
-} from '@shared/types/appTypes';
+} from '../../shared/types/appTypes';
 
 // Query keys
 export const playlistKeys = {

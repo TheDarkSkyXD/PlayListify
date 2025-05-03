@@ -4,6 +4,7 @@ import { useDownloadQueueStatus, useCancelDownload, useRetryDownload, useClearDo
 import { Trash, RefreshCw, XCircle, RotateCw, Play, Folder } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { useToast } from '../../hooks/useToast';
+import FormatConverterDemo from '../../features/downloads/components/FormatConverterDemo';
 
 type DownloadFilter = 'all' | 'active' | 'completed' | 'failed';
 
@@ -306,73 +307,70 @@ export const DownloadsPage: React.FC = () => {
   );
   
   return (
-    <div className="container mx-auto py-6 px-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
-        <h1 className="text-2xl font-bold">Downloads</h1>
-        
-        <div className="flex space-x-2 w-full sm:w-auto">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRefresh}
-            disabled={isLoadingQueue}
-          >
-            <RotateCw className={`h-4 w-4 mr-1 ${isLoadingQueue ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleClearCompleted}
-            disabled={!Object.values(downloads).some(d => ['completed', 'failed'].includes(d.status)) || clearDownloads.isPending}
-          >
-            <Trash className="h-4 w-4 mr-1" />
-            Clear Completed
-          </Button>
-        </div>
-      </div>
+    <div className="container py-8">
+      <h1 className="text-3xl font-bold mb-6">Downloads</h1>
       
+      {/* Queue Status Section */}
       {renderQueueStatus()}
       
-      <div className="mb-6">
-        <div className="flex flex-wrap gap-2 mb-4">
+      {/* Filters and Actions */}
+      <div className="flex flex-wrap justify-between mb-6">
+        <div className="flex space-x-2 mb-2 sm:mb-0">
           <Button
             variant={filter === 'all' ? 'default' : 'outline'}
-            size="sm"
             onClick={() => setFilter('all')}
+            size="sm"
           >
             All
           </Button>
           <Button
             variant={filter === 'active' ? 'default' : 'outline'}
-            size="sm"
             onClick={() => setFilter('active')}
+            size="sm"
           >
             Active
           </Button>
           <Button
             variant={filter === 'completed' ? 'default' : 'outline'}
-            size="sm"
             onClick={() => setFilter('completed')}
+            size="sm"
           >
             Completed
           </Button>
           <Button
             variant={filter === 'failed' ? 'default' : 'outline'}
-            size="sm"
             onClick={() => setFilter('failed')}
+            size="sm"
           >
             Failed
           </Button>
         </div>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleClearCompleted}
+          disabled={clearDownloads.isPending}
+        >
+          <Trash className="h-4 w-4 mr-2" />
+          Clear Completed
+        </Button>
       </div>
       
-      <div className="space-y-4">
-        {filteredDownloads.length > 0 
-          ? filteredDownloads.map(renderDownloadItem)
-          : renderEmptyState()
-        }
+      {/* Downloaded Items List */}
+      <div className="mb-8">
+        {filteredDownloads.length === 0 
+          ? renderEmptyState() 
+          : filteredDownloads.map(renderDownloadItem)}
+      </div>
+      
+      {/* Format Converter Section */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold mb-4">Format Converter</h2>
+        <p className="text-muted-foreground mb-4">
+          Convert your downloaded videos to different formats or extract audio from them.
+        </p>
+        <FormatConverterDemo />
       </div>
     </div>
   );

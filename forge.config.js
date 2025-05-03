@@ -44,11 +44,11 @@ module.exports = {
           config: './webpack.renderer.config.js',
           entryPoints: [
             {
-              html: './src/renderer/index.html',
-              js: './src/renderer/index.tsx',
+              html: './src/frontend/index.html',
+              js: './src/frontend/index.tsx',
               name: 'main_window',
               preload: {
-                js: './src/main/preload.ts',
+                js: './src/backend/preload.ts',
               },
             },
           ],
@@ -74,8 +74,8 @@ module.exports = {
       
       try {
         // Dynamically load our dependency services
-        const ytdlpService = require('./src/main/services/ytdlpService');
-        const ffmpegService = require('./src/main/services/ffmpegService');
+        const ytdlpService = require('./src/backend/services/ytdlpService');
+        const ffmpegService = require('./src/backend/services/ffmpegService');
         
         // Temporary override app.getPath to point to build resources
         const electron = require('electron');

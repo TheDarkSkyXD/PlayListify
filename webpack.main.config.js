@@ -1,9 +1,13 @@
+const path = require('path');
+
 module.exports = {
   /**
    * This is the main entry point for your application, it's the first file
    * that runs in the main process.
    */
-  entry: './src/main/index.ts',
+  entry: './src/backend/index.ts',
+  // Add mode configuration
+  mode: 'development',
   // Put your normal webpack config below here
   module: {
     rules: [
@@ -57,5 +61,19 @@ module.exports = {
   },
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.css', '.json'],
+    alias: {
+      // Use absolute paths instead of relative paths
+      '@': path.resolve(__dirname, './src'),
+      '@main': path.resolve(__dirname, './src/backend'),
+      '@renderer': path.resolve(__dirname, './src/frontend'),
+      '@shared': path.resolve(__dirname, './src/shared')
+    }
   },
+  // Add stats configuration to improve error reporting
+  stats: {
+    errorDetails: true,
+    colors: true,
+    modules: true,
+    reasons: true
+  }
 }; 
