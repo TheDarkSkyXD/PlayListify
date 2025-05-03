@@ -60,4 +60,9 @@ Thumbs.db
 *.mkv
 *.mp3
 *.wav
-*.ogg 
+*.ogg
+
+# Project files
+workflow.md
+PlayListify - Implementation Task Plan.md
+PlayListify - Implementation Task Plan - Copy.md 
