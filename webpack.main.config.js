@@ -36,6 +36,25 @@ module.exports = {
       },
     ],
   },
+  externals: [
+    // List all native modules that should be excluded from bundling
+    'better-sqlite3',
+    'sqlite3',
+    'node-gyp',
+    'keytar',
+    // Add dynamic externals handler to catch any native module imports
+    function({ request }, callback) {
+      // If the module is a native module or contains bindings.node, make it external
+      if (/better-sqlite3|sqlite3|keytar|bindings\.node|\.node$/.test(request)) {
+        return callback(null, 'commonjs ' + request);
+      }
+      callback();
+    }
+  ],
+  node: {
+    __dirname: false,
+    __filename: false
+  },
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.css', '.json'],
   },

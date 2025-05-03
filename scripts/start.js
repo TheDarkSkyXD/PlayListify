@@ -6,6 +6,20 @@
  * and then launches the application.
  */
 
+// ========== IMPORTANT ==========
+// Set critical environment variables BEFORE any requires to prevent native module rebuilding
+process.env.ELECTRON_SKIP_BINARY_DOWNLOAD = '1';
+process.env.npm_config_build_from_source = 'false';
+process.env.npm_config_node_gyp = 'echo "Skipping node-gyp"';
+process.env.ELECTRON_REBUILD_NATIVE_MODULES = 'false';
+process.env.npm_config_sqlite_skip_gyp = 'true';
+process.env.npm_config_sqlite_prebuild = 'true';
+process.env.npm_config_ignore_scripts = 'true'; // Skip all install scripts
+process.env.npm_config_sqlite = 'false'; // Disable native sqlite
+process.env.npm_config_node_gyp_force_unix = 'true'; // For Windows issues
+process.env.npm_config_loglevel = 'error'; // Suppress npm warnings
+// ========== END IMPORTANT ==========
+
 const fs = require('fs-extra');
 const path = require('path');
 const { exec, spawn } = require('child_process');
@@ -328,11 +342,16 @@ async function installFfmpeg() {
 async function startApp() {
   log('Starting PlayListify...', 'info');
   
+  // Using npm run instead of direct path to avoid Windows path issues
+  log('Using npm to start electron-forge', 'info');
+  log('Environment variables to prevent rebuilding are set', 'info');
+  
   const child = spawn('npm', ['run', 'electron-start'], {
     stdio: 'inherit',
     shell: true,
     env: {
       ...process.env,
+      NODE_ENV: 'production', // Use production to avoid dev dependencies
       PLAYLISTIFY_DEV_APP_DATA: APP_DATA_DIR
     }
   });

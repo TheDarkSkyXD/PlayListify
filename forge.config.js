@@ -6,9 +6,14 @@ module.exports = {
       './resources/bin'
     ]
   },
+  // Skip rebuilding native modules - we're using the adapter
   rebuildConfig: {
-    // Skip rebuilding native modules
-    onlyModules: []
+    // Skip all native rebuilds
+    shouldRebuild: () => false,
+    // Only rebuild these modules if absolutely necessary
+    onlyModules: [],
+    // Force rebuilding native modules
+    forceRebuild: false
   },
   makers: [
     {

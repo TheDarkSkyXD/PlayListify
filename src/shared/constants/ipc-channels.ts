@@ -35,9 +35,11 @@ export const IPC_CHANNELS = {
   VIDEO_ADD: 'video:add',
   VIDEO_REMOVE: 'video:remove',
   VIDEO_UPDATE_POSITION: 'video:update-position',
+  CHECK_VIDEO_STATUS: 'video:check-status',
   
   // Thumbnails
   THUMBNAIL_FETCH: 'thumbnail:fetch',
+  SYNC_FAILED_THUMBNAIL_IDS: 'thumbnail:sync-failed-ids',
   
   // Downloads
   DOWNLOAD_ADD: 'download:add',

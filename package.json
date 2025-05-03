@@ -16,7 +16,7 @@
     "lint:fix": "eslint --ext .ts,.tsx . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "check-start": "node scripts/start.js",
-    "electron-start": "electron-forge start"
+    "electron-start": "cross-env ELECTRON_REBUILD_NATIVE_MODULES=false electron-forge start"
   },
   "keywords": [
     "electron",
@@ -64,6 +64,7 @@
     "cross-env": "^7.0.3",
     "css-loader": "^7.1.2",
     "electron": "^36.1.0",
+    "electron-rebuild": "^3.2.9",
     "eslint": "^9.25.1",
     "extract-zip": "^2.0.1",
     "ffprobe-static": "^3.1.0",

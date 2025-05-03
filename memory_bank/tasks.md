@@ -12,13 +12,13 @@
 - [x] Download IPC handlers (backend)
 - [x] Frontend download state management (frontend)
 - [x] Download button and options UI (frontend)
+- [x] History page UI implementation (frontend)
 
 ### In Progress
 - [ ] Downloads page UI (frontend)
 
 ### Upcoming Tasks
 - [ ] Fix TypeScript/linter errors in download service implementation
-- [ ] History feature implementation
 - [ ] Settings page implementation
 - [ ] Video player integration
 
@@ -39,6 +39,14 @@
 - Add button to video items
 - Implement download options modal
 - Connect button to modal
+
+### History Page UI Implementation (Completed)
+- Used React Query to fetch history data via `history:get` IPC handler
+- Implemented custom toast hooks for feedback messages
+- Added tab-based filtering of history items (All, Started, Completed)
+- Created loading states with CSS-based skeleton loaders
+- Integrated responsive grid layout for history items
+- Fixed TypeScript errors related to Window API access with proper typing
 
 ## Completed Tasks
 

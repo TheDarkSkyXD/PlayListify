@@ -93,6 +93,8 @@
 - Set up update mechanism with electron-updater (Date: May 3, 2025)
 - Implemented dependency services for external tools (Date: May 3, 2025)
 - Refactored dependency services into specialized modules (Date: May 3, 2025)
+- Implemented History page UI with custom toast implementation and tab-based filtering (Current Date)
+- Fixed TypeScript errors in History.tsx related to Window API access (Current Date)
 
 ## Blockers & Issues
 - Need to implement proper error handling for database operations

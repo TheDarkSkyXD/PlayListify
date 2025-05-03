@@ -15,7 +15,7 @@
     "paths": {
       "*": ["node_modules/*"],
       "@/*": ["src/*"],
-      "@main/*": ["src/main/*"],
+      "@main/*": ["src/backend/*"],
       "@renderer/*": ["src/renderer/*"],
       "@shared/*": ["src/shared/*"]
     },

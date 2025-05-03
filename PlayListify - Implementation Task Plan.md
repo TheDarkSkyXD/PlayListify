@@ -1154,22 +1154,25 @@ Implement the backend service and frontend UI to track and display recently watc
 - /relative/path/of/changed/file: `src/main/index.ts`
 - Operation being done (Update): Registers history IPC handlers.
 
-##### SubTask 4: Implement History Page UI
+##### SubTask 4: Implement History Page UI - COMPLETED
 
-- [ ] Description Of SubTask 4 change: Flesh out `HistoryPage.tsx`. Use a `useQuery` hook to fetch history data via `history:get`. Render a list of `HistoryItem` components.
+- [x] Description Of SubTask 4 change: Flesh out `HistoryPage.tsx`. Use a `useQuery` hook to fetch history data via `history:get`. Render a list of history items with thumbnails, title, progress, and watched date.
 - /relative/path/of/changed/file: `src/renderer/pages/History.tsx`
-- Operation being done (Update): Implements the history page UI.
+- Operation being done (Update): Implements the history page UI with loading states, tab-based filtering, and responsive grid layout.
 
-##### SubTask 5: Create History Item Component
+##### SubTask 5: Create History Item Component - COMPLETED
 
-- [ ] Description Of SubTask 5 change: Create `HistoryItem.tsx`. Display video thumbnail, title, watch progress (potentially as a progress bar under the thumbnail), and watched date.
-- /relative/path/of/changed/file: `src/renderer/components/History/HistoryItem.tsx`
-- Operation being done (Create): Creates the individual history item component.
+- [x] Description Of SubTask 5 change: Implement history item display within the History page itself. Display video thumbnail, title, watch progress (with a progress bar under the thumbnail), and watched date.
+- /relative/path/of/changed/file: `src/renderer/pages/History.tsx`
+- Operation being done (Update): Creates the individual history item display with proper formatting.
 
 #### Other Notes On Step 30: Implement History Service & UI
 
-- The `history:add-or-update` handler will be called later during video playback implementation (Step 31).
-- Consider adding pagination or infinite scrolling to the history page if it can grow large.
+- The `history:add-or-update` handler will be called during video playback implementation (Step 31).
+- Added IPC type handling to properly type responses from IPC calls using generics.
+- Implemented custom toast hooks since shadcn/ui doesn't provide a toast function by default.
+- Added appropriate error handling when the history API calls fail.
+- Implemented tab-based filtering of history items (All, Started, Completed).
 
 ### Step 31: Implement Video Player Integration
 

@@ -287,4 +287,64 @@ These patterns provide a consistent structure to the PlayListify application and
   /utils          # Utility functions
 ```
 
+## UI Component Patterns
+
+### Custom Hooks
+1. **useToast Pattern**
+   - When shadcn/ui components don't provide necessary functionality (like a toast function), create custom hooks to fill the gap
+   - Pattern implemented in History.tsx:
+   ```tsx
+   const useToast = () => {
+     const [toasts, setToasts] = useState<(ToastProps & { id: string })[]>([]);
+     
+     const toast = (props: Omit<ToastProps, 'open' | 'onClose'>) => {
+       const id = Math.random().toString(36).substring(2);
+       setToasts((prev) => [...prev, { ...props, id, open: true }]);
+       
+       // Auto remove after duration
+       setTimeout(() => {
+         setToasts((prev) => prev.filter((t) => t.id !== id));
+       }, props.duration || 5000);
+     };
+     
+     return {
+       toast,
+       Toaster: () => (/* Component implementation */)
+     };
+   };
+   ```
+   - This pattern keeps all toast-related code encapsulated and focused on a specific concern
+
+### API Response Types
+1. **Generic API Response Type**
+   - Use TypeScript generics to create flexible but type-safe API response interfaces
+   - Pattern implemented in History.tsx:
+   ```tsx
+   interface ApiResponse<T> {
+     success: boolean;
+     data?: T;
+     error?: string;
+   }
+   
+   // Usage with IPC calls
+   const response = await window.electron.ipcRenderer.invoke<never, ApiResponse<HistoryItem[]>>('history:get');
+   ```
+   - This ensures proper typing of API responses throughout the application
+
+### Loading States
+1. **CSS-based Skeleton Loading**
+   - When UI component libraries are missing or have inconsistent implementations, create simple CSS-based loading states
+   - Pattern implemented in History.tsx:
+   ```tsx
+   if (isLoading) {
+     return (
+       <div className="container mx-auto py-6 px-4">
+         <div className="h-10 w-32 bg-gray-200 animate-pulse rounded"></div>
+         {/* More skeleton elements */}
+       </div>
+     );
+   }
+   ```
+   - This provides a consistent loading experience without additional dependencies
+
 *This document serves as a reference for maintaining consistent code patterns and architecture decisions.* 
