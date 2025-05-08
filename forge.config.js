@@ -1,26 +1,15 @@
+const { FusesPlugin } = require('@electron-forge/plugin-fuses');
+const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+
 module.exports = {
   packagerConfig: {
     asar: true,
-    extraResource: [
-      // Empty directories to be filled during build process
-      './resources/bin'
-    ]
   },
-  // Skip rebuilding native modules - we're using the adapter
-  rebuildConfig: {
-    // Skip all native rebuilds
-    shouldRebuild: () => false,
-    // Only rebuild these modules if absolutely necessary
-    onlyModules: [],
-    // Force rebuilding native modules
-    forceRebuild: false
-  },
+  rebuildConfig: {},
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
-      config: {
-        setupIcon: './resources/icon.ico',
-      },
+      config: {},
     },
     {
       name: '@electron-forge/maker-zip',
@@ -37,6 +26,10 @@ module.exports = {
   ],
   plugins: [
     {
+      name: '@electron-forge/plugin-auto-unpack-natives',
+      config: {},
+    },
+    {
       name: '@electron-forge/plugin-webpack',
       config: {
         mainConfig: './webpack.main.config.js',
@@ -44,61 +37,27 @@ module.exports = {
           config: './webpack.renderer.config.js',
           entryPoints: [
             {
-              html: './src/frontend/index.html',
-              js: './src/frontend/index.tsx',
+              html: './src/index.html',
+              js: './src/renderer.js',
               name: 'main_window',
               preload: {
-                js: './src/backend/preload.ts',
+                js: './src/preload.js',
               },
             },
           ],
         },
       },
     },
-    {
-      name: '@electron-forge/plugin-auto-unpack-natives',
-      config: {},
-    },
+    // Fuses are used to enable/disable various Electron functionality
+    // at package time, before code signing the application
+    new FusesPlugin({
+      version: FuseVersion.V1,
+      [FuseV1Options.RunAsNode]: false,
+      [FuseV1Options.EnableCookieEncryption]: true,
+      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
+      [FuseV1Options.EnableNodeCliInspectArguments]: false,
+      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+      [FuseV1Options.OnlyLoadAppFromAsar]: true,
+    }),
   ],
-  // Hook to download binaries before packaging
-  hooks: {
-    packageAfterCopy: async (config, buildPath, electronVersion, platform, arch) => {
-      const fs = require('fs-extra');
-      const path = require('path');
-      
-      console.log('Preparing binary dependencies for packaging...');
-      
-      // Ensure resources directory exists
-      const binDir = path.join(buildPath, '..', 'resources', 'bin');
-      await fs.ensureDir(binDir);
-      
-      try {
-        // Dynamically load our dependency services
-        const ytdlpService = require('./src/backend/services/ytdlpService');
-        const ffmpegService = require('./src/backend/services/ffmpegService');
-        
-        // Temporary override app.getPath to point to build resources
-        const electron = require('electron');
-        const originalGetPath = electron.app.getPath;
-        electron.app.getPath = (name) => {
-          if (name === 'userData') {
-            return path.join(buildPath, '..', 'resources');
-          }
-          return originalGetPath(name);
-        };
-        
-        // Download dependencies if needed
-        await ytdlpService.ensureYtdlp();
-        await ffmpegService.ensureFfmpeg();
-        
-        // Restore original function
-        electron.app.getPath = originalGetPath;
-        
-        console.log('Binary dependencies prepared successfully');
-      } catch (error) {
-        console.error('Failed to prepare binary dependencies:', error);
-        throw error;
-      }
-    }
-  }
-}; 
+};

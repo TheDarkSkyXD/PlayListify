@@ -1,201 +1,285 @@
-#!/usr/bin/env node
+// PlayListify - Development Environment Setup
+// Configures a development environment for PlayListify
 
-/**
- * Development setup script for PlayListify
- * 
- * This script ensures that the required external dependencies (yt-dlp and ffmpeg)
- * are downloaded and available for development.
- */
-
+const fs = require('fs');
 const path = require('path');
-const fs = require('fs-extra');
-const { spawn, execSync } = require('child_process');
-const https = require('https');
-const http = require('http');
-const { URL } = require('url');
-const extract = require('extract-zip');
+const { execSync, spawnSync } = require('child_process');
+const { existsSync, mkdirSync, writeFileSync } = require('fs');
 
-// Print with color
-const print = {
-  info: (msg) => console.log(`\x1b[36m[INFO]\x1b[0m ${msg}`),
-  success: (msg) => console.log(`\x1b[32m[SUCCESS]\x1b[0m ${msg}`),
-  warning: (msg) => console.log(`\x1b[33m[WARNING]\x1b[0m ${msg}`),
-  error: (msg) => console.log(`\x1b[31m[ERROR]\x1b[0m ${msg}`)
+// Terminal color codes for colorful output
+const colors = {
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m',
+  white: '\x1b[37m'
 };
 
-// Platform-specific executable extensions
-const getExecutableExtension = () => {
-  return process.platform === 'win32' ? '.exe' : '';
+// Helper functions for colorful console output
+const c = {
+  success: text => console.log(`${colors.bright}${colors.green}✓ ${text}${colors.reset}`),
+  error: text => console.log(`${colors.bright}${colors.red}✗ ${text}${colors.reset}`),
+  info: text => console.log(`${colors.bright}${colors.cyan}ℹ ${text}${colors.reset}`),
+  warning: text => console.log(`${colors.bright}${colors.yellow}⚠ ${text}${colors.reset}`),
+  highlight: text => console.log(`${colors.bright}${colors.magenta}→ ${text}${colors.reset}`),
+  step: text => console.log(`${colors.bright}${colors.blue}• ${text}${colors.reset}`),
+  section: (emoji, text) => console.log(`${colors.bright}${colors.blue}${emoji} ${text}${colors.reset}\n${colors.dim}-----------------------------------------------${colors.reset}`)
 };
 
-// Helper to download a file with curl
-const downloadWithCurl = (url, destination) => {
-  return new Promise((resolve, reject) => {
-    try {
-      print.info(`Downloading with curl: ${url}`);
-      // Use curl with redirects and create parent dirs
-      fs.ensureDirSync(path.dirname(destination));
-      
-      // Use --location to follow redirects
-      execSync(`curl --location --fail --silent --show-error --output "${destination}" "${url}"`, {
-        stdio: 'inherit'
-      });
-      
-      print.success(`Downloaded to ${destination}`);
-      resolve();
-    } catch (err) {
-      print.error(`Failed to download using curl: ${err.message}`);
-      reject(err);
-    }
-  });
+// Project paths
+const PROJECT_ROOT = path.resolve(__dirname, '..');
+const DEP_INSTALL_SCRIPT = path.join(PROJECT_ROOT, 'scripts', 'install-dependencies.js');
+const DEV_DATA_DIR = path.join(PROJECT_ROOT, 'dev-app-data');
+const DEV_SETTINGS_FILE = path.join(DEV_DATA_DIR, 'dev-settings.json');
+const YTDLP_DIR = path.join(PROJECT_ROOT, 'ytdlp');
+const FFMPEG_DIR = path.join(PROJECT_ROOT, 'ffmpeg');
+
+// Default development settings
+const defaultDevSettings = {
+  devMode: true,
+  debugEnabled: true,
+  ytdlpPath: path.join(YTDLP_DIR, 'bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp'),
+  ffmpegPath: path.join(FFMPEG_DIR, 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'),
+  downloadLocation: path.join(DEV_DATA_DIR, 'downloads'),
+  cacheLocation: path.join(DEV_DATA_DIR, 'cache'),
+  logLevel: 'debug',
+  concurrentDownloads: 3,
+  useSystemDependencies: false
 };
 
-// Helper to find executable in extracted directory (recursive)
-const findExecutableInExtracted = async (dir, fileName) => {
-  try {
-    const files = await fs.readdir(dir);
-    
-    for (const file of files) {
-      const fullPath = path.join(dir, file);
-      const stat = await fs.stat(fullPath);
-      
-      if (stat.isDirectory()) {
-        const found = await findExecutableInExtracted(fullPath, fileName);
-        if (found) return found;
-      } else if (file.toLowerCase() === fileName.toLowerCase()) {
-        return fullPath;
-      }
-    }
-  } catch (err) {
-    print.error(`Error searching for ${fileName}: ${err.message}`);
-  }
+// Function to ensure dev directories exist
+function createDevDirectories() {
+  c.section('📂', 'CREATING DEVELOPMENT DIRECTORIES');
   
-  return null;
-};
-
-// Download and set up yt-dlp
-const setupYtdlp = async (binDir) => {
-  const extPath = getExecutableExtension();
-  const ytdlpPath = path.join(binDir, `yt-dlp${extPath}`);
+  const dirs = [
+    DEV_DATA_DIR,
+    path.join(DEV_DATA_DIR, 'downloads'),
+    path.join(DEV_DATA_DIR, 'cache'),
+    path.join(DEV_DATA_DIR, 'logs'),
+    path.join(DEV_DATA_DIR, 'db')
+  ];
   
-  if (fs.existsSync(ytdlpPath)) {
-    print.success('yt-dlp already exists, skipping download');
-    return;
-  }
-  
-  try {
-    // Direct download URL for yt-dlp
-    const downloadUrl = process.platform === 'win32'
-      ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe'
-      : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
-      
-    await downloadWithCurl(downloadUrl, ytdlpPath);
-    
-    // Make executable on Unix platforms
-    if (process.platform !== 'win32') {
-      fs.chmodSync(ytdlpPath, 0o755);
-    }
-    
-    print.success(`yt-dlp is now available at: ${ytdlpPath}`);
-  } catch (error) {
-    print.error(`Failed to download yt-dlp: ${error.message}`);
-    throw error;
-  }
-};
-
-// Download and set up ffmpeg
-const setupFfmpeg = async (binDir) => {
-  const extPath = getExecutableExtension();
-  const ffmpegPath = path.join(binDir, `ffmpeg${extPath}`);
-  
-  if (fs.existsSync(ffmpegPath)) {
-    print.success('ffmpeg already exists, skipping download');
-    return;
-  }
-  
-  try {
-    if (process.platform === 'win32') {
-      // For Windows, download a standalone ffmpeg.exe
-      const ffmpegUrl = 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip';
-      const zipPath = path.join(binDir, 'ffmpeg.zip');
-      const extractDir = path.join(binDir, 'ffmpeg-temp');
-      
-      print.info('Downloading ffmpeg.exe for Windows...');
-      await downloadWithCurl(ffmpegUrl, zipPath);
-      
-      print.info('Extracting ffmpeg.zip...');
-      await fs.ensureDir(extractDir);
-      
-      try {
-        await extract(zipPath, { dir: extractDir });
-        print.success('Successfully extracted ffmpeg.zip');
-        
-        // Find ffmpeg.exe in the extracted files
-        print.info('Locating ffmpeg.exe in extracted files...');
-        const ffmpegExe = await findExecutableInExtracted(extractDir, 'ffmpeg.exe');
-        
-        if (ffmpegExe) {
-          // Copy to destination
-          print.info(`Found ffmpeg.exe at ${ffmpegExe}`);
-          await fs.copyFile(ffmpegExe, ffmpegPath);
-          print.success(`Copied ffmpeg.exe to ${ffmpegPath}`);
-        } else {
-          print.error('Could not find ffmpeg.exe in extracted files');
-          throw new Error('ffmpeg.exe not found in archive');
-        }
-        
-        // Clean up
-        print.info('Cleaning up temporary files...');
-        await fs.remove(extractDir);
-        await fs.remove(zipPath);
-        print.success('Cleanup complete');
-      } catch (err) {
-        print.error(`Error extracting ffmpeg: ${err.message}`);
-        print.info('Please extract it manually and place ffmpeg.exe in the bin directory:');
-        print.info(`Bin directory: ${binDir}`);
-      }
+  for (const dir of dirs) {
+    if (!existsSync(dir)) {
+      c.step(`Creating directory: ${dir}`);
+      mkdirSync(dir, { recursive: true });
+      c.success(`Created directory: ${dir}`);
     } else {
-      print.warning('Automatic ffmpeg download for non-Windows platforms not implemented.');
-      print.info('Please download ffmpeg manually and place it in the bin directory:');
-      print.info(`Bin directory: ${binDir}`);
+      c.info(`Directory already exists: ${dir}`);
     }
-  } catch (error) {
-    print.error(`Failed to set up ffmpeg: ${error.message}`);
-    throw error;
-  }
-};
-
-// Main function
-async function main() {
-  print.info('Setting up PlayListify development environment...');
-  
-  try {
-    // Set up app userData directory for development
-    const userDataDir = path.join(process.cwd(), 'dev-app-data');
-    process.env.PLAYLISTIFY_DEV_APP_DATA = userDataDir;
-    await fs.ensureDir(userDataDir);
-    
-    print.info(`Using development app data directory: ${userDataDir}`);
-    
-    // Ensure bin directory exists
-    const binDir = path.join(userDataDir, 'bin');
-    await fs.ensureDir(binDir);
-    
-    // Set up yt-dlp
-    print.info('Setting up yt-dlp...');
-    await setupYtdlp(binDir);
-    
-    // Set up ffmpeg
-    print.info('Setting up ffmpeg...');
-    await setupFfmpeg(binDir);
-    
-    print.success('Development environment setup complete');
-  } catch (error) {
-    print.error(`Setup failed: ${error.message}`);
-    console.error(error);
-    process.exit(1);
   }
 }
 
+// Function to create development settings file
+function createDevSettings() {
+  c.section('⚙️', 'CONFIGURING DEVELOPMENT SETTINGS');
+  
+  if (!existsSync(DEV_SETTINGS_FILE)) {
+    c.step('Creating development settings file...');
+    
+    try {
+      writeFileSync(
+        DEV_SETTINGS_FILE,
+        JSON.stringify(defaultDevSettings, null, 2),
+        'utf8'
+      );
+      c.success(`Development settings created at: ${DEV_SETTINGS_FILE}`);
+    } catch (error) {
+      c.error(`Failed to create development settings: ${error.message}`);
+    }
+  } else {
+    c.info('Development settings file already exists');
+    c.step('Updating development settings...');
+    
+    try {
+      // Read existing settings
+      const existingSettings = JSON.parse(fs.readFileSync(DEV_SETTINGS_FILE, 'utf8'));
+      
+      // Merge with default settings (keeping existing values)
+      const updatedSettings = { ...defaultDevSettings, ...existingSettings };
+      
+      // Write back
+      writeFileSync(
+        DEV_SETTINGS_FILE,
+        JSON.stringify(updatedSettings, null, 2),
+        'utf8'
+      );
+      c.success('Development settings updated');
+    } catch (error) {
+      c.error(`Failed to update development settings: ${error.message}`);
+    }
+  }
+}
+
+// Function to verify Node.js version
+function checkNodeVersion() {
+  c.section('🔍', 'CHECKING NODE.JS VERSION');
+  
+  const nodeVersion = process.version;
+  c.info(`Current Node.js version: ${nodeVersion}`);
+  
+  // Extract major version number
+  const majorVersion = parseInt(nodeVersion.slice(1).split('.')[0], 10);
+  
+  if (majorVersion < 14) {
+    c.error('Node.js version 14 or higher is required for development');
+    c.info('Please upgrade your Node.js installation');
+    return false;
+  }
+  
+  c.success('Node.js version check passed');
+  return true;
+}
+
+// Function to install dependencies
+function installDependencies() {
+  c.section('📦', 'INSTALLING DEPENDENCIES');
+  
+  // First run npm install to ensure all node modules are installed
+  c.step('Running npm install...');
+  try {
+    execSync('npm install', { stdio: 'inherit' });
+    c.success('npm dependencies installed');
+  } catch (error) {
+    c.error(`Failed to install npm dependencies: ${error.message}`);
+    return false;
+  }
+  
+  // Then run the dependency installation script
+  c.step('Installing yt-dlp and FFmpeg...');
+  try {
+    const result = spawnSync('node', [DEP_INSTALL_SCRIPT], {
+      stdio: 'inherit',
+      shell: true
+    });
+    
+    if (result.status !== 0) {
+      c.error('Failed to install yt-dlp and FFmpeg');
+      return false;
+    }
+    
+    c.success('yt-dlp and FFmpeg installed successfully');
+    return true;
+  } catch (error) {
+    c.error(`Error installing dependencies: ${error.message}`);
+    return false;
+  }
+}
+
+// Function to create a .env file for development
+function createEnvFile() {
+  c.section('🔑', 'CREATING .ENV FILE');
+  
+  const envPath = path.join(PROJECT_ROOT, '.env');
+  
+  if (!existsSync(envPath)) {
+    c.step('Creating .env file for development...');
+    
+    const envContent = `# PlayListify Development Environment Variables
+NODE_ENV=development
+ELECTRON_DEV=true
+ELECTRON_DEBUG=true
+DEV_DATA_DIR=${DEV_DATA_DIR.replace(/\\/g, '\\\\')}
+`;
+    
+    try {
+      writeFileSync(envPath, envContent, 'utf8');
+      c.success('Created .env file');
+    } catch (error) {
+      c.error(`Failed to create .env file: ${error.message}`);
+    }
+  } else {
+    c.info('.env file already exists');
+  }
+}
+
+// Function to display development environment info
+function showDevEnvironmentInfo() {
+  c.section('📊', 'DEVELOPMENT ENVIRONMENT INFO');
+  
+  c.info(`Node.js: ${process.version}`);
+  c.info(`Platform: ${process.platform}`);
+  c.info(`Architecture: ${process.arch}`);
+  c.info(`Project Root: ${PROJECT_ROOT}`);
+  c.info(`Dev Data Directory: ${DEV_DATA_DIR}`);
+  
+  if (existsSync(path.join(YTDLP_DIR, 'bin'))) {
+    const isWindows = process.platform === 'win32';
+    const ytdlpBinary = path.join(YTDLP_DIR, 'bin', isWindows ? 'yt-dlp.exe' : 'yt-dlp');
+    
+    if (existsSync(ytdlpBinary)) {
+      try {
+        const ytdlpVersion = execSync(`"${ytdlpBinary}" --version`, { encoding: 'utf8' }).trim();
+        c.info(`yt-dlp: ${ytdlpVersion} (${ytdlpBinary})`);
+      } catch (error) {
+        c.info(`yt-dlp: Installed but version check failed (${ytdlpBinary})`);
+      }
+    } else {
+      c.info(`yt-dlp: Not installed`);
+    }
+  }
+  
+  if (existsSync(path.join(FFMPEG_DIR, 'bin'))) {
+    const isWindows = process.platform === 'win32';
+    const ffmpegBinary = path.join(FFMPEG_DIR, 'bin', isWindows ? 'ffmpeg.exe' : 'ffmpeg');
+    
+    if (existsSync(ffmpegBinary)) {
+      try {
+        const ffmpegVersion = execSync(`"${ffmpegBinary}" -version`, { encoding: 'utf8' }).split('\n')[0];
+        c.info(`FFmpeg: ${ffmpegVersion}`);
+      } catch (error) {
+        c.info(`FFmpeg: Installed but version check failed (${ffmpegBinary})`);
+      }
+    } else {
+      c.info(`FFmpeg: Not installed`);
+    }
+  }
+}
+
+// Main function
+async function main() {
+  console.log('\n');
+  console.log(`${colors.bright}${colors.green}╔══════════════════════════════════════════════════╗${colors.reset}`);
+  console.log(`${colors.bright}${colors.green}║       PLAYLISTIFY DEV ENVIRONMENT SETUP         ║${colors.reset}`);
+  console.log(`${colors.bright}${colors.green}╚══════════════════════════════════════════════════╝${colors.reset}`);
+  console.log('\n');
+  
+  // Check Node.js version
+  if (!checkNodeVersion()) {
+    process.exit(1);
+  }
+  
+  // Create development directories
+  createDevDirectories();
+  
+  // Install dependencies
+  if (!installDependencies()) {
+    c.error('Failed to install dependencies. Fix the issues above and try again.');
+    process.exit(1);
+  }
+  
+  // Create development settings
+  createDevSettings();
+  
+  // Create .env file
+  createEnvFile();
+  
+  // Show development environment info
+  showDevEnvironmentInfo();
+  
+  console.log('\n');
+  c.success('✅ Development environment setup completed!');
+  c.info('You can now run the app in development mode with:');
+  c.highlight('  npm run dev:with-deps');
+  console.log('\n');
+}
+
 // Run the main function
-main(); 
+main().catch(error => {
+  c.error(`Unhandled error: ${error.message}`);
+  process.exit(1);
+}); 

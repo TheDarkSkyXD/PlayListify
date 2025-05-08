@@ -1,7 +1,0 @@
-node_modules
-.webpack
-dist
-out
-*.lock
-*.log
-*.d.ts 

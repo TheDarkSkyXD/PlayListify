@@ -16,40 +16,20 @@ module.exports = [
       },
     },
   },
-  // Add specific loader for TanStack Router and tiny-warning
-  {
-    test: /\.m?js$/,
-    include: [
-      /node_modules\/@tanstack[\\/]react-router/,
-      /node_modules[\\/]tiny-warning/,
-    ],
-    use: {
-      loader: 'babel-loader',
-      options: {
-        presets: ['@babel/preset-env'],
-        plugins: []
-      },
-    },
-  },
-  // Add specific loader for CommonJS (.cjs) files
-  {
-    test: /\.cjs$/,
-    include: /node_modules/,
-    use: {
-      loader: 'babel-loader',
-      options: {
-        presets: ['@babel/preset-env'],
-      },
-    },
-  },
-  {
-    test: /\.tsx?$/,
-    exclude: /(node_modules|\.webpack)/,
-    use: {
-      loader: 'ts-loader',
-      options: {
-        transpileOnly: true,
-      },
-    },
-  },
-]; 
+  // Put your webpack loader rules in this array.  This is where you would put
+  // your ts-loader configuration for instance:
+  /**
+   * Typescript Example:
+   *
+   * {
+   *   test: /\.tsx?$/,
+   *   exclude: /(node_modules|.webpack)/,
+   *   loaders: [{
+   *     loader: 'ts-loader',
+   *     options: {
+   *       transpileOnly: true
+   *     }
+   *   }]
+   * }
+   */
+];
