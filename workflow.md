@@ -101,7 +101,7 @@ Copy and paste these commands to install all required packages:
 
 ```bash
 # Core dependencies
-npm install electron @electron-forge/cli @electron-forge/maker-squirrel @electron-forge/maker-zip @electron-forge/maker-deb @electron-forge/maker-rpm typescript @types/node electron-store fs-extra @types/fs-extra electron-updater electron-squirrel-startup
+npm install electron @electron-forge/cli @electron-forge/maker-squirrel @electron-forge/maker-zip @electron-forge/maker-deb @electron-forge/maker-rpm typescript @types/node electron-store fs-extra @types/fs-extra electron-updater electron-squirrel-startup better-sqlite3
 
 # UI dependencies
 npm install react react-dom @types/react @types/react-dom tailwindcss postcss autoprefixer @shadcn/ui @tanstack/react-router @tanstack/react-query
@@ -132,6 +132,7 @@ npm install --save-dev jest @types/jest ts-jest @testing-library/react @electron
 - [ ] @types/fs-extra
 - [ ] electron-updater
 - [ ] electron-squirrel-startup
+- [ ] better-sqlite3
 
 ### UI
 - [ ] react
@@ -246,7 +247,44 @@ app.on('window-all-closed', () => process.platform !== 'darwin' && app.quit());
 app.on('activate', () => mainWindow === null && createWindow());
 ```
 
-### Phase 1.2: Set Up React and UI Libraries
+### Phase 1.2: Core Dependency Setup (yt-dlp & ffmpeg)
+**Tasks:**
+- [ ] Create automated `yt-dlp` installation checking for development mode.
+- [ ] Implement terminal-based installation prompts for `yt-dlp` if not found.
+- [ ] Add dedicated directory for `yt-dlp` binary (e.g., `ytdlp/`).
+- [ ] Check for `ffmpeg` installation on the system.
+- [ ] Implement terminal-based prompts to guide `ffmpeg` installation if not found (linking to official download pages).
+- [ ] Determine and store valid paths for both `yt-dlp` and `ffmpeg` binaries, making them accessible to relevant services.
+- [ ] Integrate with existing `ytDlpManager.ts` to use the discovered `yt-dlp` path.
+- [ ] Ensure `ffmpegService.ts` and `ytDlpManager.ts` (for `--ffmpeg-location`) use the discovered `ffmpeg` path.
+- [ ] Remove settings-based `yt-dlp` and `ffmpeg` path configuration from the UI if it was previously planned, relying on this setup process.
+
+**Files Created/Updated:**
+- [ ] `src/backend/services/dependencySetupService.ts` (~250 lines, potentially evolving from `ytDlpSetup.ts` or new)
+  - Functions to check if `yt-dlp` and `ffmpeg` are installed and accessible.
+  - Terminal-based installation/guidance prompts with visual indicators for both.
+  - Logic to download `yt-dlp` binary to a dedicated app folder (e.g., `ytdlp/`).
+  - Logic to find system `ffmpeg` path or guide user if it needs to be added to PATH/specified.
+  - Functions to store/retrieve validated binary paths (e.g., via `settingsService` or a simple internal cache).
+  - Development environment detection.
+- [ ] `src/backend/backend.ts` (updates)
+  - Integration with the startup sequence: run `dependencySetupService` checks early.
+  - Conditional initialization of video services based on successful setup.
+  - Enhanced terminal visibility for setup prompts.
+- [ ] `src/backend/services/ytDlpManager.ts` (updates)
+  - Retrieves `yt-dlp` binary path from `dependencySetupService` or `settingsService`.
+  - Retrieves `ffmpeg` binary path and passes it to `yt-dlp` commands using `--ffmpeg-location`.
+  - Removal of any direct settings-based path configuration if previously used.
+- [ ] `src/backend/services/ffmpegService.ts` (updates)
+  - Retrieves `ffmpeg` binary path from `dependencySetupService` or `settingsService` to configure `fluent-ffmpeg` (e.g., `ffmpeg.setFfmpegPath()`).
+- [ ] `src/frontend/pages/Settings/SettingsPage.tsx` (updates)
+  - Removed any UI for manually configuring `yt-dlp` or `ffmpeg` paths if the setup process handles this.
+
+**Implementation Details:**
+- Development mode detection to primarily run these setup checks/prompts in `npm start` environment or on first run.
+- Platform-specific binary detection (`yt-dlp.exe`/`ffmpeg.exe` on Windows, `yt-dlp`/`ffmpeg` on macOS/Linux).
+
+### Phase 1.3: Set Up React and UI Libraries
 
 **Tasks:**
 - [x] Integrate React for the frontend process
@@ -295,7 +333,7 @@ app.on('activate', () => mainWindow === null && createWindow());
 - Set up custom scrollbar styling consistent with the application theme
 - Organized pages using folder structure with index.tsx files for better organization and code splitting
 
-### Phase 1.3: Configure Routing and Data Fetching
+### Phase 1.4: Configure Routing and Data Fetching
 
 **Tasks:**
 - [x] Set up routing with TanStack Router
@@ -346,7 +384,7 @@ app.on('activate', () => mainWindow === null && createWindow());
 - The backend process has playlistService.ts for server-side operations
 - Proper IPC communication is set up between frontend and backend processes
 
-### Phase 1.4: Persistent Storage and File System
+### Phase 1.5: Persistent Storage and File System
 
 **Tasks:**
 - [x] Implement settings management with electron-store
@@ -380,7 +418,7 @@ app.on('activate', () => mainWindow === null && createWindow());
 - Set up IPC handlers for all file system and settings operations
 - Implemented file validation and sanitization for security
 
-### Phase 1.5: IPC Communication
+### Phase 1.6: IPC Communication
 
 **Tasks:**
 - [x] Set up IPC communication channels
@@ -406,7 +444,7 @@ app.on('activate', () => mainWindow === null && createWindow());
 - Created separate IPC handlers for different types of operations
 - Added proper error handling and logging for IPC communication
 
-### Phase 1.6: Secure Preload Script
+### Phase 1.7: Secure Preload Script
 
 **Tasks:**
 - [x] Configure secure preload script
@@ -429,32 +467,37 @@ app.on('activate', () => mainWindow === null && createWindow());
 
 **Tasks:**
 - [ ] Build UI components for playlist management
-- [ ] Create playlist creation form
+- [ ] Create playlist creation form within `AddNewPlaylistDialog.tsx`
 
 **Files Created/Updated:**
-- [ ] `src/frontend/components/PlaylistList/PlaylistList.tsx` (~200 lines)
+- [ ] `src/frontend/components/PlaylistGrid/PlaylistGrid.tsx` (~200 lines)
   - Implemented responsive playlist grid layout
   - Added loading, error, and empty states
-  - Implemented sorting functionality (newest, oldest, alphabetical)
-  - Added deletion confirmation with Dialog and ConfirmDeleteModal
-- [ ] `src/frontend/components/Modals/CreatePlaylistModal.tsx` (~250 lines)
-  - Modal for creating new playlists with name and description
-  - YouTube playlist import functionality
-  - Form validation for YouTube URLs
-  - Toggle between create and import modes
-  - Advanced options section with expandable UI
-  - Loading states during form submission
-  - Error handling
-
-**Additional Components Created:**
-- [ ] `src/frontend/features/playlists/components/PlaylistCard.tsx` (~150 lines)
-  - Individual playlist card with thumbnail and metadata
-  - Hover effects and action buttons
-  - Dynamic styling based on playlist status
-- [ ] `src/frontend/components/Modals/ConfirmDeleteModal.tsx` (~80 lines)
+- [ ] `src/frontend/components/Modals/AddNewPlaylistDialog/AddNewPlaylistDialog.tsx` (~300 lines, renamed from `CreatePlaylistModal.tsx`)
+  - Dialog titled "Add New Playlist" with an "Add Playlist" button.
+  - Features two tabs:
+    - **"From YouTube" Tab**: For importing playlists by pasting a YouTube URL. Includes form validation for URLs.
+    - **"Custom Playlist" Tab**: For creating a new local playlist with fields for Title and Description.
+  - Advanced options section with expandable UI (can be common to both tabs or specific).
+  - Loading states during form submission.
+  - Error handling.
+- [ ] `src/frontend/components/Modals/ConfirmDeleteDialog/ConfirmDeleteDialog.tsx` (~80 lines)
   - Reusable confirmation dialog for destructive actions
   - Customizable title, message and button text
   - Integrates with shadcn/ui Dialog component
+- [ ] `src/frontend/components/Modals/EditPlaylistDetailsDialog/EditPlaylistDetailsDialog.tsx` (~150 lines)
+    - Dialog for editing the Title and Description of an existing custom or imported playlist.
+
+**Additional Components Created:**
+- [ ] `src/frontend/features/playlists/components/PlaylistCard/PlaylistCard.tsx` (~150 lines)
+  - Individual playlist card with thumbnail and metadata
+  - Hover effects.
+  - Utilizes `PlaylistActionsDropdown.tsx` to display playlist actions.
+  - Dynamic styling based on playlist status
+- [ ] `src/frontend/features/playlists/components/PlaylistActionsDropdown/PlaylistActionsDropdown.tsx` (~180 lines)
+    - Reusable dropdown menu component containing actions for a single playlist (Refresh, Delete, Duplicate, Download, Open in YouTube, Edit, Play).
+    - Handles conditional display logic (e.g., 'Open in YouTube').
+    - Integrates with UI library (e.g., Shadcn DropdownMenu).
 
 **Implementation Details:**
 - Used hooks for data fetching with proper loading/error states
@@ -525,7 +568,7 @@ export async function importPlaylist(playlistUrl: string, playlistName: string):
 **Tasks:**
 - [ ] Implement state management with Zustand
 - [ ] Create playlist store structure
-- [ ] Implement data persistence strategies
+- [ ] Implement data persistence strategies (using `better-sqlite3` for local database)
 - [ ] Add playlist filtering and sorting capabilities
 - [ ] Create actions for CRUD operations
 - [ ] Implement error handling and loading states
@@ -560,37 +603,47 @@ export async function importPlaylist(playlistUrl: string, playlistName: string):
 
 **Tasks:**
 - [ ] Create UI components for playlist display
-- [ ] Implement responsive grid layout
-- [ ] Add search and filtering capabilities
+- [ ] Implement responsive grid layout using `PlaylistGrid.tsx`
+- [ ] Add search and filtering capabilities to `PlaylistActionsBar.tsx`
 - [ ] Create skeleton loading states
 - [ ] Implement empty and error states
 - [ ] Add sorting and filtering functionality
+- [ ] Implement view toggle (Grid/List) on the 'My Playlists' page, with the toggle button and state managed by `MyPlaylists.tsx`.
 
 **Files Created/Updated:**
-- [ ] `src/frontend/components/PlaylistList/PlaylistList.tsx` (~200 lines)
-  - Enhanced component for displaying playlist grid
+- [ ] `src/frontend/components/PlaylistGrid/PlaylistGrid.tsx` (~200 lines, renamed from PlaylistList.tsx)
+  - Enhanced component for displaying playlist grid, utilizing `PlaylistCard.tsx` for items.
   - Integration with playlist store for data
   - Responsive grid layout with various breakpoints
   - Filtering and search implementation
   - Loading, empty, and error states
-- [ ] `src/frontend/components/PlaylistList/PlaylistItem.tsx` (~150 lines)
-  - Enhanced playlist item component
-  - Thumbnail display with fallback
-  - Metadata display (title, description, count)
-  - Action buttons with confirmation dialogs
-  - Hover and focus states
-- [ ] `src/frontend/components/PlaylistList/PlaylistActionsBar.tsx` (~150 lines)
+- [ ] `src/frontend/components/PlaylistGrid/PlaylistActionsBar/PlaylistActionsBar.tsx` (~150 lines)
   - Search input with debounce
   - Dropdown filters for playlist attributes
   - Sort order selection (newest, oldest, alphabetical)
-  - Tag filtering system
-- [ ] `src/frontend/components/ui/Skeleton.tsx` (~80 lines)
+  - Tag filtering system.
+- [ ] `src/frontend/components/ui/Skeleton/Skeleton.tsx` (~80 lines)
   - Skeleton loading state for playlists
   - Animated pulse effect
   - Responsive design matching the actual content
+- [ ] `src/frontend/pages/MyPlaylists/MyPlaylists.tsx` (updates from Phase 1.3)
+  - Manages the state for grid/list view toggle.
+  - Renders the Grid/List toggle button (using Lucide Icons).
+  - Conditionally renders `PlaylistGrid.tsx` or `PlaylistListView.tsx`.
+- [ ] `src/frontend/components/PlaylistListView/PlaylistListView/PlaylistListView.tsx` (~180 lines)
+  - Component to display playlists in a list format (e.g., rows).
+- [ ] `src/frontend/components/PlaylistListView/PlaylistItemRow/PlaylistItemRow.tsx` (~120 lines)
+  - Component for rendering a single playlist as a row in the list view.
+  - Utilizes `PlaylistActionsDropdown.tsx` to display playlist actions.
 
 **Implementation Notes:**
-- Created a responsive grid layout that adapts to different screen sizes (1-4 columns)
+- React Query is already configured in the App.tsx file with sensible defaults (5 minute stale time, no refetch on window focus)
+- The codebase uses a well-structured query hook system in usePlaylistQueries.ts
+- TypeScript interfaces are defined in shared/types/index.ts ensuring type safety across the application
+- Zustand store is implemented in store/playlistStore.ts for client-side state management
+- The app correctly implements loading, error, and empty states for data fetching
+- The backend process has playlistService.ts for server-side operations
+- Proper IPC communication is set up between frontend and backend processes
 - Implemented search functionality with debouncing to reduce unnecessary renders
 - Used skeleton loading states to improve perceived performance
 - Added empty state with helpful onboarding messages for new users
@@ -604,8 +657,7 @@ export async function importPlaylist(playlistUrl: string, playlistName: string):
 - Implemented virtual scrolling for performance with large playlist collections
 - Used intersection observer for lazy loading images
 - Added subtle animations for card interactions
-
-
+- Added view toggle functionality on the 'My Playlists' page
 
 ## Phase 3: Video Downloading & Playback
 
@@ -1263,15 +1315,14 @@ export default VideoPlayer;
 ### Phase 3.6: Single Video Management
 
 **Tasks:**
-- [x] Implement single video download functionality
+- [ ] Implement management of individual video entries (e.g., adding to local playlists, metadata editing, tracking downloaded files). (Direct URL downloads handled by DownloadContentDialog in Phase 3.6.5)
 - [x] Create UI for adding individual videos to playlists
 - [x] Develop video search and import features
 - [x] Add video metadata editing capabilities
 
 **Files Created:**
 - [x] `src/backend/services/singleVideoManager.ts` (~200 lines)
-  - Functions for downloading individual videos
-  - URL validation and metadata extraction
+  - Functions for URL validation, metadata extraction for single videos, and supporting individual video management within the app (e.g., before adding to a playlist or for pre-download checks within `DownloadContentDialog`).
   - Error handling for invalid URLs
 
 - [x] `src/frontend/features/videos/components/AddVideoForm.tsx` (~250 lines)
@@ -1296,12 +1347,10 @@ export default VideoPlayer;
   - Batch actions (download, remove)
 
 - [x] `src/backend/ipc/videoHandlers.ts` (~150 lines)
-  - IPC handlers for video-specific operations
-  - Single video download
-  - Video metadata extraction
+  - IPC handlers for video-specific operations (e.g., metadata extraction, adding to playlists, managing local video files).
 
 **Implementation Details:**
-- **Single Video Download**: Implemented functionality to download videos directly without adding them to a playlist
+- **Single Video Management**: Focus on managing video entities within the app. Direct URL downloads for new content are handled by `DownloadContentDialog.tsx` (Phase 3.6.5).
 - **Video Adding**: Created UI for adding individual videos to existing playlists, including:
   - Form for pasting YouTube URLs
   - Video preview with metadata (title, duration, thumbnail)
@@ -1319,341 +1368,195 @@ export default VideoPlayer;
   - Permission problems
 - **UI Integration**: Created seamless integration with the existing UI design
 
-### Phase 3.6.5: Advanced Playlist Quality Management
+### Phase 3.6.5: Advanced Download Quality Management
 
 **Tasks:**
-- [ ] Implement adaptive quality selection for videos
-- [ ] Create quality detection for individual videos and playlists
-- [ ] Develop dynamic quality option display in download modals
-- [ ] Add thumbnail embedding for all downloaded videos
-- [ ] Implement fallback strategy for unavailable quality levels
-- [ ] Add quality metadata tracking for downloaded videos
+- [ ] Implement adaptive quality selection for videos (MP4 priority).
+- [ ] Create quality detection service using `yt-dlp -F` to find all available formats/qualities for individual videos and playlists.
+- [ ] Develop dynamic quality option display and directory selection in `DownloadContentDialog.tsx` (for single videos and playlists via URL).
+- [ ] Develop dynamic quality option display and directory selection in `DownloadPlaylistDialog.tsx` (for already imported playlists).
+- [ ] Ensure robust thumbnail embedding into all downloaded MP4 videos:
+    1.  Download the thumbnail image file separately using `yt-dlp` (e.g., `yt-dlp --write-thumbnail --skip-download URL_HERE -o path/to/thumbnail.%(ext)s`).
+    2.  Convert the downloaded thumbnail (e.g., WEBP, PNG) to a standard format like JPG using `fluent-ffmpeg`.
+    3.  Embed the converted thumbnail file into the MP4 video using `fluent-ffmpeg`.
+- [ ] Implement fallback strategy: if selected quality is unavailable, download the highest available quality for that video.
+- [ ] Add quality metadata tracking for downloaded videos (store what quality was actually downloaded).
+- [ ] Update UI to display actual downloaded quality.
+- [ ] Ensure `yt-dlp` is configured with `--ffmpeg-location` for robust video/audio stream merging.
 
 **Files Created/Updated:**
 - [ ] `src/backend/services/ytDlp/video/qualityDetector.ts` (~200 lines)
-  - Functions to detect available qualities for videos
-  - Metadata extraction for resolution information
-  - Caching mechanism for quality information
-  - Methods to determine max quality for playlists
-
-- [ ] `src/frontend/components/Modals/DownloadPlaylistDialog.tsx` (~300 lines)
-  - Dynamic quality selection options based on detected video qualities
-  - Adaptive UI that displays only available quality options
-  - Intelligent default selection based on settings and available qualities
-  - Clear indication of max available quality
-  - Batch download management with quality preferences
-
-- [ ] `src/frontend/components/Modals/DownloadVideoDialog.tsx` (~250 lines)
-  - Similar to playlist dialog but focused on single video
-  - Real-time quality detection and option display
-  - Video preview with quality information
-  - Clear indication of max available quality
-
-- [ ] `src/backend/services/ytDlp/video/download.ts` (~200 lines updated)
-  - Enhanced format selection with quality fallback strategy
-  - Thumbnail embedding for all downloads regardless of quality
-  - Addition of metadata tracking for downloaded video quality
-  - Improved logging for quality selection process
-
-- [ ] `src/backend/services/ytDlp/playlist/download.ts` (~180 lines updated)
-  - Batch quality selection with per-video adaptations
-  - Progress tracking including quality information
-  - Integration with quality detector for optimal downloads
-
-- [ ] `src/shared/types/download.ts` (~100 lines)
-  - Enhanced types for quality tracking
-  - Interface updates for quality metadata
-  - Type-safe quality selection options
-
-- [ ] `src/shared/constants/videoConstants.ts` (~30 lines updated)
-  - Addition of quality constants from 144p to 8K
-  - Map of quality levels to format strings
-  - Future-proof design for new quality levels
+  - Functions to parse `yt-dlp -F` output.
+  - Logic to determine available MP4 qualities (144p, 240p, 360p, 480p, 720p, 1080p, 1440p, 2160p/4K, 4320p/8K, etc., including FPS).
+  - Caching mechanism for quality information.
+  - Methods to determine max quality for playlists (highest common or highest individual).
+- [ ] `src/frontend/components/Modals/DownloadContentDialog.tsx` (~350 lines, new or refactored)
+  - Unified dialog to handle downloads for single YouTube videos or playlists *directly via URL* (content not yet imported).
+  - Input field for YouTube URL.
+  - Dynamic quality selection options based on detected video/playlist qualities.
+  - UI to display only available MP4 quality options.
+  - Directory selection component.
+  - Intelligent default selection for quality and directory.
+  - Clear indication of max available quality for the content.
+- [ ] `src/frontend/components/Modals/DownloadPlaylistDialog.tsx` (~300 lines, updated or new for this specific purpose)
+  - Dialog to handle downloads for *already imported playlists*.
+  - Operates on an existing playlist ID from the application state.
+  - Dynamic quality selection options based on detected video/playlist qualities.
+  - UI to display only available MP4 quality options.
+  - Directory selection component (can override default or playlist-specific download location).
+  - Intelligent default selection for quality.
+  - Clear indication of max available quality for the playlist or individual videos within.
+- [ ] `src/backend/services/ytDlp/video/download.ts` (~250 lines, updated)
+  - Enhanced format selection string for `yt-dlp` to prioritize MP4 and selected quality.
+  - Logic to use the `qualityDetector.ts` service.
+  - Ensure `yt-dlp` commands include `--ffmpeg-location` pointing to a valid `ffmpeg` binary for reliable stream merging.
+  - Orchestration of: 
+      1. Downloading thumbnail image file via `yt-dlp`.
+      2. Calling `ffmpegService.ts` for thumbnail image conversion (e.g., WEBP/PNG to JPG).
+      3. Calling `ffmpegService.ts` for embedding the converted thumbnail into the video file.
+  - Fallback strategy implementation for video quality.
+  - Addition of metadata tracking for downloaded video's actual quality.
+  - Improved logging for quality selection process.
+- [ ] `src/backend/services/ffmpegService.ts` (~150 lines, potentially new or updated)
+  - Function to embed an image file (thumbnail) into an MP4 video file.
+  - Function to convert common image formats (WEBP, PNG) to JPG for embedding.
+- [ ] `src/backend/services/ytDlp/playlist/download.ts` (~200 lines, updated)
+  - Batch quality selection with per-video adaptations using `qualityDetector.ts`.
+  - Ensure `yt-dlp` commands include `--ffmpeg-location`.
+  - Progress tracking to include actual quality information.
+  - Orchestration for thumbnail download and embedding for each video in the playlist.
+- [ ] `src/shared/types/download.ts` (~100 lines, updated)
+  - Enhanced types for `VideoQuality` to potentially include resolution, FPS.
+  - Interface updates for storing and displaying actual downloaded quality.
+- [ ] `src/shared/constants/videoConstants.ts` (~30 lines, updated)
+  - Updated list of `VIDEO_QUALITIES` to include more granular options and future-proofing.
+  - Potentially a mapping of quality labels to `yt-dlp` format selection specifics if needed.
 
 **Implementation Details:**
-- **Dynamic Quality Detection**: Before displaying download options, the application will:
-  - Query the video metadata to detect all available quality options
-  - For playlists, determine the maximum quality across all videos
-  - Cache this information to avoid repeated API calls
-  - Update UI to display only relevant quality options
-
-- **Adaptive Quality Selection**: When a user selects a quality:
-  - If the selected quality exists for the video, it will be downloaded at that resolution
-  - If the selected quality exceeds what's available, it will automatically download at the highest available quality
-  - The download manager will log what quality was actually downloaded for each video
-
+- **Dynamic Quality Detection**:
+  - Before showing download options, `qualityDetector.ts` will use `yt-dlp -F <URL>` to get available formats.
+  - Parse this to identify unique MP4 resolutions and frame rates.
+  - For playlists, this might involve checking a sample of videos or the most popular ones to determine a representative set of available qualities.
+- **Adaptive Quality Selection in UI**:
+  - Download modals (`DownloadContentDialog`, `DownloadVideoDialog`) will populate their quality dropdowns based on the results from `qualityDetector.ts`.
+  - The UI will clearly indicate the maximum quality available for the specific video or playlist.
 - **Quality Fallback Strategy**:
-  - Created a smart fallback system that always selects the best possible quality
-  - For each video, it will first try to match the user's selected quality
-  - If unavailable, it will automatically "step down" to the next best available quality
-  - Final fallback to "best" if no specific quality matches are found
+  - When a download is initiated:
+    1. The `download.ts` service will attempt to use the user's selected MP4 quality.
+    2. If `yt-dlp` cannot find that specific quality, the service will automatically select the next highest *available* MP4 quality for that video.
+    3. The actual quality downloaded will be logged and stored.
+- **Thumbnail Embedding**:
+  - The `yt-dlp` command in `download.ts` will include `--embed-thumbnail`.
+- **Metadata**:
+  - The database schema and shared types will be updated to store `actualDownloadedQuality` for each video.
+  - The UI will display this information where relevant (e.g., video details, history).
 
-- **Thumbnail Embedding**: 
-  - Added a post-download step to ensure thumbnails are embedded in all video files
-  - Used ffmpeg to add thumbnail metadata when yt-dlp doesn't handle it
-  - Created thumbnail extraction and formatting utilities
-  - Ensured consistent thumbnail quality across all video formats
-
-- **UI Enhancements**:
-  - Updated download dialogs to show only actually available qualities
-  - Added visual indication of maximum quality for each video/playlist
-  - Included clear feedback when falling back to a different quality
-  - Created tooltips explaining quality selection behavior
-
-- **Quality Management**: 
-  - Added metadata tracking for downloaded videos including actual quality achieved
-  - Created a system to show quality info in the video library
-  - Implemented batch quality selection for playlists with clear indication of varying qualities
-
-**Sample Code for Dynamic Quality Selection:**
+**Sample Code for Dynamic Quality Detection (`qualityDetector.ts` concept):**
 ```typescript
-// In qualityDetector.ts
-export async function getAvailableQualities(videoUrl: string): Promise<VideoQuality[]> {
+import { execAsync } from '../utils/execUtils'; // Assuming a utility for promise-based exec
+
+export type VideoQuality = '144p' | '240p' | '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p' | '4320p' | 'best'; // Extend as needed
+
+interface FormatDetail {
+  format_id: string;
+  ext: string;
+  resolution: string; // e.g., "1920x1080"
+  height?: number;
+  fps?: number;
+  vcodec?: string;
+  acodec?: string;
+}
+
+// Function to parse yt-dlp -F output
+async function getAvailableFormats(videoUrl: string): Promise<FormatDetail[]> {
+  // Sanitize URL
+  const command = `yt-dlp -J --flat-playlist "${videoUrl}"`; // -J for JSON output
   try {
-    // Get video formats using yt-dlp
-    const command = `yt-dlp -F "${videoUrl}"`;
     const { stdout } = await execAsync(command);
-    
-    // Parse available formats and identify unique quality levels
-    const qualities: VideoQuality[] = [];
-    const qualityMap = new Map<string, boolean>();
-    
-    // Regular expressions to extract resolution information
-    const resolutionRegex = /(\d+)x(\d+)/;
-    const qualityLabelRegex = /(\d+)p/;
-    
-    stdout.split('\n').forEach(line => {
-      // Find resolution in the format output
-      const resMatch = resolutionRegex.exec(line);
-      if (resMatch) {
-        const height = parseInt(resMatch[2]);
-        // Map height to standard quality label
-        let quality: VideoQuality = mapHeightToQuality(height);
-        
-        // Only add unique qualities
-        if (quality && !qualityMap.has(quality)) {
-          qualityMap.set(quality, true);
-          qualities.push(quality);
-        }
-      }
-    });
-    
-    // Sort qualities from highest to lowest
-    return sortQualities(qualities);
+    const videoInfo = JSON.parse(stdout);
+    // yt-dlp with -J on a single video URL provides 'formats' array
+    // For playlists with --flat-playlist, it lists entries. Need to pick one or iterate.
+    // For simplicity, assuming a single video URL or handling the first video of a playlist for quality sampling.
+    let formats = videoInfo.formats || (videoInfo.entries && videoInfo.entries[0] ? videoInfo.entries[0].formats : []);
+    if (!formats && videoInfo.entries && videoInfo.entries.length > 0) {
+      // If it's a playlist dump, we might need to fetch formats for an individual video
+      // This is a simplification; real implementation would be more robust
+      const firstVideoUrl = videoInfo.entries[0].url;
+      const firstVideoCommand = `yt-dlp -J "${firstVideoUrl}"`;
+      const { stdout: firstVideoStdout } = await execAsync(firstVideoCommand);
+      formats = JSON.parse(firstVideoStdout).formats;
+    }
+    return formats || [];
   } catch (error) {
-    console.error('Failed to detect video qualities:', error);
-    // Default to a safe set of assumed qualities if detection fails
-    return ['720p', '480p', '360p', '240p', '144p'];
+    console.error('Failed to get available formats:', error);
+    return [];
   }
 }
 
-// In download.ts
-export async function downloadWithQualityFallback(
-  videoUrl: string, 
-  outputPath: string,
-  requestedQuality: VideoQuality,
-  embedThumbnail: boolean = true
-): Promise<DownloadResult> {
-  try {
-    // Get available qualities for this video
-    const availableQualities = await getAvailableQualities(videoUrl);
-    
-    // Determine the actual quality to download
-    let actualQuality = requestedQuality;
-    
-    // If requested quality is not available, find the best available quality
-    if (!availableQualities.includes(requestedQuality)) {
-      // Get all qualities better than or equal to requested
-      const betterQualities = QUALITY_HIERARCHY.filter(
-        q => compareQualities(q, requestedQuality) <= 0 && availableQualities.includes(q)
-      );
-      
-      if (betterQualities.length > 0) {
-        // Get the closest better quality
-        actualQuality = betterQualities[0];
-      } else {
-        // If no better quality is available, get the best available
-        actualQuality = availableQualities[0];
-      }
-      
-      console.log(`Requested quality ${requestedQuality} not available. Using ${actualQuality} instead.`);
+export async function getAvailableMp4Qualities(videoUrl: string): Promise<VideoQuality[]> {
+  const formats = await getAvailableFormats(videoUrl);
+  const qualities = new Set<VideoQuality>();
+
+  formats.forEach(format => {
+    if (format.ext === 'mp4' && format.vcodec && format.vcodec !== 'none' && format.height) {
+      // Basic mapping, can be more sophisticated to include FPS
+      if (format.height >= 4320) qualities.add('4320p');
+      else if (format.height >= 2160) qualities.add('2160p');
+      else if (format.height >= 1440) qualities.add('1440p');
+      else if (format.height >= 1080) qualities.add('1080p');
+      else if (format.height >= 720) qualities.add('720p');
+      else if (format.height >= 480) qualities.add('480p');
+      else if (format.height >= 360) qualities.add('360p');
+      else if (format.height >= 240) qualities.add('240p');
+      else if (format.height >= 144) qualities.add('144p');
     }
-    
-    // Build yt-dlp command with the determined quality
-    const formatString = getFormatStringForQuality(actualQuality);
-    const thumbnailFlag = embedThumbnail ? '--embed-thumbnail' : '';
-    
-    const command = `yt-dlp -f ${formatString} ${thumbnailFlag} --merge-output-format mp4 -o "${outputPath}" "${videoUrl}"`;
-    
-    // Execute download command
-    const { stdout, stderr } = await execAsync(command);
-    
-    // Ensure thumbnail is embedded (as backup if yt-dlp fails to do it)
-    if (embedThumbnail) {
-      await ensureThumbnailEmbedded(videoUrl, outputPath);
-    }
-    
-    return {
-      success: true,
-      quality: actualQuality,
-      requestedQuality,
-      outputPath
-    };
-  } catch (error) {
-    console.error('Failed to download video:', error);
-    return {
-      success: false,
-      error: String(error),
-      requestedQuality
-    };
+  });
+  
+  const sortedQualities = Array.from(qualities).sort((a, b) => {
+    const qualityValue = (q: VideoQuality) => parseInt(q.replace('p','').replace('best','99999')); // Simple sort order
+    return qualityValue(b) - qualityValue(a); // Sort descending
+  });
+  if (sortedQualities.length > 0) {
+    sortedQualities.unshift('best'); // Always offer 'best'
+  } else {
+     // Fallback if no MP4 video formats found (e.g. audio only, or other video types)
+     // Or if format parsing failed.
+    return ['best'];
   }
+  return sortedQualities;
 }
 ```
 
-**Sample UI for Download Dialog:**
+**Sample Download Modal Update (conceptual for `DownloadContentDialog.tsx` or `DownloadPlaylistDialog.tsx`):**
 ```tsx
-// In DownloadPlaylistDialog.tsx
-const DownloadPlaylistDialog = ({ playlist, isOpen, onClose }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [availableQualities, setAvailableQualities] = useState<VideoQuality[]>([]);
-  const [selectedQuality, setSelectedQuality] = useState<VideoQuality>('720p'); // Default
-  const [isDetectingQualities, setIsDetectingQualities] = useState(true);
-  
-  useEffect(() => {
-    if (isOpen && playlist) {
-      // Start detecting available qualities for the playlist
-      setIsDetectingQualities(true);
-      
-      // Function to detect max quality across all videos in playlist
-      const detectPlaylistQualities = async () => {
-        try {
-          // For playlists, we need to check a sample of videos to determine
-          // the maximum quality available across the playlist
-          const videoSample = playlist.videos.slice(0, Math.min(3, playlist.videos.length));
-          
-          // Get qualities for each sample video
-          const qualityPromises = videoSample.map(video => 
-            getAvailableQualities(video.url)
-          );
-          
-          const qualitySets = await Promise.all(qualityPromises);
-          
-          // Combine all unique qualities and sort them
-          const combinedQualities = new Set<VideoQuality>();
-          qualitySets.forEach(qualitySet => 
-            qualitySet.forEach(quality => combinedQualities.add(quality))
-          );
-          
-          // Convert to array and sort by quality (highest first)
-          const sortedQualities = Array.from(combinedQualities).sort(
-            (a, b) => compareQualities(a, b)
-          );
-          
-          setAvailableQualities(sortedQualities);
-          
-          // Set default selected quality (prefer 1080p if available, otherwise highest)
-          if (sortedQualities.includes('1080p')) {
-            setSelectedQuality('1080p');
-          } else if (sortedQualities.length > 0) {
-            setSelectedQuality(sortedQualities[0]);
-          }
-        } catch (error) {
-          console.error('Failed to detect playlist qualities:', error);
-          // Fallback to a default set of qualities
-          setAvailableQualities(['1080p', '720p', '480p', '360p', '240p', '144p']);
-        } finally {
-          setIsDetectingQualities(false);
+// Inside DownloadContentDialog.tsx or DownloadPlaylistDialog.tsx
+
+const [detectedQualities, setDetectedQualities] = useState<VideoQuality[]>(['best', '1080p', '720p']); // Default before detection
+const [isDetecting, setIsDetecting] = useState(false);
+
+useEffect(() => {
+  if (isOpen && videoOrPlaylistUrl) { // videoOrPlaylistUrl passed as prop
+    setIsDetecting(true);
+    // Call IPC to backend qualityDetector.ts
+    window.api.ytDlp.getAvailableQualities(videoOrPlaylistUrl)
+      .then(qualities => {
+        if (qualities && qualities.length > 0) {
+          setDetectedQualities(qualities);
+          // Set default selected quality, e.g., user's preferred or highest available
+          setSelectedQuality(qualities.includes(userPreferredQuality) ? userPreferredQuality : qualities[0]);
         }
-      };
-      
-      detectPlaylistQualities();
-    }
-  }, [isOpen, playlist]);
-  
-  const handleDownload = async () => {
-    setIsLoading(true);
-    try {
-      await window.electron.downloadPlaylist({
-        playlistId: playlist.id,
-        quality: selectedQuality,
-        embedThumbnails: true
-      });
-      onClose();
-    } catch (error) {
-      console.error('Failed to start playlist download:', error);
-      // Show error message to user
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Download Playlist: {playlist?.name}</DialogTitle>
-          <DialogDescription>
-            Select quality options for downloading this playlist.
-          </DialogDescription>
-        </DialogHeader>
-        
-        {isDetectingQualities ? (
-          <div className="flex items-center justify-center py-4">
-            <Spinner className="mr-2" />
-            <span>Detecting available qualities...</span>
-          </div>
-        ) : (
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="quality">Quality</Label>
-              <Select
-                value={selectedQuality}
-                onValueChange={setSelectedQuality}
-                disabled={isLoading}
-              >
-                <SelectTrigger id="quality">
-                  <SelectValue placeholder="Select quality" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableQualities.map(quality => (
-                    <SelectItem key={quality} value={quality}>
-                      {quality === availableQualities[0] ? 
-                        `${quality} (Highest Available)` : 
-                        quality}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                If a video doesn't have the selected quality, the highest 
-                available quality will be downloaded instead.
-              </p>
-            </div>
-          </div>
-        )}
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isLoading}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleDownload} 
-            disabled={isLoading || isDetectingQualities}
-          >
-            {isLoading ? (
-              <>
-                <Spinner className="mr-2 h-4 w-4" />
-                Downloading...
-              </>
-            ) : (
-              'Download'
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
+      })
+      .catch(console.error)
+      .finally(() => setIsDetecting(false));
+  }
+}, [isOpen, videoOrPlaylistUrl, userPreferredQuality]);
+
+// ... in the Select component for quality:
+// <SelectContent>
+//   {isDetecting ? <SelectItem value="loading" disabled>Detecting...</SelectItem> :
+//     detectedQualities.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)
+//   }
+// </SelectContent>
 ```
 
 ## Phase 4: Google & YouTube Integration
@@ -2596,84 +2499,6 @@ export function installUpdate(): void {
 }
 ```
 
-### Phase 6.5: YT-DLP Development Setup
-
-**Tasks:**
-- [ ] Create automated yt-dlp installation checking for development mode
-- [ ] Implement terminal-based installation prompts
-- [ ] Add dedicated directory for yt-dlp binary (`ytdlp/`)
-- [ ] Integrate with existing yt-dlp manager
-- [ ] Remove settings-based yt-dlp path configuration
-
-**Files Created/Updated:**
-- [ ] `src/backend/services/ytDlpSetup.ts` (~150 lines)
-  - Functions to check if yt-dlp is installed
-  - Terminal-based installation prompts with visual indicators
-  - Download and setup logic for yt-dlp binary
-  - Development environment detection
-- [ ] `src/backend/backend.ts` (updates)
-  - Integration with the startup sequence
-  - Conditional yt-dlp initialization based on setup
-  - Terminal visibility enhancements
-- [ ] `src/backend/services/ytDlpManager.ts` (updates)
-  - Support for custom binary paths
-  - Removal of settings-based path configuration
-- [ ] `src/frontend/pages/Settings/SettingsPage.tsx` (updates)
-  - Removed yt-dlp path configuration from settings UI
-
-**Sample Code for terminal-based setup prompt:**
-```typescript
-export async function promptForInstall(): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
-    // Force stdout to flush
-    process.stdout.write('\n\n');
-    process.stdout.write('*****************************************************************\n');
-    process.stdout.write('***                                                           ***\n');
-    process.stdout.write('***                  yt-dlp IS NOT INSTALLED                  ***\n');
-    process.stdout.write('***           This tool is needed for YouTube playlists       ***\n');
-    process.stdout.write('***                                                           ***\n');
-    process.stdout.write('*****************************************************************\n\n');
-
-    // Create readline interface
-    const rl = createReadlineInterface();
-
-    // Show the prompt and ask for input
-    process.stdout.write('>>> REQUIRED ACTION: Install yt-dlp now? (y/n): ');
-
-    // Handle user input
-    rl.on('line', (line) => {
-      const input = line.trim().toLowerCase();
-
-      if (input === 'y' || input === 'yes') {
-        rl.close();
-        process.stdout.write('\n>>> INSTALLING: Starting yt-dlp installation process...\n\n');
-        resolve(true);
-      } else if (input === 'n' || input === 'no') {
-        rl.close();
-        process.stdout.write('\n>>> SKIPPED: Installation skipped by user.\n');
-        process.stdout.write('>>> WARNING: App will have limited functionality without yt-dlp.\n\n');
-        resolve(false);
-      } else {
-        process.stdout.write('>>> ERROR: Invalid input. Please enter y or n: ');
-      }
-    });
-  });
-}
-```
-
-**Implementation Details:**
-- Development mode detection to only run the setup in `npm start` environment
-- Platform-specific binary detection (yt-dlp.exe on Windows, yt-dlp on macOS/Linux)
-- Highly visible terminal prompts with ASCII box indicators
-- Interactive terminal input via readline interface
-- Automatic download from GitHub using `yt-dlp-wrap`'s built-in functionality
-- Setting permissions for executable on Unix systems
-- Integration with the main process startup sequence after window load
-- Creation of a dedicated directory (`ytdlp/`) for the binary
-- Clean terminal-based status reporting
-- Detailed terminal output with attention-grabbing formatting
-- Pure terminal-based interaction with no GUI dialogs
-
 ## Phase 7: Testing & Deployment
 
 ### Phase 7.1: Unit Testing
@@ -2748,6 +2573,7 @@ npx tailwindcss init -p
 - [ ] Create light/dark theme toggle functionality
 - [ ] Ensure consistent styling across all components with the theme
 - [ ] Implement responsive design with Tailwind's utility classes
+- [ ] Utilize Lucide Icons for all application icons to ensure a consistent, modern, and visually appealing user interface.
 
 ### Component Development
 
@@ -2810,27 +2636,47 @@ playlistify/
 │   │   ├── preload.js
 │   │   ├── components/
 │   │   │   ├── Modals/
-│   │   │   │   ├── ConfirmDeleteModal.tsx
-│   │   │   │   ├── CreatePlaylistModal.tsx
-│   │   │   │   ├── DownloadOptionsModal.tsx
-│   │   │   │   ├── ImportJsonModal.tsx
-│   │   │   │   ├── ImportPlaylistModal.tsx
-│   │   │   │   └── RenamePlaylistModal.tsx
-│   │   │   ├── PlaylistList/
-│   │   │   │   ├── PlaylistList.tsx
-│   │   │   │   ├── PlaylistCard.tsx
-│   │   │   │   └── PlaylistActionsBar.tsx
+│   │   │   │   ├── ConfirmDeleteDialog/
+│   │   │   │   │   └── ConfirmDeleteDialog.tsx
+│   │   │   │   ├── AddNewPlaylistDialog/
+│   │   │   │   │   └── AddNewPlaylistDialog.tsx
+│   │   │   │   ├── EditPlaylistDetailsDialog/
+│   │   │   │   │   └── EditPlaylistDetailsDialog.tsx
+│   │   │   │   ├── DownloadOptionsModal/
+│   │   │   │   │   └── DownloadOptionsModal.tsx
+│   │   │   │   ├── ImportJsonModal/
+│   │   │   │   │   └── ImportJsonModal.tsx
+│   │   │   │   ├── ImportPlaylistModal/
+│   │   │   │   │   └── ImportPlaylistModal.tsx
+│   │   │   │   └── RenamePlaylistModal/
+│   │   │   │       └── RenamePlaylistModal.tsx
+│   │   │   ├── PlaylistGrid/
+│   │   │   │   ├── PlaylistGrid/
+│   │   │   │   │   └── PlaylistGrid.tsx
+│   │   │   │   └── PlaylistActionsBar/
+│   │   │   │       └── PlaylistActionsBar.tsx
+│   │   │   ├── PlaylistListView/
+│   │   │   │   ├── PlaylistListView/
+│   │   │   │   │   └── PlaylistListView.tsx
+│   │   │   │   └── PlaylistItemRow/
+│   │   │   │       └── PlaylistItemRow.tsx
 │   │   │   ├── PlaylistView/
-│   │   │   │   └── PlaylistView.tsx
+│   │   │   │   └── PlaylistView/
+│   │   │   │       └── PlaylistView.tsx
 │   │   │   ├── Settings/
-│   │   │   │   └── DirectorySelector.tsx
+│   │   │   │   └── DirectorySelector/
+│   │   │   │       └── DirectorySelector.tsx
 │   │   │   ├── Sidebar/
-│   │   │   │   └── Sidebar.tsx
+│   │   │   │   └── Sidebar/
+│   │   │   │       └── Sidebar.tsx
 │   │   │   ├── TopNavbar/
-│   │   │   │   └── TopNavbar.tsx
+│   │   │   │   └── TopNavbar/
+│   │   │   │       └── TopNavbar.tsx
 │   │   │   └── ui/
-│   │   │       ├── Button.tsx
-│   │   │       ├── Toast.tsx
+│   │   │       ├── Button/
+│   │   │       │   └── Button.tsx
+│   │   │       ├── Toast/
+│   │   │       │   └── Toast.tsx
 │   │   │       └── [other UI components]
 │   │   ├── hooks/
 │   │   │   └── [custom hooks]
