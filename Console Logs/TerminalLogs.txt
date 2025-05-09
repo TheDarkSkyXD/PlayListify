@@ -6,3 +6,10 @@
 2025-05-09T01:17:19.638Z [LOG] [Logger] Console logging to file initialized.
 2025-05-09T01:17:47.940Z [LOG] [Logger] Console logging to file initialized.
 2025-05-09T01:22:32.786Z [LOG] [Logger] Console logging to file initialized.
+2025-05-09T01:23:38.053Z [LOG] [Logger] Console logging to file initialized.
+2025-05-09T01:36:20.683Z [LOG] [Logger] Console logging to file initialized.
+2025-05-09T01:36:20.769Z [LOG] IPC settings handlers registered.
+2025-05-09T01:36:20.773Z [LOG] IPC file handlers registered.
+2025-05-09T02:46:27.647Z [LOG] [Logger] Console logging to file initialized.
+2025-05-09T02:46:27.745Z [LOG] IPC settings handlers registered.
+2025-05-09T02:46:27.749Z [LOG] IPC file handlers registered.

@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { app, BrowserWindow } from 'electron';
+import { registerSettingsHandlers } from './ipc/settingsHandlers';
+import { registerFileHandlers } from './ipc/fileHandlers';
 
 let mainWindow: BrowserWindow | null;
 
@@ -101,7 +103,12 @@ async function createWindow() {
   mainWindow.on('closed', () => (mainWindow = null));
 }
 
-app.on('ready', createWindow);
+app.on('ready', () => {
+  createWindow();
+  registerSettingsHandlers();
+  registerFileHandlers();
+  // Register other IPC handlers as they are created
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

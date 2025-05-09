@@ -54,7 +54,8 @@
     "tailwindcss-animate": "^1.0.7",
     "ts-jest": "^29.3.2",
     "ts-loader": "^9.5.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "webpack-node-externals": "^3.0.0"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.2",
