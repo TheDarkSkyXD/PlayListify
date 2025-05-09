@@ -1,6 +1,7 @@
 import React from 'react';
 import { RouterProvider } from '@tanstack/react-router';
 import { router } from './router'; // Import the router instance
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Placeholder styles
 const appStyle: React.CSSProperties = {
@@ -18,6 +19,16 @@ const headingStyle: React.CSSProperties = {
   color: '#333'
 };
 
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
 function App() {
   // Check localStorage for theme, default to system preference, then light
   React.useEffect(() => {
@@ -31,7 +42,9 @@ function App() {
   }, []);
 
   return (
-    <RouterProvider router={router} />
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
   );
 }
 

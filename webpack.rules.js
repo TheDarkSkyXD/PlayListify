@@ -33,7 +33,9 @@ module.exports = [
       {
         loader: 'ts-loader',
         options: {
-          transpileOnly: true, // Keep this for speed
+          // Explicitly point to the root tsconfig.json
+          configFile: 'tsconfig.json',
+          transpileOnly: true, // Restore transpileOnly for speed
         },
       },
     ],

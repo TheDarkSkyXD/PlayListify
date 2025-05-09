@@ -10,7 +10,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "isolatedModules": true,
+    // "isolatedModules": true, // Temporarily disable to test impact on global declarations and aliases
     "noEmit": true,
     "allowJs": true,
     "baseUrl": "./",
@@ -20,9 +20,15 @@
       "@frontend/*": ["src/frontend/*"],
       "@shared/*": ["src/shared/*"]
     },
-    "outDir": "./dist",
-    "types": ["node", "jest"]
+    "outDir": "./dist"
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "electron/**/*.ts", "tests/**/*.ts", "tests/**/*.tsx"],
+  "include": [
+    "src/**/*.ts", 
+    "src/**/*.tsx", 
+    "electron/**/*.ts", 
+    "tests/**/*.ts", 
+    "tests/**/*.tsx",
+    "src/shared/types/**/*.d.ts"
+  ],
   "exclude": ["node_modules", ".webpack"]
 } 

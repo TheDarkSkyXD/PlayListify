@@ -1,3 +1,5 @@
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+
 module.exports = {
   /**
    * This is the main entry point for your application, it's the first file
@@ -12,4 +14,11 @@ module.exports = {
     // Add .ts extension for resolving imports
     extensions: ['.js', '.ts', '.json'],
   },
+  plugins: [
+    new ForkTsCheckerWebpackPlugin({
+      typescript: {
+        configFile: 'tsconfig.json',
+      },
+    }),
+  ],
 };

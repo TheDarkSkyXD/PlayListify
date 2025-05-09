@@ -80,6 +80,7 @@ async function createWindow() {
     width: 800,
     height: 600,
     webPreferences: {
+      // @ts-ignore - Webpack constant injected by Electron Forge, type checker doesn't see it
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY, // Use the Electron Forge Webpack constant
       nodeIntegration: false,
       contextIsolation: true,
@@ -87,10 +88,7 @@ async function createWindow() {
   });
 
   // Load the URL
-  // const urlToLoad = process.env.NODE_ENV === 'development' 
-  //   ? 'http://localhost:3000' 
-  //   : MAIN_WINDOW_WEBPACK_ENTRY;
-  // Always use MAIN_WINDOW_WEBPACK_ENTRY for reliability with Electron Forge
+  // @ts-ignore - Webpack constant injected by Electron Forge, type checker doesn't see it
   const urlToLoad = MAIN_WINDOW_WEBPACK_ENTRY;
     
   try {

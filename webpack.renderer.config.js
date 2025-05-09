@@ -1,5 +1,6 @@
 const rules = require('./webpack.rules');
 const path = require('path');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 rules.push({
   test: /\.css$/,
@@ -18,10 +19,18 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.css'],
     alias: {
+      '@': path.resolve(__dirname, 'src'),
       '@/frontend/components': path.resolve(__dirname, 'src/frontend/components'),
-      '@/lib': path.resolve(__dirname, 'src/frontend/lib')
+      '@/frontend/lib': path.resolve(__dirname, 'src/frontend/lib')
     },
     fullySpecified: false,
     mainFields: ['main', 'module', 'browser']
   },
+  plugins: [
+    new ForkTsCheckerWebpackPlugin({
+      typescript: {
+        configFile: 'tsconfig.json',
+      },
+    }),
+  ],
 };
