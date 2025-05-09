@@ -11,6 +11,7 @@ export interface Playlist {
 
 export interface Video {
   id: string; // Usually the YouTube video ID
+  url: string; // Source URL of the video
   title: string;
   channel?: string;
   duration?: number; // in seconds
@@ -33,6 +34,7 @@ export interface PlaylistVideo extends Video {
 export interface Settings {
   downloadLocation: string;
   defaultQuality: 'best' | '1080p' | '720p' | '480p' | '360p';
+  downloadFormat?: 'mp4' | 'webm' | 'mkv' | 'best';
   concurrentDownloads: number;
   theme: 'light' | 'dark' | 'system';
   checkForUpdates: boolean;
@@ -75,5 +77,25 @@ export interface DownloadQueueItem extends Video {
   speed?: string; // Download speed
   outputPath?: string;
   selectedFormat?: VideoFormat; // Or just a format ID string
+  requestedFormat?: Settings['downloadFormat']; // Store the format requested at add time
+  requestedQuality?: Settings['defaultQuality']; // Store the quality requested at add time
   addedToQueueAt: string; // ISO 8601 date string
-} 
+}
+
+export type { VideoQuality, Theme } from './settings';
+// Make sure UserSettings in settings.ts is the source of truth
+// export interface UserSettings { // Commenting out the local definition
+//   downloadLocation: string;
+//   maxConcurrentDownloads: number;
+//   defaultQuality: VideoQuality; 
+//   theme: Theme; 
+//   notifyOnDownloadComplete: boolean;
+//   autoStartDownloads: boolean;
+//   minimizeToTray: boolean;
+//   developerMode: boolean;
+//   downloadFormat?: 'mp4' | 'webm' | 'mp3' | 'opus' | 'flac' | 'wav' | 'best'; // This was added here
+//   // Add other settings as needed
+// }
+
+// Re-export UserSettings from settings.ts
+export type { UserSettings } from './settings'; 

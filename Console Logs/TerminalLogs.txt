@@ -1,15 +1,12 @@
-2025-05-09T01:00:25.452Z [LOG] [Logger] Console logging to file initialized.
-2025-05-09T01:15:03.289Z [LOG] [Logger] Console logging to file initialized.
-2025-05-09T01:15:42.702Z [LOG] [Logger] Console logging to file initialized.
-2025-05-09T01:16:12.771Z [LOG] [Logger] Console logging to file initialized.
-2025-05-09T01:16:50.485Z [LOG] [Logger] Console logging to file initialized.
-2025-05-09T01:17:19.638Z [LOG] [Logger] Console logging to file initialized.
-2025-05-09T01:17:47.940Z [LOG] [Logger] Console logging to file initialized.
-2025-05-09T01:22:32.786Z [LOG] [Logger] Console logging to file initialized.
-2025-05-09T01:23:38.053Z [LOG] [Logger] Console logging to file initialized.
-2025-05-09T01:36:20.683Z [LOG] [Logger] Console logging to file initialized.
-2025-05-09T01:36:20.769Z [LOG] IPC settings handlers registered.
-2025-05-09T01:36:20.773Z [LOG] IPC file handlers registered.
-2025-05-09T02:46:27.647Z [LOG] [Logger] Console logging to file initialized.
-2025-05-09T02:46:27.745Z [LOG] IPC settings handlers registered.
-2025-05-09T02:46:27.749Z [LOG] IPC file handlers registered.
+2025-05-09T04:11:39.543Z [LOG] [Logger] Console logging to file initialized.
+2025-05-09T04:11:39.566Z [ERROR] yt-dlp binary not found at expected location: F:\My Github Repos\Open Source Repos\Playlistify\ytdlp\yt-dlp.exe
+2025-05-09T04:11:39.631Z [LOG] IPC settings handlers registered. ⚙️
+2025-05-09T04:11:39.635Z [LOG] IPC file handlers registered. ⚙️
+2025-05-09T04:11:39.636Z [LOG] IPC app handlers registered. ⚙️
+2025-05-09T04:11:39.636Z [LOG] IPC download handlers registered and calling DownloadManager. ⚙️
+2025-05-09T04:11:39.637Z [LOG] [IPC Handlers] Playlist handlers registered.
+2025-05-09T04:11:39.638Z [LOG] IPC thumbnail handlers registered and calling ThumbnailManager. ⚙️
+2025-05-09T04:11:39.641Z [ERROR] Managed ffmpeg binary not found at expected location: F:\My Github Repos\Open Source Repos\Playlistify\ffmpeg\ffmpeg.exe
+2025-05-09T04:11:39.709Z [ERROR] System ffmpeg also not found in PATH.
+2025-05-09T04:11:39.713Z [ERROR] [DownloadManager] yt-dlp binary path not found. Downloads will fail.
+2025-05-09T04:11:39.717Z [ERROR] [DownloadManager] Initialization failed: {}

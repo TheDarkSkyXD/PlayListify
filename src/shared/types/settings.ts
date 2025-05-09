@@ -21,5 +21,6 @@ export interface UserSettings {
   autoStartDownloads: boolean;
   minimizeToTray: boolean;
   developerMode: boolean;
+  downloadFormat?: 'mp4' | 'webm' | 'mp3' | 'opus' | 'flac' | 'wav' | 'best';
   // Add other settings as needed
 } 

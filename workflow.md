@@ -366,27 +366,29 @@ app.on('activate', () => mainWindow === null && createWindow());
 
 ### Phase 1.5: Persistent Storage and File System
 
+**Status: Completed** ✅
+
 **Tasks:**
-- [] Implement settings management with electron-store
-- [] Create file system utilities with fs-extra
+- [x] Implement settings management with electron-store
+- [x] Create file system utilities with fs-extra
 
 **Files Created:**
-- [] `src/backend/services/settingsService.ts` (~150 lines)
+- [x] `src/backend/services/settingsService.ts` (~150 lines)
   - Settings storage and retrieval with TypeScript type safety
   - Default configuration management
   - Directory initialization
   - Account management functions
-- [] `src/backend/utils/fileUtils.ts` (~230 lines)
+- [x] `src/backend/utils/fileUtils.ts` (~230 lines)
   - File system operations for playlists and videos
   - Directory and file management utilities
   - Playlist metadata handling
   - File validation functions
-- [] `src/backend/ipc/fileHandlers.ts` (~150 lines)
+- [x] `src/backend/ipc/fileHandlers.ts` (~150 lines)
   - IPC communication between backend and frontend processes
   - Settings IPC handlers
   - File system operation handlers
   - Path validation handlers
-- [] `src/backend/ipc/settingsHandlers.ts` (~50 lines)
+- [x] `src/backend/ipc/settingsHandlers.ts` (~50 lines)
   - IPC handlers for settings management
   - Type-safe getters and setters for application settings
 
@@ -400,38 +402,50 @@ app.on('activate', () => mainWindow === null && createWindow());
 
 ### Phase 1.6: IPC Communication
 
+**Status: Completed** ✅
+
 **Tasks:**
-- [] Set up IPC communication channels
-- [] Implement type-safe API for frontend process
+- [x] Set up IPC communication channels
+- [x] Implement type-safe API for frontend process
 
 **Files Created:**
-- [] `src/backend/ipc/appHandlers.ts` (~100 lines)
-  - IPC handlers for backend process
-- [] `src/backend/ipc/downloadHandlers.ts` (~125 lines)
-  - IPC handlers for download operations
-- [] `src/backend/ipc/fileHandlers.ts` (~150 lines)
-  - IPC handlers for file operations
-- [] `src/backend/ipc/playlistHandlers.ts` (~100 lines)
-  - IPC handlers for playlist operations
-- [] `src/backend/ipc/settingsHandlers.ts` (~50 lines)
-  - IPC handlers for settings management
-- [] `src/backend/ipc/thumbnailHandlers.ts` (~100 lines)
-  - IPC handlers for thumbnail operations
+- [x] `src/backend/ipc/app-handlers.ts` (~100 lines)
+  - IPC handlers for general application information.
+- [x] `src/backend/ipc/download-handlers.ts` (~125 lines)
+  - IPC handlers for download operations. Corresponding `download-manager.ts` service created with queue management and core download processing logic (further implementation ongoing).
+- [x] `src/backend/ipc/file-handlers.ts` (~150 lines)
+  - IPC handlers for file system operations.
+- [x] `src/backend/ipc/playlist-handlers.ts` (~100 lines)
+  - IPC handlers for playlist operations. Corresponding `playlist-manager.ts` service created with full CRUD operations for playlists and videos using `better-sqlite3`.
+- [x] `src/backend/ipc/settings-handlers.ts` (~50 lines)
+  - IPC handlers for settings management.
+- [x] `src/backend/ipc/thumbnail-handlers.ts` (~100 lines)
+  - IPC handlers for thumbnail operations. Corresponding `thumbnailService.ts` created with placeholder functions.
 
 **Implementation Details:**
-- Set up IPC communication channels for backend process to frontend process
-- Implemented type-safe API for frontend process
-- Created separate IPC handlers for different types of operations
-- Added proper error handling and logging for IPC communication
+- Established all core IPC channels required for frontend-backend communication.
+- Created dedicated handler files for each major domain (app, downloads, files, playlists, settings, thumbnails).
+- Associated backend services for each set of handlers have been created:
+  - `appService.ts` (implicitly, via `app-handlers.ts` directly using Electron `app` module for now).
+  - `settingsService.ts` (fully implemented with `electron-store`).
+  - `fileUtils.ts` (acting as the service for `file-handlers.ts`, fully implemented).
+  - `download-manager.ts` (core logic implemented, queue setup, yt-dlp integration, ongoing).
+  - `playlist-manager.ts` (fully implemented with `better-sqlite3` for all core CRUD operations).
+  - `thumbnailService.ts` (placeholder, to be implemented).
+- Ensured IPC handlers correctly invoke their respective service functions.
+- Maintained type safety for arguments and return values through shared type definitions.
+- All handlers are registered in the main `backend.ts` file.
 
 ### Phase 1.7: Secure Preload Script
 
+**Status: Completed** ✅
+
 **Tasks:**
-- [] Configure secure preload script
-- [] Implement type-safe API for frontend process
+- [x] Configure secure preload script
+- [x] Implement type-safe API for frontend process
 
 **Files Created:**
-- [] `src/backend/preload.ts` (~100 lines)
+- [x] `src/backend/preload.ts` (~100 lines)
   - Secure preload script
   - Type-safe API for frontend process
 
@@ -440,6 +454,46 @@ app.on('activate', () => mainWindow === null && createWindow());
 - Implemented type-safe API for frontend process using contextBridge
 - Added proper error handling
 - Structured IPC communication through a safe interface
+
+### Phase 1.8: Basic Logging and Console Output Management
+
+**Status: Completed** ✅
+
+**Objective:** Implement basic logging to a file and manage console output effectively for easier debugging and monitoring during development.
+
+**Tasks:**
+- [x] **Implement Console Logging to File:**
+  - [x] Create a `Console Logs` directory if it doesn't exist.
+  - [x] Create a `terminallogs.txt` file within `Console Logs`.
+  - [x] Redirect `console.log`, `console.warn`, `console.error`, `console.info`, `console.debug` to write to `terminallogs.txt`.
+  - [x] Ensure each log entry is timestamped.
+  - [x] Ensure the application still outputs to the original console.
+- [x] **Clear Log File on Startup:**
+  - [x] At the beginning of the main process, before any logging occurs, check if `terminallogs.txt` exists.
+  - [x] If it exists, delete it to ensure a fresh log for each session.
+  - [x] Handle potential errors during file deletion gracefully.
+- [x] **Error Handling for Logging:**
+  - [x] If creating the log directory or writing to the log file fails, fall back to the original console output without crashing the application.
+  - [x] Log any errors related to the logging mechanism itself to the original console.
+
+**Files Modified:**
+- [x] `src/backend/backend.ts` (~50-70 new lines)
+  - Added logic to create `Console Logs` directory and `terminallogs.txt`.
+  - Implemented redirection of console methods to write to the log file.
+  - Added timestamping for log entries.
+  - Added logic to clear `terminallogs.txt` on startup.
+  - Included error handling for log directory creation and file writing/clearing.
+
+**Key Learnings:**
+- Overriding console methods in Node.js.
+- Synchronous file system operations (`fs.existsSync`, `fs.mkdirSync`, `fs.appendFileSync`, `fs.unlinkSync`).
+- Importance of error handling for I/O operations, especially during application startup.
+- Using `process.cwd()` for development paths and considering `app.getPath('userData')` for production.
+
+**Next Steps:**
+- Proceed to Phase 1.6 for UI foundational elements or Phase 2.1 for core UI development.
+- Ensure logging remains functional as new features are added.
+- Consider more advanced logging libraries (e.g., Winston) if requirements grow more complex (e.g., log levels, different transports, log rotation).
 
 ## Phase 2: Playlist Management & Local Storage
 
@@ -1296,37 +1350,37 @@ export default VideoPlayer;
 
 **Tasks:**
 - [ ] Implement management of individual video entries (e.g., adding to local playlists, metadata editing, tracking downloaded files). (Direct URL downloads handled by DownloadContentDialog in Phase 3.6.5)
-- [x] Create UI for adding individual videos to playlists
-- [x] Develop video search and import features
-- [x] Add video metadata editing capabilities
+- [] Create UI for adding individual videos to playlists
+- [] Develop video search and import features
+- [] Add video metadata editing capabilities
 
 **Files Created:**
-- [x] `src/backend/services/singleVideoManager.ts` (~200 lines)
+- [] `src/backend/services/singleVideoManager.ts` (~200 lines)
   - Functions for URL validation, metadata extraction for single videos, and supporting individual video management within the app (e.g., before adding to a playlist or for pre-download checks within `DownloadContentDialog`).
   - Error handling for invalid URLs
 
-- [x] `src/frontend/features/videos/components/AddVideoForm.tsx` (~250 lines)
+- [] `src/frontend/features/videos/components/AddVideoForm.tsx` (~250 lines)
   - Form for adding individual videos to playlists
   - Video URL validation
   - Video preview with metadata
   - YouTube search integration
 
-- [x] `src/frontend/features/videos/components/VideoSearch.tsx` (~200 lines)
+- [] `src/frontend/features/videos/components/VideoSearch.tsx` (~200 lines)
   - Search for YouTube videos
   - Video results display with thumbnails
   - Selection and add to playlist functionality
 
-- [x] `src/frontend/features/videos/components/VideoCard.tsx` (~150 lines)
+- [] `src/frontend/features/videos/components/VideoCard.tsx` (~150 lines)
   - Individual video display component
   - Video preview with thumbnail
   - Action buttons for download, play, and remove
 
-- [x] `src/frontend/features/playlists/components/VideoList.tsx` (~200 lines)
+- [] `src/frontend/features/playlists/components/VideoList.tsx` (~200 lines)
   - List of videos in a playlist
   - Drag and drop reordering
   - Batch actions (download, remove)
 
-- [x] `src/backend/ipc/videoHandlers.ts` (~150 lines)
+- [] `src/backend/ipc/videoHandlers.ts` (~150 lines)
   - IPC handlers for video-specific operations (e.g., metadata extraction, adding to playlists, managing local video files).
 
 **Implementation Details:**

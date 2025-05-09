@@ -36,6 +36,11 @@ const schemaDefinition: ElectronStoreSchemaType<UserSettings> = {
         ] as const,
         default: '1080p',
     } as MySchemaProperty<VideoQuality>,
+    downloadFormat: {
+        type: 'string',
+        enum: ['mp4', 'webm', 'mp3', 'opus', 'flac', 'wav', 'best'] as const,
+        default: 'mp4',
+    } as MySchemaProperty<UserSettings['downloadFormat']>,
     theme: {
         type: 'string',
         enum: ['light', 'dark'] as const,

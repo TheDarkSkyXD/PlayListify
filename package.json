@@ -29,6 +29,7 @@
     "@electron-forge/plugin-webpack": "^7.8.0",
     "@electron/fuses": "^1.8.0",
     "@testing-library/react": "^16.3.0",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.16",
     "@types/react": "^19.1.3",

@@ -46,8 +46,8 @@ export async function importYouTubePlaylist(youtubeUrl: string): Promise<Playlis
     title: `YouTube Import: ${youtubeUrl.split('list=')[1]?.substring(0, 5) || 'Test'}`,
     id: `yt_${uuidv4()}`,
     videos: [
-      { id: 'vid1', title: 'Video 1', channel: 'Channel A', duration: 120, thumbnailUrl: 'url1' },
-      { id: 'vid2', title: 'Video 2', channel: 'Channel B', duration: 185, thumbnailUrl: 'url2' },
+      { id: 'vid1', title: 'Video 1', url: 'https://www.youtube.com/watch?v=example1', channel: 'Channel A', duration: 120, thumbnailUrl: 'url1' },
+      { id: 'vid2', title: 'Video 2', url: 'https://www.youtube.com/watch?v=example2', channel: 'Channel B', duration: 185, thumbnailUrl: 'url2' },
     ],
   };
 

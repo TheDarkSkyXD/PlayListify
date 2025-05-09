@@ -1,8 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { app, BrowserWindow } from 'electron';
-import { registerSettingsHandlers } from './ipc/settingsHandlers';
-import { registerFileHandlers } from './ipc/fileHandlers';
+import { registerSettingsHandlers } from './ipc/settings-handlers';
+import { registerFileHandlers } from './ipc/file-handlers';
+import { registerAppHandlers } from './ipc/app-handlers';
+import { registerDownloadHandlers } from './ipc/download-handlers';
+import { registerPlaylistHandlers } from './ipc/playlist-handlers';
+import { registerThumbnailHandlers } from './ipc/thumbnail-handlers';
 
 let mainWindow: BrowserWindow | null;
 
@@ -23,6 +27,15 @@ try {
 } catch (error) {
   // Fallback to original console if directory creation fails
   console.error('[Logger] Failed to create logs directory:', error);
+}
+
+// Clear the log file at startup
+try {
+  if (fs.existsSync(logFilePath)) {
+    fs.unlinkSync(logFilePath);
+  }
+} catch (error) {
+  console.error('[Logger] Failed to clear log file:', error);
 }
 
 const originalConsole = {
@@ -107,6 +120,10 @@ app.on('ready', () => {
   createWindow();
   registerSettingsHandlers();
   registerFileHandlers();
+  registerAppHandlers();
+  registerDownloadHandlers();
+  registerPlaylistHandlers();
+  registerThumbnailHandlers();
   // Register other IPC handlers as they are created
 });
 
