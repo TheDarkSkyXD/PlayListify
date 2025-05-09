@@ -1,6 +1,8 @@
 import React from 'react';
+import { RouterProvider } from '@tanstack/react-router';
+import { router } from './router'; // Import the router instance
 
-// Placeholder styles - will be replaced by Tailwind/Shadcn setup later
+// Placeholder styles
 const appStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
@@ -16,16 +18,21 @@ const headingStyle: React.CSSProperties = {
   color: '#333'
 };
 
-const App: React.FC = () => {
+function App() {
+  // Check localStorage for theme, default to system preference, then light
+  React.useEffect(() => {
+    const storedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (storedTheme === 'dark' || (!storedTheme && systemPrefersDark)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
   return (
-    <div style={appStyle}>
-      <header>
-        <h1 style={headingStyle}>Playlistify</h1>
-        <p>Welcome to your Electron YouTube Playlist Manager!</p>
-        {/* Navigation and main content will go here */}
-      </header>
-    </div>
+    <RouterProvider router={router} />
   );
-};
+}
 
 export default App; 

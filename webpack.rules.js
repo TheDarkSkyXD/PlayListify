@@ -16,6 +16,28 @@ module.exports = [
       },
     },
   },
+  {
+    // Add the rule for .ts and .tsx files
+    test: /\.tsx?$/,
+    exclude: /(node_modules|\.webpack)/,
+    use: [
+      // 2. Babel handles further transformations (like module syntax)
+      {
+        loader: 'babel-loader',
+        options: {
+          // Assuming babel.config.js exists
+          // You might specify presets/plugins here if not using a config file
+        }
+      },
+      // 1. TS-Loader handles TypeScript transpilation first
+      {
+        loader: 'ts-loader',
+        options: {
+          transpileOnly: true, // Keep this for speed
+        },
+      },
+    ],
+  },
   // Put your webpack loader rules in this array.  This is where you would put
   // your ts-loader configuration for instance:
   /**

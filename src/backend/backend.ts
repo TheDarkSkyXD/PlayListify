@@ -1,9 +1,81 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { app, BrowserWindow } from 'electron';
-import path from 'path';
 
 let mainWindow: BrowserWindow | null;
 
-function createWindow() {
+// --- START LOGGING SETUP ---
+const logsDirName = 'Console Logs';
+// Use app.getPath('userData') for logs in production, or process.cwd() for development flexibility
+// For simplicity in this immediate request, we'll use process.cwd() and create 'Console Logs' there.
+// A more robust solution would differentiate between dev and prod.
+const projectRoot = process.cwd(); // Or use app.getAppPath() once app is ready
+const logsDirPath = path.join(projectRoot, logsDirName);
+const logFilePath = path.join(logsDirPath, 'terminallogs.txt');
+
+// Ensure logs directory exists
+try {
+  if (!fs.existsSync(logsDirPath)) {
+    fs.mkdirSync(logsDirPath, { recursive: true });
+  }
+} catch (error) {
+  // Fallback to original console if directory creation fails
+  console.error('[Logger] Failed to create logs directory:', error);
+}
+
+const originalConsole = {
+  log: console.log,
+  warn: console.warn,
+  error: console.error,
+  info: console.info,
+  debug: console.debug,
+};
+
+function writeToLogFile(level: string, ...args: any[]) {
+  try {
+    const timestamp = new Date().toISOString();
+    const message = args.map(arg => {
+      if (typeof arg === 'object' && arg !== null) {
+        try {
+          return JSON.stringify(arg, null, 2);
+        } catch (e) {
+          return '[Unserializable Object]';
+        }
+      }
+      return String(arg);
+    }).join(' ');
+    const logMessage = `${timestamp} [${level.toUpperCase()}] ${message}\n`;
+    fs.appendFileSync(logFilePath, logMessage);
+  } catch (error) {
+    // If logging to file fails, still output to original console
+    originalConsole.error('[Logger] Failed to write to log file:', error);
+  }
+}
+
+console.log = (...args: any[]) => {
+  originalConsole.log(...args);
+  writeToLogFile('log', ...args);
+};
+console.warn = (...args: any[]) => {
+  originalConsole.warn(...args);
+  writeToLogFile('warn', ...args);
+};
+console.error = (...args: any[]) => {
+  originalConsole.error(...args);
+  writeToLogFile('error', ...args);
+};
+console.info = (...args: any[]) => {
+  originalConsole.info(...args);
+  writeToLogFile('info', ...args);
+};
+console.debug = (...args: any[]) => {
+  originalConsole.debug(...args);
+  writeToLogFile('debug', ...args);
+};
+
+// Initial log message to confirm setup
+console.log('[Logger] Console logging to file initialized.');
+async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -13,15 +85,19 @@ function createWindow() {
       contextIsolation: true,
     },
   });
-  // DEV_MODE check for loading URL
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:3000'); // Webpack dev server URL
-  } else {
-    // In production, load the index.html file
-    // The path will be something like: `file://${path.join(__dirname, '../renderer/main_window/index.html')}`
-    // This needs to be adjusted based on your Webpack output for the renderer process.
-    // For Electron Forge, it might be MAIN_WINDOW_WEBPACK_ENTRY
-    mainWindow.loadFile(path.join(__dirname, '../renderer/main_window/index.html')); // Placeholder
+
+  // Load the URL
+  // const urlToLoad = process.env.NODE_ENV === 'development' 
+  //   ? 'http://localhost:3000' 
+  //   : MAIN_WINDOW_WEBPACK_ENTRY;
+  // Always use MAIN_WINDOW_WEBPACK_ENTRY for reliability with Electron Forge
+  const urlToLoad = MAIN_WINDOW_WEBPACK_ENTRY;
+    
+  try {
+    await mainWindow.loadURL(urlToLoad);
+  } catch (error) {
+    console.error(`Failed to load URL: ${urlToLoad}`, error);
+    // Handle loading error appropriately, maybe show an error page or message
   }
 
   mainWindow.on('closed', () => (mainWindow = null));
@@ -42,4 +118,4 @@ app.on('activate', () => {
 });
 
 // Basic IPC setup example (will be expanded in Phase 1.6)
-import './ipc/appHandlers'; // Assuming you will create this for IPC 
+// import './ipc/appHandlers'; // Commented out for now 

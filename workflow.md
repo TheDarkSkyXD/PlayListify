@@ -249,40 +249,25 @@ app.on('activate', () => mainWindow === null && createWindow());
 
 ### Phase 1.2: Core Dependency Setup (yt-dlp & ffmpeg)
 **Tasks:**
-- [ ] Create automated `yt-dlp` installation checking for development mode.
-- [ ] Implement terminal-based installation prompts for `yt-dlp` if not found.
-- [ ] Add dedicated directory for `yt-dlp` binary (e.g., `ytdlp/`).
-- [ ] Check for `ffmpeg` installation on the system.
-- [ ] Implement terminal-based prompts to guide `ffmpeg` installation if not found (linking to official download pages).
-- [ ] Determine and store valid paths for both `yt-dlp` and `ffmpeg` binaries, making them accessible to relevant services.
-- [ ] Integrate with existing `ytDlpManager.ts` to use the discovered `yt-dlp` path.
-- [ ] Ensure `ffmpegService.ts` and `ytDlpManager.ts` (for `--ffmpeg-location`) use the discovered `ffmpeg` path.
-- [ ] Remove settings-based `yt-dlp` and `ffmpeg` path configuration from the UI if it was previously planned, relying on this setup process.
+- [x] Ensure `scripts/start.js` checks for `yt-dlp` and prompts for install if needed.
+- [x] Ensure `scripts/start.js` downloads `yt-dlp` to a managed location (`APP_DATA_DIR/bin`).
+- [x] Ensure `scripts/start.js` checks for `ffmpeg` and prompts for install if needed.
+- [x] Ensure `scripts/start.js` downloads `ffmpeg` to a managed location (`APP_DATA_DIR/bin/ffmpeg`).
+- [x] Create utility functions (`src/backend/utils/pathUtils.ts`) for backend services to retrieve binary paths based on environment variable set by `start.js`.
+- [ ] Integrate discovered paths into `ytDlpManager.ts` (when created/modified).
+- [ ] Integrate discovered paths into `ffmpegService.ts` (when created/modified).
 
 **Files Created/Updated:**
-- [ ] `src/backend/services/dependencySetupService.ts` (~250 lines, potentially evolving from `ytDlpSetup.ts` or new)
-  - Functions to check if `yt-dlp` and `ffmpeg` are installed and accessible.
-  - Terminal-based installation/guidance prompts with visual indicators for both.
-  - Logic to download `yt-dlp` binary to a dedicated app folder (e.g., `ytdlp/`).
-  - Logic to find system `ffmpeg` path or guide user if it needs to be added to PATH/specified.
-  - Functions to store/retrieve validated binary paths (e.g., via `settingsService` or a simple internal cache).
-  - Development environment detection.
-- [ ] `src/backend/backend.ts` (updates)
-  - Integration with the startup sequence: run `dependencySetupService` checks early.
-  - Conditional initialization of video services based on successful setup.
-  - Enhanced terminal visibility for setup prompts.
-- [ ] `src/backend/services/ytDlpManager.ts` (updates)
-  - Retrieves `yt-dlp` binary path from `dependencySetupService` or `settingsService`.
-  - Retrieves `ffmpeg` binary path and passes it to `yt-dlp` commands using `--ffmpeg-location`.
-  - Removal of any direct settings-based path configuration if previously used.
-- [ ] `src/backend/services/ffmpegService.ts` (updates)
-  - Retrieves `ffmpeg` binary path from `dependencySetupService` or `settingsService` to configure `fluent-ffmpeg` (e.g., `ffmpeg.setFfmpegPath()`).
-- [ ] `src/frontend/pages/Settings/SettingsPage.tsx` (updates)
-  - Removed any UI for manually configuring `yt-dlp` or `ffmpeg` paths if the setup process handles this.
+- [x] `scripts/start.js` (updated with prompts and install logic)
+- [x] `src/backend/utils/pathUtils.ts` (new utility for path retrieval)
+- [x] `ytdlp/` directory (created at root, though `start.js` uses `APP_DATA_DIR`)
+- [x] `ffmpeg/` directory (created at root, though `start.js` uses `APP_DATA_DIR`)
 
 **Implementation Details:**
-- Development mode detection to primarily run these setup checks/prompts in `npm start` environment or on first run.
-- Platform-specific binary detection (`yt-dlp.exe`/`ffmpeg.exe` on Windows, `yt-dlp`/`ffmpeg` on macOS/Linux).
+- Dependency checking and installation is now handled by the `scripts/start.js` wrapper script before the Electron app launches.
+- The script uses a dedicated directory within the user's application data folder (`APP_DATA_DIR`) for binaries.
+- The main application retrieves binary paths using `pathUtils.ts`, which reads an environment variable set by `start.js`.
+- IPC communication for dependency status is no longer needed as `start.js` handles failures before launch.
 
 ### Phase 1.3: Set Up React and UI Libraries
 
@@ -291,6 +276,8 @@ app.on('activate', () => mainWindow === null && createWindow());
 - [x] Set up TailwindCSS and Shadcn UI for styling
 - [x] Configure TanStack Router for navigation
 - [x] Implement dark/light theme support
+- [x] Create Sidenavbar component for page navigation
+- [x] Create TopNavbar component for app title and user avatar
 
 **Files Created:**
 - [x] `src/frontend/index.tsx` (~50 lines)
@@ -299,7 +286,6 @@ app.on('activate', () => mainWindow === null && createWindow());
 - [x] `src/frontend/App.tsx` (~15 lines)
   - Main React component
   - Router integration
-  - Dark/light theme support
 - [x] `postcss.config.js` (~10 lines)
   - PostCSS configuration for Tailwind
 - [x] `tailwind.config.js` (~25 lines)
@@ -323,12 +309,18 @@ app.on('activate', () => mainWindow === null && createWindow());
   - Downloads page with progress tracking and management
 - [x] `src/frontend/pages/History/History.tsx` (~30 lines)
   - History page for tracking watched and downloaded content
+- [x] `src/frontend/components/Layout/AppLayout.tsx` (~40 lines)
+  - Main application layout shell containing Sidenavbar, TopNavbar, and Outlet for page content. Does not contain theme logic.
+- [x] `src/frontend/components/Layout/Sidenavbar/Sidenavbar.tsx` (~45 lines)
+  - Sidenavbar with navigation links (Dashboard, Playlists, Downloads, History, Settings).
+- [x] `src/frontend/components/Layout/TopNavbar/TopNavbar.tsx` (~65 lines)
+  - TopNavbar displaying application title, user avatar placeholder, and theme (dark/light mode) toggle button.
 
 **Notes:**
 - Implemented TanStack Router for navigation between Dashboard, Settings, and Playlist views
 - Created responsive layouts with Tailwind's utility classes
 - Set up YouTube-inspired theme with CSS variables for color tokens
-- Added support for both light and dark modes
+- Added support for both light and dark modes (toggle located in TopNavbar)
 - Added reusable component classes in global.css (.btn, .input, .select)
 - Set up custom scrollbar styling consistent with the application theme
 - Organized pages using folder structure with index.tsx files for better organization and code splitting

@@ -1,6 +1,7 @@
+import './styles/globals.css'; // Ensure Tailwind styles are imported FIRST
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App'; // Assuming App.tsx will be created in the same directory or accessible path
+import App from './App';
 
 const container = document.getElementById('root');
 
@@ -12,5 +13,5 @@ if (container) {
     </React.StrictMode>
   );
 } else {
-  console.error('Root container missing in index.html');
+  console.error('Root container not found. Failed to mount React app.');
 } 

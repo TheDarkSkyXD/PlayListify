@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer theme {
+  :root {
+    /* Light Theme (Default) */
+    --background: 0 0% 100%; /* #FFFFFF */
+    --foreground: 222.2 84% 4.9%; /* #0C0A09 */
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 0 100% 50%; /* #FF0000 */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+    --secondary: 0 0% 96.1%; /* #F5F5F5 */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 224.7 3.8% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%; /* #E5E5E5 */
+    --input: 0 0% 89.8%;
+    --ring: 0 100% 50%; /*  Red for focus rings */
+
+    --radius: 0.5rem;
+
+    /* Custom inspired colors */
+    --yt-red: 0 100% 50%; /* #FF0000 */
+    --yt-almost-black: 240 10% 3.9%; /* #282828 */
+    --yt-light-gray: 0 0% 94.5%; /* #F1F1F1 */
+    --yt-dark-gray: 0 0% 23.9%; /* #3D3D3D */
+    --yt-text-primary-dark: 0 0% 100%;
+    --yt-text-secondary-dark: 0 0% 66.7%; /* #AAAAAA */
+    --yt-text-primary-light: 240 10% 3.9%;
+    --yt-text-secondary-light: 240 5.9% 34.1%; /* #606060 */
+  }
+
+  .dark {
+    --background: 0 0% 9.4%; /* #181818 */
+    --foreground: 0 0% 98%; /* #FAFAFA */
+    --card: 0 0% 12.9%; /* #212121 */
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 9.4%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 100% 50%; /* #FF0000 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 23.9%; /* #3D3D3D */
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 23.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 23.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 18.8%; /* #303030 */
+    --input: 0 0% 18.8%;
+    --ring: 0 100% 50%;
+  }
+}
+
+@layer base {
+  body {
+    /* @apply bg-background text-onSurface; */ /* Replaced @apply with direct CSS */
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground)); /* Assuming --foreground provides base text color */
+    font-family: 'Roboto', sans-serif; /* YouTube uses Roboto */
+  }
+
+  /* Custom Scrollbar for Webkit Browsers */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background) / 0.5);
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.6);
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.8);
+  }
+} /* This closes @layer base */
+
+/* Custom component styles can be added here if needed, e.g. */
+/*
+@layer components {
+  .btn {
+    @apply py-2 px-4 rounded font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-opacity-80 focus:ring-primary;
+  }
+  .input {
+    @apply block w-full px-3 py-2 border border-borderCustom rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm;
+    @apply bg-surface text-onSurface;
+  }
+  .select {
+    @apply block w-full pl-3 pr-10 py-2 text-base border-borderCustom focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md;
+    @apply bg-surface text-onSurface;
+  }
+}
+*/

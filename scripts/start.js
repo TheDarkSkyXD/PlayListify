@@ -30,22 +30,39 @@ const { createWriteStream } = require('fs');
 const { pipeline } = require('stream/promises');
 const { promisify } = require('util');
 const extractZip = require('extract-zip');
+const readline = require('readline'); // Import readline
 
 const execAsync = promisify(exec);
 
-// Constants
+// --- Path Definitions --- 
+const IS_DEV = process.env.NODE_ENV === 'development';
+const PROJECT_ROOT = path.resolve('.');
+
+// Production/Default Paths (User AppData)
 const APP_DATA_DIR = process.env.PLAYLISTIFY_DEV_APP_DATA || path.join(process.env.APPDATA || (process.platform === 'darwin' ? path.join(process.env.HOME, 'Library/Application Support') : path.join(process.env.HOME, '.config')), 'playlistify');
-const DEPS_DIR = path.join(APP_DATA_DIR, 'bin');
-const YTDLP_PATH = path.join(DEPS_DIR, process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
-const FFMPEG_DIR = path.join(DEPS_DIR, 'ffmpeg');
+const PROD_DEPS_DIR = path.join(APP_DATA_DIR, 'bin');
+const PROD_YTDLP_PATH = path.join(PROD_DEPS_DIR, process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+const PROD_FFMPEG_DIR = path.join(PROD_DEPS_DIR, 'ffmpeg');
 
-// Ensure directories exist
-fs.ensureDirSync(APP_DATA_DIR);
-fs.ensureDirSync(DEPS_DIR);
-fs.ensureDirSync(FFMPEG_DIR);
+// Development Paths (Project Root)
+const DEV_YTDLP_DIR = path.join(PROJECT_ROOT, 'ytdlp');
+const DEV_YTDLP_PATH = path.join(DEV_YTDLP_DIR, process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+const DEV_FFMPEG_DIR = path.join(PROJECT_ROOT, 'ffmpeg');
 
-// Set environment variable for the dev app data
-process.env.PLAYLISTIFY_DEV_APP_DATA = APP_DATA_DIR;
+// Determine actual paths based on environment
+const YTDLP_PATH = IS_DEV ? DEV_YTDLP_PATH : PROD_YTDLP_PATH;
+const FFMPEG_DIR = IS_DEV ? DEV_FFMPEG_DIR : PROD_FFMPEG_DIR;
+const FFMPEG_EXE_PATH = path.join(FFMPEG_DIR, process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+
+// Ensure target directories exist
+if (IS_DEV) {
+  fs.ensureDirSync(DEV_YTDLP_DIR);
+  fs.ensureDirSync(DEV_FFMPEG_DIR);
+} else {
+  fs.ensureDirSync(APP_DATA_DIR); // Ensure base app data dir exists
+  fs.ensureDirSync(PROD_DEPS_DIR); // Ensure bin dir exists
+  fs.ensureDirSync(PROD_FFMPEG_DIR); // Ensure ffmpeg dir exists within bin
+}
 
 /**
  * Log a formatted message to the console
@@ -145,10 +162,25 @@ async function downloadWithCurl(url, destPath) {
 }
 
 /**
- * Check if yt-dlp is installed and working
+ * Create readline interface and ask a question
+ */
+function askQuestion(query) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise(resolve => rl.question(chalk.yellow(`? ${query} (Y/n): `), ans => {
+    rl.close();
+    resolve(ans.trim().toLowerCase());
+  }));
+}
+
+/**
+ * Check if yt-dlp is installed and working (uses resolved YTDLP_PATH)
  */
 async function checkYtdlp() {
-  const spinner = ora('Checking for yt-dlp...').start();
+  const spinner = ora(`Checking for yt-dlp at ${YTDLP_PATH}...`).start();
   
   try {
     if (fs.existsSync(YTDLP_PATH)) {
@@ -171,10 +203,10 @@ async function checkYtdlp() {
 }
 
 /**
- * Install yt-dlp
+ * Install yt-dlp (installs to resolved YTDLP_PATH)
  */
 async function installYtdlp() {
-  log('Installing yt-dlp...', 'info');
+  log(`Installing yt-dlp to ${YTDLP_PATH}...`, 'info');
   
   const isWin = process.platform === 'win32';
   const downloadUrl = isWin
@@ -204,13 +236,13 @@ async function installYtdlp() {
 }
 
 /**
- * Check if ffmpeg is installed and working
+ * Check if ffmpeg is installed and working (uses resolved FFMPEG_EXE_PATH)
  */
 async function checkFfmpeg() {
-  const spinner = ora('Checking for ffmpeg...').start();
+  const spinner = ora(`Checking for ffmpeg at ${FFMPEG_EXE_PATH}...`).start();
   
   try {
-    const ffmpegExe = path.join(FFMPEG_DIR, process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+    const ffmpegExe = FFMPEG_EXE_PATH;
     
     if (fs.existsSync(ffmpegExe)) {
       try {
@@ -234,10 +266,10 @@ async function checkFfmpeg() {
 }
 
 /**
- * Install ffmpeg
+ * Install ffmpeg (installs to resolved FFMPEG_DIR)
  */
 async function installFfmpeg() {
-  log('Installing ffmpeg...', 'info');
+  log(`Installing ffmpeg to ${FFMPEG_DIR}...`, 'info');
   
   try {
     const isWin = process.platform === 'win32';
@@ -254,7 +286,7 @@ async function installFfmpeg() {
     }
     
     const spinner = ora(`Downloading ffmpeg...`).start();
-    const zipPath = path.join(DEPS_DIR, 'ffmpeg-temp.zip');
+    const zipPath = path.join(IS_DEV ? PROJECT_ROOT : PROD_DEPS_DIR, 'ffmpeg-temp.zip');
     
     // Download the ffmpeg archive
     try {
@@ -274,7 +306,7 @@ async function installFfmpeg() {
     }
     
     // Extract the archive
-    const extractSpinner = ora('Extracting ffmpeg...').start();
+    const extractSpinner = ora(`Extracting ffmpeg to ${FFMPEG_DIR}...`).start();
     try {
       if (isWin) {
         // Windows - extract the zip
@@ -282,17 +314,19 @@ async function installFfmpeg() {
         
         // Find the ffmpeg.exe file in the extracted directory
         const ffmpegFiles = await fs.promises.readdir(FFMPEG_DIR, { recursive: true });
-        const ffmpegExe = ffmpegFiles.find(file => file.endsWith('ffmpeg.exe'));
+        const ffmpegExeRelative = ffmpegFiles.find(file => file.endsWith('ffmpeg.exe'));
         
-        if (!ffmpegExe) {
-          throw new Error('ffmpeg.exe not found in the extracted archive');
+        if (!ffmpegExeRelative) {
+          throw new Error('ffmpeg.exe not found in the extracted archive at ' + FFMPEG_DIR);
         }
         
-        const sourcePath = path.join(FFMPEG_DIR, ffmpegExe);
-        const destPath = path.join(FFMPEG_DIR, 'ffmpeg.exe');
+        const sourcePath = path.join(FFMPEG_DIR, ffmpegExeRelative);
+        const destPath = FFMPEG_EXE_PATH;
         
-        // Move ffmpeg.exe to the expected location
-        await fs.move(sourcePath, destPath, { overwrite: true });
+        // Move ffmpeg.exe to the expected location if it's not already there
+        if (path.normalize(sourcePath) !== path.normalize(destPath)) {
+          await fs.move(sourcePath, destPath, { overwrite: true });
+        }
         
         extractSpinner.succeed('Extracted ffmpeg');
       } else {
@@ -300,24 +334,15 @@ async function installFfmpeg() {
         if (downloadUrl.endsWith('.zip')) {
           await extractZip(zipPath, { dir: FFMPEG_DIR });
         } else {
-          await execAsync(`tar -xf "${zipPath}" -C "${FFMPEG_DIR}"`);
+          await execAsync(`tar -xf "${zipPath}" -C "${FFMPEG_DIR}" --strip-components=1`);
         }
         
-        // Find the ffmpeg binary in the extracted directory
-        const ffmpegFiles = await fs.promises.readdir(FFMPEG_DIR, { recursive: true });
-        const ffmpegBin = ffmpegFiles.find(file => file === 'ffmpeg' || file.endsWith('/ffmpeg'));
-        
-        if (!ffmpegBin) {
-          throw new Error('ffmpeg binary not found in the extracted archive');
+        // Check if ffmpeg binary exists directly in FFMPEG_DIR
+        if (!fs.existsSync(FFMPEG_EXE_PATH)) {
+          throw new Error('ffmpeg binary not found after extraction in ' + FFMPEG_DIR);
         }
         
-        const sourcePath = path.join(FFMPEG_DIR, ffmpegBin);
-        const destPath = path.join(FFMPEG_DIR, 'ffmpeg');
-        
-        // Move ffmpeg to the expected location
-        await fs.move(sourcePath, destPath, { overwrite: true });
-        await fs.chmod(destPath, 0o755);
-        
+        await fs.chmod(FFMPEG_EXE_PATH, 0o755);
         extractSpinner.succeed('Extracted ffmpeg');
       }
       
@@ -328,6 +353,8 @@ async function installFfmpeg() {
       return true;
     } catch (error) {
       extractSpinner.fail(`Failed to extract ffmpeg: ${error.message}`);
+      // Attempt to clean up failed extraction directory
+      await fs.remove(FFMPEG_DIR).catch(() => {}); 
       return false;
     }
   } catch (error) {
@@ -341,8 +368,6 @@ async function installFfmpeg() {
  */
 async function startApp() {
   log('Starting PlayListify...', 'info');
-  
-  // Using npm run instead of direct path to avoid Windows path issues
   log('Using npm to start electron-forge', 'info');
   log('Environment variables to prevent rebuilding are set', 'info');
   
@@ -351,8 +376,8 @@ async function startApp() {
     shell: true,
     env: {
       ...process.env,
-      NODE_ENV: 'production', // Use production to avoid dev dependencies
-      PLAYLISTIFY_DEV_APP_DATA: APP_DATA_DIR
+      NODE_ENV: 'development', // Keep NODE_ENV for the electron app itself
+      // PLAYLISTIFY_DEV_APP_DATA is no longer needed here for path finding
     }
   });
   
@@ -375,28 +400,52 @@ async function startApp() {
 async function main() {
   log('PlayListify Dependency Checker and Launcher', 'info');
   log(`Using app data directory: ${APP_DATA_DIR}`, 'info');
-  
-  // Check dependencies
+
+  let proceed = true;
+
+  // --- Check yt-dlp --- 
   const hasYtdlp = await checkYtdlp();
-  const hasFfmpeg = await checkFfmpeg();
-  
-  // Install dependencies if needed
   if (!hasYtdlp) {
-    const ytdlpInstalled = await installYtdlp();
-    if (!ytdlpInstalled) {
-      log('Failed to install yt-dlp, but will continue', 'warning');
+    const installConfirm = await askQuestion('yt-dlp not found or not working correctly. Attempt to download/install it automatically?');
+    if (installConfirm === 'y' || installConfirm === '') { // Default to yes
+      const ytdlpInstalled = await installYtdlp();
+      if (!ytdlpInstalled) {
+        log('Automatic installation of yt-dlp failed. Please install it manually and ensure it is accessible.', 'error');
+        log('See: https://github.com/yt-dlp/yt-dlp#installation', 'error');
+        proceed = false; // Cannot proceed without yt-dlp
+      }
+    } else {
+      log('Skipping yt-dlp installation. Core download features will be unavailable.', 'warning');
+      proceed = false; // Cannot proceed without yt-dlp
     }
   }
-  
-  if (!hasFfmpeg) {
-    const ffmpegInstalled = await installFfmpeg();
-    if (!ffmpegInstalled) {
-      log('Failed to install ffmpeg, but will continue', 'warning');
+
+  // --- Check ffmpeg --- (Only if we are still proceeding)
+  if (proceed) {
+    const hasFfmpeg = await checkFfmpeg();
+    if (!hasFfmpeg) {
+      const installConfirm = await askQuestion('ffmpeg not found or not working correctly. Attempt to download/install it automatically?');
+      if (installConfirm === 'y' || installConfirm === '') { // Default to yes
+        const ffmpegInstalled = await installFfmpeg();
+        if (!ffmpegInstalled) {
+          log('Automatic installation of ffmpeg failed. Please install it manually and ensure it is accessible.', 'error');
+          log('See: https://ffmpeg.org/download.html', 'error');
+          proceed = false; // Cannot proceed without ffmpeg
+        }
+      } else {
+        log('Skipping ffmpeg installation. Format conversion and merging features will be unavailable.', 'warning');
+        proceed = false; // Cannot proceed without ffmpeg
+      }
     }
   }
-  
-  // Start the application
-  await startApp();
+
+  // --- Start App --- 
+  if (proceed) {
+    await startApp();
+  } else {
+    log('Exiting due to missing critical dependencies.', 'error');
+    process.exit(1);
+  }
 }
 
 // Run the main function
