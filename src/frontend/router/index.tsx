@@ -5,13 +5,14 @@ import {
   createRouter,
   createRoute,
   createRootRoute,
+  useParams,
 } from '@tanstack/react-router';
 import { AppLayout } from '../components/Layout/AppLayout';
 
 // Import actual page components
 import DashboardPage from '../pages/Dashboard/Dashboard';
 import SettingsPage from '../pages/Settings/Settings';
-import MyPlaylistsPage from '../pages/MyPlaylists/MyPlaylists';
+import MyPlaylists from '../pages/MyPlaylists/MyPlaylists';
 import DownloadsPage from '../pages/Downloads/Downloads';
 import HistoryPage from '../pages/History/History';
 
@@ -36,7 +37,7 @@ const settingsRoute = createRoute({
 const playlistsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/playlists',
-  component: MyPlaylistsPage,
+  component: MyPlaylists,
 });
 
 const downloadsRoute = createRoute({
@@ -73,6 +74,7 @@ const routeTree = rootRoute.addChildren([
 export const router = createRouter({
   routeTree,
   defaultPreload: 'intent', // Preload routes on hover/focus
+  basepath: '/main_window', // Added basepath configuration
 });
 
 // Declare module augmentation for type safety

@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { getSetting } from '../services/settingsService'; // Assuming settingsService provides downloadLocation
-import { Playlist, Video } from '@shared/types/playlist'; // Changed to path alias
+import { Playlist, Video } from '@shared/types'; // Changed to import from the main types barrel file
 
 const DEFAULT_PLAYLIST_DIR_NAME = 'Playlists';
 

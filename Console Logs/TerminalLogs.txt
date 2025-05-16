@@ -1,12 +1,135 @@
-2025-05-09T04:11:39.543Z [LOG] [Logger] Console logging to file initialized.
-2025-05-09T04:11:39.566Z [ERROR] yt-dlp binary not found at expected location: F:\My Github Repos\Open Source Repos\Playlistify\ytdlp\yt-dlp.exe
-2025-05-09T04:11:39.631Z [LOG] IPC settings handlers registered. ⚙️
-2025-05-09T04:11:39.635Z [LOG] IPC file handlers registered. ⚙️
-2025-05-09T04:11:39.636Z [LOG] IPC app handlers registered. ⚙️
-2025-05-09T04:11:39.636Z [LOG] IPC download handlers registered and calling DownloadManager. ⚙️
-2025-05-09T04:11:39.637Z [LOG] [IPC Handlers] Playlist handlers registered.
-2025-05-09T04:11:39.638Z [LOG] IPC thumbnail handlers registered and calling ThumbnailManager. ⚙️
-2025-05-09T04:11:39.641Z [ERROR] Managed ffmpeg binary not found at expected location: F:\My Github Repos\Open Source Repos\Playlistify\ffmpeg\ffmpeg.exe
-2025-05-09T04:11:39.709Z [ERROR] System ffmpeg also not found in PATH.
-2025-05-09T04:11:39.713Z [ERROR] [DownloadManager] yt-dlp binary path not found. Downloads will fail.
-2025-05-09T04:11:39.717Z [ERROR] [DownloadManager] Initialization failed: {}
+2025-05-14T08:24:18.454Z [LOG] [Logger] Console logging to file initialized.
+2025-05-14T08:24:18.473Z [LOG] Using yt-dlp binary at: F:\My Github Repos\Open Source Repos\Playlistify\installs\ytdlp\bin\yt-dlp.exe
+2025-05-14T08:24:18.477Z [LOG] [2025-05-14T08:24:18.476Z] [INFO] [DB] PROJECT ROOT determined as: F:\My Github Repos\Open Source Repos\Playlistify
+2025-05-14T08:24:18.477Z [LOG] [2025-05-14T08:24:18.477Z] [INFO] [DB] Initializing database connection at (PROJECT RELATIVE): F:\My Github Repos\Open Source Repos\Playlistify\src\backend\databases\playlistify.db
+2025-05-14T08:24:18.478Z [LOG] [2025-05-14T08:24:18.478Z] [INFO] [DB] Expecting schema file at (PROJECT RELATIVE): F:\My Github Repos\Open Source Repos\Playlistify\src\backend\databases\schema.sql
+2025-05-14T08:24:18.479Z [LOG] [2025-05-14T08:24:18.479Z] [INFO] [DB] Expecting migrations directory at (PROJECT RELATIVE): F:\My Github Repos\Open Source Repos\Playlistify\src\backend\databases\migrations
+2025-05-14T08:24:18.484Z [LOG] [2025-05-14T08:24:18.484Z] [INFO] PRAGMA journal_mode = WAL
+2025-05-14T08:24:18.485Z [LOG] [2025-05-14T08:24:18.485Z] [INFO] [DB] Database connection established and WAL mode set.
+2025-05-14T08:24:18.486Z [LOG] [2025-05-14T08:24:18.486Z] [INFO] [DB] Attempting to apply schema from: F:\My Github Repos\Open Source Repos\Playlistify\src\backend\databases\schema.sql
+2025-05-14T08:24:18.488Z [LOG] [2025-05-14T08:24:18.487Z] [INFO] CREATE TABLE IF NOT EXISTS playlists (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  source TEXT NOT NULL CHECK(source IN ('custom', 'youtube')),
+  itemCount INTEGER DEFAULT 0,
+  youtubePlaylistId TEXT UNIQUE, 
+  sourceUrl TEXT,
+  thumbnail TEXT,
+  totalDurationSeconds INTEGER DEFAULT 0,
+  createdAt TEXT NOT NULL,
+  updatedAt TEXT NOT NULL,
+  videos TEXT DEFAULT '[]' -- Stores JSON array of video objects for custom playlists; JOIN table for others
+);
+2025-05-14T08:24:18.489Z [LOG] [2025-05-14T08:24:18.488Z] [INFO] CREATE TABLE IF NOT EXISTS videos (
+  id TEXT PRIMARY KEY, 
+  url TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  channel TEXT,
+  duration INTEGER, 
+  thumbnailUrl TEXT,
+  isAvailable BOOLEAN DEFAULT TRUE,
+  isDownloaded BOOLEAN DEFAULT FALSE,
+  localFilePath TEXT,
+  downloadStatus TEXT, 
+  downloadProgress INTEGER, 
+  lastWatchedAt TEXT,
+  watchProgress REAL, 
+  addedAt TEXT NOT NULL,
+  channel_title TEXT,
+  upload_date TEXT,
+  description TEXT
+);
+2025-05-14T08:24:18.491Z [LOG] [2025-05-14T08:24:18.490Z] [INFO] CREATE TABLE IF NOT EXISTS playlist_videos (
+  playlistId TEXT NOT NULL,
+  videoId TEXT NOT NULL,
+  position INTEGER NOT NULL, 
+  addedToPlaylistAt TEXT NOT NULL,
+  PRIMARY KEY (playlistId, videoId),
+  FOREIGN KEY (playlistId) REFERENCES playlists(id) ON DELETE CASCADE,
+  FOREIGN KEY (videoId) REFERENCES videos(id) ON DELETE CASCADE
+);
+2025-05-14T08:24:18.492Z [LOG] [2025-05-14T08:24:18.491Z] [INFO] CREATE INDEX IF NOT EXISTS idx_playlist_videos_playlistId_position ON playlist_videos (playlistId, position);
+2025-05-14T08:24:18.492Z [LOG] [2025-05-14T08:24:18.492Z] [INFO] CREATE TABLE IF NOT EXISTS app_migrations (
+  version INTEGER PRIMARY KEY,
+  applied_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  name TEXT
+);
+2025-05-14T08:24:18.493Z [LOG] [2025-05-14T08:24:18.493Z] [INFO] [DB] Database schema applied successfully (or tables already existed).
+2025-05-14T08:24:18.494Z [LOG] [2025-05-14T08:24:18.494Z] [INFO] [DB Migrations] Starting migration check...
+2025-05-14T08:24:18.494Z [LOG] [2025-05-14T08:24:18.494Z] [INFO] [DB Migrations] No migration files found, skipping migrations.
+2025-05-14T08:24:18.495Z [LOG] [2025-05-14T08:24:18.495Z] [INFO] [DB] Database initialized successfully.
+2025-05-14T08:24:18.496Z [LOG] [Backend] Database initialized successfully.
+2025-05-14T08:24:18.543Z [LOG] Using ffmpeg binary at: F:\My Github Repos\Open Source Repos\Playlistify\installs\ffmpeg\bin\ffmpeg.exe
+2025-05-14T08:24:18.544Z [LOG] [DownloadManager] YTDlpWrap initialized with binary at: F:\My Github Repos\Open Source Repos\Playlistify\installs\ytdlp\bin\yt-dlp.exe
+2025-05-14T08:24:18.675Z [LOG] Electron-store initialized dynamically.
+2025-05-14T08:24:18.689Z [LOG] Ensured download directory exists: C:\Users\Admin\Videos\Playlistify
+2025-05-14T08:24:18.690Z [LOG] [DownloadManager] PQueue initialized with concurrency: 3
+2025-05-14T08:24:18.916Z [LOG] [DevAssets] In development mode, checking for assets to handle.
+2025-05-14T08:24:18.917Z [LOG] [DevAssets] Source directory not found, no assets copied: F:\My Github Repos\Open Source Repos\Playlistify\dev_specific_assets
+2025-05-14T08:24:18.918Z [LOG] IPC settings handlers registered.
+2025-05-14T08:24:18.919Z [LOG] IPC file handlers registered.
+2025-05-14T08:24:18.919Z [LOG] IPC app handlers registered.
+2025-05-14T08:24:18.920Z [LOG] IPC download handlers registered and calling DownloadManager.
+2025-05-14T08:24:18.921Z [LOG] [IPC Handlers] Playlist handlers registered with updated service calls.
+2025-05-14T08:24:18.921Z [LOG] IPC thumbnail handlers registered and calling ThumbnailManager.
+2025-05-14T08:24:18.922Z [LOG] [IPC Handlers] yt-dlp handlers registered.
+2025-05-14T08:24:18.922Z [LOG] [2025-05-14T08:24:18.922Z] [INFO] [IPC Handlers] Shell handlers registered.
+2025-05-14T08:24:23.729Z [LOG] [2025-05-14T08:24:23.729Z] [INFO] [PlaylistManager] getAllPlaylists called
+2025-05-14T08:24:23.730Z [LOG] [2025-05-14T08:24:23.730Z] [INFO] SELECT id, name, description, thumbnail, source, itemCount, createdAt, updatedAt, sourceUrl, youtubePlaylistId FROM playlists
+2025-05-14T08:24:23.731Z [LOG] [2025-05-14T08:24:23.731Z] [INFO] SELECT SUM(v.duration) as total
+           FROM videos v
+           JOIN playlist_videos pv ON v.id = pv.videoId
+           WHERE pv.playlistId = 'custom-1747111067978-i2am4p2'
+2025-05-14T08:24:23.732Z [LOG] [2025-05-14T08:24:23.732Z] [INFO] SELECT SUM(v.duration) as total
+           FROM videos v
+           JOIN playlist_videos pv ON v.id = pv.videoId
+           WHERE pv.playlistId = 'PLq8qREFIgLo9VEe9jlshbEgEZZOYMWz'/*+2 bytes*/
+2025-05-14T08:24:23.733Z [LOG] [2025-05-14T08:24:23.733Z] [INFO] SELECT SUM(v.duration) as total
+           FROM videos v
+           JOIN playlist_videos pv ON v.id = pv.videoId
+           WHERE pv.playlistId = 'PLsjLXb7qdkJAET_Xg4uzOLvhzQKmMnW'/*+2 bytes*/
+2025-05-14T08:24:34.019Z [LOG] [2025-05-14T08:24:34.018Z] [INFO] [IPC Handler] YTDLP_GET_QUICK_PLAYLIST_PREVIEW received for URL: https://www.youtube.com/watch?v=bUqs_yWvLIo&list=PLq8qREFIgLo9VEe9jlshbEgEZZOYMWzxa&index=9
+2025-05-14T08:24:34.020Z [LOG] [2025-05-14T08:24:34.020Z] [INFO] [YouTubePlaylistPreviewService] Fetching quick preview for URL: https://www.youtube.com/watch?v=bUqs_yWvLIo&list=PLq8qREFIgLo9VEe9jlshbEgEZZOYMWzxa&index=9
+2025-05-14T08:24:34.021Z [LOG] [2025-05-14T08:24:34.021Z] [INFO] [ytDlpManager] getPlaylistMetadata (quickPreview: true) for URL: https://www.youtube.com/playlist?list=PLq8qREFIgLo9VEe9jlshbEgEZZOYMWzxa
+2025-05-14T08:24:34.022Z [LOG] Using yt-dlp binary at: F:\My Github Repos\Open Source Repos\Playlistify\installs\ytdlp\bin\yt-dlp.exe
+2025-05-14T08:24:34.022Z [LOG] [2025-05-14T08:24:34.022Z] [INFO] [ytDlpManager] YTDlpWrap initialized with binary at: F:\My Github Repos\Open Source Repos\Playlistify\installs\ytdlp\bin\yt-dlp.exe
+2025-05-14T08:24:34.023Z [LOG] [2025-05-14T08:24:34.023Z] [INFO] [ytDlpManager] Spawning for QUICK PREVIEW (flat): C:\Users\Admin\AppData\Roaming\playlistify\binaries\yt-dlp\yt-dlp.exe https://www.youtube.com/playlist?list=PLq8qREFIgLo9VEe9jlshbEgEZZOYMWzxa --dump-single-json --flat-playlist --no-warnings --no-progress
+2025-05-14T08:24:36.049Z [LOG] [2025-05-14T08:24:36.048Z] [INFO] [ytDlpManager] Quick preview (flat) for https://www.youtube.com/playlist?list=PLq8qREFIgLo9VEe9jlshbEgEZZOYMWzxa took 2023.45ms.
+2025-05-14T08:24:36.050Z [LOG] [2025-05-14T08:24:36.049Z] [INFO] [YouTubePlaylistPreviewService] Successfully prepared quick preview for small playlist (PLq8qREFIgLo9VEe9jlshbEgEZZOYMWzxa)
+2025-05-14T08:24:36.050Z [LOG] [2025-05-14T08:24:36.050Z] [INFO] [IPC Handler] Successfully prepared quick preview via service for small playlist (PLq8qREFIgLo9VEe9jlshbEgEZZOYMWzxa)
+2025-05-14T08:25:42.012Z [LOG] [2025-05-14T08:25:42.012Z] [INFO] [IPC Handler] YTDLP_GET_QUICK_PLAYLIST_PREVIEW received for URL: https://www.youtube.com/watch?v=hw1ic8or7EE&list=PLV4T6SPr9X68D_NbNy-FX9KKR_DJgm_xJ&index=100
+2025-05-14T08:25:42.013Z [LOG] [2025-05-14T08:25:42.013Z] [INFO] [YouTubePlaylistPreviewService] Fetching quick preview for URL: https://www.youtube.com/watch?v=hw1ic8or7EE&list=PLV4T6SPr9X68D_NbNy-FX9KKR_DJgm_xJ&index=100
+2025-05-14T08:25:42.014Z [LOG] [2025-05-14T08:25:42.014Z] [INFO] [ytDlpManager] getPlaylistMetadata (quickPreview: true) for URL: https://www.youtube.com/playlist?list=PLV4T6SPr9X68D_NbNy-FX9KKR_DJgm_xJ
+2025-05-14T08:25:42.015Z [LOG] [2025-05-14T08:25:42.015Z] [INFO] [ytDlpManager] Spawning for QUICK PREVIEW (flat): C:\Users\Admin\AppData\Roaming\playlistify\binaries\yt-dlp\yt-dlp.exe https://www.youtube.com/playlist?list=PLV4T6SPr9X68D_NbNy-FX9KKR_DJgm_xJ --dump-single-json --flat-playlist --no-warnings --no-progress
+2025-05-14T08:25:44.906Z [LOG] [2025-05-14T08:25:44.906Z] [INFO] [ytDlpManager] Quick preview (flat) for https://www.youtube.com/playlist?list=PLV4T6SPr9X68D_NbNy-FX9KKR_DJgm_xJ took 2889.91ms.
+2025-05-14T08:25:44.907Z [LOG] [2025-05-14T08:25:44.907Z] [INFO] [YouTubePlaylistPreviewService] Successfully prepared quick preview for Small Town Titans - Playlist - All Videos (sorted by most popular) (PLV4T6SPr9X68D_NbNy-FX9KKR_DJgm_xJ)
+2025-05-14T08:25:44.908Z [LOG] [2025-05-14T08:25:44.908Z] [INFO] [IPC Handler] Successfully prepared quick preview via service for Small Town Titans - Playlist - All Videos (sorted by most popular) (PLV4T6SPr9X68D_NbNy-FX9KKR_DJgm_xJ)
+2025-05-14T08:26:29.520Z [LOG] [2025-05-14T08:26:29.519Z] [INFO] [PlaylistManager] getAllPlaylists called
+2025-05-14T08:26:29.524Z [LOG] [2025-05-14T08:26:29.524Z] [INFO] SELECT id, name, description, thumbnail, source, itemCount, createdAt, updatedAt, sourceUrl, youtubePlaylistId FROM playlists
+2025-05-14T08:26:29.526Z [LOG] [2025-05-14T08:26:29.525Z] [INFO] SELECT SUM(v.duration) as total
+           FROM videos v
+           JOIN playlist_videos pv ON v.id = pv.videoId
+           WHERE pv.playlistId = 'custom-1747111067978-i2am4p2'
+2025-05-14T08:26:29.527Z [LOG] [2025-05-14T08:26:29.527Z] [INFO] SELECT SUM(v.duration) as total
+           FROM videos v
+           JOIN playlist_videos pv ON v.id = pv.videoId
+           WHERE pv.playlistId = 'PLq8qREFIgLo9VEe9jlshbEgEZZOYMWz'/*+2 bytes*/
+2025-05-14T08:26:29.528Z [LOG] [2025-05-14T08:26:29.528Z] [INFO] SELECT SUM(v.duration) as total
+           FROM videos v
+           JOIN playlist_videos pv ON v.id = pv.videoId
+           WHERE pv.playlistId = 'PLsjLXb7qdkJAET_Xg4uzOLvhzQKmMnW'/*+2 bytes*/
+2025-05-14T08:26:51.167Z [LOG] [2025-05-14T08:26:51.166Z] [INFO] [PlaylistManager] getAllPlaylists called
+2025-05-14T08:26:51.168Z [LOG] [2025-05-14T08:26:51.167Z] [INFO] SELECT id, name, description, thumbnail, source, itemCount, createdAt, updatedAt, sourceUrl, youtubePlaylistId FROM playlists
+2025-05-14T08:26:51.168Z [LOG] [2025-05-14T08:26:51.168Z] [INFO] SELECT SUM(v.duration) as total
+           FROM videos v
+           JOIN playlist_videos pv ON v.id = pv.videoId
+           WHERE pv.playlistId = 'custom-1747111067978-i2am4p2'
+2025-05-14T08:26:51.169Z [LOG] [2025-05-14T08:26:51.169Z] [INFO] SELECT SUM(v.duration) as total
+           FROM videos v
+           JOIN playlist_videos pv ON v.id = pv.videoId
+           WHERE pv.playlistId = 'PLq8qREFIgLo9VEe9jlshbEgEZZOYMWz'/*+2 bytes*/
+2025-05-14T08:26:51.170Z [LOG] [2025-05-14T08:26:51.170Z] [INFO] SELECT SUM(v.duration) as total
+           FROM videos v
+           JOIN playlist_videos pv ON v.id = pv.videoId
+           WHERE pv.playlistId = 'PLsjLXb7qdkJAET_Xg4uzOLvhzQKmMnW'/*+2 bytes*/

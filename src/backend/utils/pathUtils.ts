@@ -17,11 +17,14 @@ const PROD_YTDLP_PATH = path.join(PROD_DEPS_DIR, process.platform === 'win32' ? 
 const PROD_FFMPEG_DIR = path.join(PROD_DEPS_DIR, 'ffmpeg');
 const PROD_FFMPEG_PATH = path.join(PROD_FFMPEG_DIR, process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
 
-// Development paths (Project Root)
-const DEV_YTDLP_DIR = path.join(PROJECT_ROOT, 'ytdlp');
-const DEV_YTDLP_PATH = path.join(DEV_YTDLP_DIR, process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
-const DEV_FFMPEG_DIR = path.join(PROJECT_ROOT, 'ffmpeg');
-const DEV_FFMPEG_PATH = path.join(DEV_FFMPEG_DIR, process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+// Development paths (PROJECT_ROOT/installs/TOOL/bin/)
+const DEV_INSTALLS_DIR = path.join(PROJECT_ROOT, 'installs');
+
+const DEV_YTDLP_INSTALL_DIR = path.join(DEV_INSTALLS_DIR, 'ytdlp', 'bin');
+const DEV_YTDLP_PATH = path.join(DEV_YTDLP_INSTALL_DIR, process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+
+const DEV_FFMPEG_INSTALL_DIR = path.join(DEV_INSTALLS_DIR, 'ffmpeg', 'bin');
+const DEV_FFMPEG_PATH = path.join(DEV_FFMPEG_INSTALL_DIR, process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
 
 // Determine actual paths based on environment
 const YTDLP_PATH = IS_DEV ? DEV_YTDLP_PATH : PROD_YTDLP_PATH;

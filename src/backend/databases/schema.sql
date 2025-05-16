@@ -5,8 +5,12 @@ CREATE TABLE IF NOT EXISTS playlists (
   source TEXT NOT NULL CHECK(source IN ('custom', 'youtube')),
   itemCount INTEGER DEFAULT 0,
   youtubePlaylistId TEXT UNIQUE, 
+  sourceUrl TEXT,
+  thumbnail TEXT,
+  totalDurationSeconds INTEGER DEFAULT 0,
   createdAt TEXT NOT NULL,
-  updatedAt TEXT NOT NULL
+  updatedAt TEXT NOT NULL,
+  videos TEXT DEFAULT '[]' -- Stores JSON array of video objects for custom playlists; JOIN table for others
 );
 
 CREATE TABLE IF NOT EXISTS videos (
@@ -23,7 +27,12 @@ CREATE TABLE IF NOT EXISTS videos (
   downloadProgress INTEGER, 
   lastWatchedAt TEXT,
   watchProgress REAL, 
-  addedAt TEXT NOT NULL 
+  addedAt TEXT NOT NULL,
+  channelTitle TEXT,
+  uploadDate TEXT,
+  description TEXT,
+  channelId TEXT,
+  uploaderId TEXT
 );
 
 CREATE TABLE IF NOT EXISTS playlist_videos (
@@ -36,4 +45,10 @@ CREATE TABLE IF NOT EXISTS playlist_videos (
   FOREIGN KEY (videoId) REFERENCES videos(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_playlist_videos_playlistId_position ON playlist_videos (playlistId, position); 
+-- CREATE INDEX IF NOT EXISTS idx_playlist_videos_playlistId_position ON playlist_videos (playlistId, position);
+
+CREATE TABLE IF NOT EXISTS app_migrations (
+  version INTEGER PRIMARY KEY,
+  appliedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+  name TEXT
+); 

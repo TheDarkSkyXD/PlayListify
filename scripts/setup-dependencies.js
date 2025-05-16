@@ -33,8 +33,9 @@ const c = {
   ask: text => console.log(`${colors.bright}${colors.yellow}? ${text}${colors.reset}`)
 };
 
-// Create a directory for FFmpeg in the project
-const FFMPEG_DIR = path.resolve(__dirname, 'ffmpeg');
+// Define the target installation directory at the project root
+const INSTALLS_DIR = path.resolve(__dirname, '..', 'installs'); // Moves up one from /scripts to project root, then into /installs
+const FFMPEG_DIR = path.join(INSTALLS_DIR, 'ffmpeg');
 const BIN_DIR = path.join(FFMPEG_DIR, 'bin');
 const TEMP_DIR = path.join(FFMPEG_DIR, 'temp');
 
@@ -418,37 +419,44 @@ async function main() {
   c.info('Checking if FFmpeg is already installed...');
   
   const isInstalled = checkFFmpegInstalled();
+  let verified = false;
   
   if (isInstalled) {
-    c.success('FFmpeg is already installed!');
-    
-    // Verify the existing installation
-    const verified = await verifyFFmpegInstallation();
-    
+    c.success('FFmpeg is already installed in the target directory!');
+    verified = await verifyFFmpegInstallation();
+
     if (verified) {
+      c.success('Existing FFmpeg installation verified successfully.');
       return true;
     } else {
-      c.warning('Existing FFmpeg installation seems to be corrupted.');
-      const shouldInstall = await promptToInstall();
-      
-      if (shouldInstall) {
-        return await installFFmpeg();
-      } else {
-        c.warning('Some features may not work without FFmpeg.');
-        return false;
-      }
+      c.warning('Existing FFmpeg installation seems to be corrupted or failed verification.');
     }
   } else {
-    c.info('FFmpeg is not installed.');
-    const shouldInstall = await promptToInstall();
-    
-    if (shouldInstall) {
-      return await installFFmpeg();
+    c.info('FFmpeg is not installed in the target directory.');
+  }
+
+  // If not installed and verified, proceed to install automatically
+  if (!verified) {
+    c.info('Attempting automatic installation of FFmpeg...');
+    const installSuccess = await installFFmpeg(); // installFFmpeg already includes verification
+
+    if (installSuccess) {
+      c.success('FFmpeg automatic installation process completed.');
+      // Re-verify to be certain, as installFFmpeg's verify is internal to its try-catch
+      if (!await verifyFFmpegInstallation()) {
+        c.error('Post-installation verification of FFmpeg failed. Please check logs.');
+        process.exit(1); // Exit if automatic install failed verification
+      }
+      return true;
     } else {
-      c.warning('Some features may not work without FFmpeg.');
-      return false;
+      c.error('Automatic installation of FFmpeg failed. Some features may not work correctly. Please check logs.');
+      // For FFmpeg, we might not want to hard exit the entire app, as some core functionality might still work.
+      // Consider just returning false or logging a persistent warning if it's not absolutely critical for startup.
+      // For now, let's keep it consistent with ytdlp and exit, but this is a point of consideration.
+      process.exit(1); 
     }
   }
+  return true; // Fallback
 }
 
 // Run the main function if this script is run directly

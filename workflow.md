@@ -500,38 +500,38 @@ app.on('activate', () => mainWindow === null && createWindow());
 ### Phase 2.1: Playlist Creation UI
 
 **Tasks:**
-- [ ] Build UI components for playlist management
-- [ ] Create playlist creation form within `AddNewPlaylistDialog.tsx`
+- [x] Build UI components for playlist management
+- [x] Create playlist creation form within `AddNewPlaylistDialog.tsx`
 
 **Files Created/Updated:**
-- [ ] `src/frontend/components/PlaylistGrid/PlaylistGrid.tsx` (~200 lines)
+- [x] `src/frontend/components/PlaylistGrid/PlaylistGrid/PlaylistGrid.tsx` (~200 lines)
   - Implemented responsive playlist grid layout
   - Added loading, error, and empty states
-- [ ] `src/frontend/components/Modals/AddNewPlaylistDialog/AddNewPlaylistDialog.tsx` (~300 lines, renamed from `CreatePlaylistModal.tsx`)
+- [x] `src/frontend/components/Modals/AddNewPlaylistDialog/AddNewPlaylistDialog.tsx` (~300 lines, renamed from `CreatePlaylistModal.tsx`)
   - Dialog titled "Add New Playlist" with an "Add Playlist" button.
   - Features two tabs:
     - **"From YouTube" Tab**: For importing playlists by pasting a YouTube URL. Includes form validation for URLs.
-    - **"Custom Playlist" Tab**: For creating a new local playlist with fields for Title and Description.
-  - Advanced options section with expandable UI (can be common to both tabs or specific).
+    - **"Custom Playlist" Tab**: For creating a new local playlist with fields for Title and Description (with character limits and counters).
   - Loading states during form submission.
   - Error handling.
-- [ ] `src/frontend/components/Modals/ConfirmDeleteDialog/ConfirmDeleteDialog.tsx` (~80 lines)
+- [x] `src/frontend/components/Modals/ConfirmDeleteDialog/ConfirmDeleteDialog.tsx` (~80 lines)
   - Reusable confirmation dialog for destructive actions
   - Customizable title, message and button text
   - Integrates with shadcn/ui Dialog component
-- [ ] `src/frontend/components/Modals/EditPlaylistDetailsDialog/EditPlaylistDetailsDialog.tsx` (~150 lines)
-    - Dialog for editing the Title and Description of an existing custom or imported playlist.
+- [x] `src/frontend/components/Modals/EditPlaylistDetailsDialog/EditPlaylistDetailsDialog.tsx` (~150 lines)
+    - Dialog for editing the Title and Description of an existing custom or imported playlist (with character limits and counters).
 
 **Additional Components Created:**
-- [ ] `src/frontend/features/playlists/components/PlaylistCard/PlaylistCard.tsx` (~150 lines)
-  - Individual playlist card with thumbnail and metadata
+- [x] `src/frontend/features/playlists/components/PlaylistCard/PlaylistCard.tsx` (~150 lines)
+  - Individual playlist card with thumbnail and metadata (fallback icon changed to PlayCircle).
   - Hover effects.
   - Utilizes `PlaylistActionsDropdown.tsx` to display playlist actions.
   - Dynamic styling based on playlist status
-- [ ] `src/frontend/features/playlists/components/PlaylistActionsDropdown/PlaylistActionsDropdown.tsx` (~180 lines)
+- [x] `src/frontend/features/playlists/components/PlaylistActionsDropdown/PlaylistActionsDropdown.tsx` (~180 lines)
     - Reusable dropdown menu component containing actions for a single playlist (Refresh, Delete, Duplicate, Download, Open in YouTube, Edit, Play).
     - Handles conditional display logic (e.g., 'Open in YouTube').
     - Integrates with UI library (e.g., Shadcn DropdownMenu).
+    - Styling updated to match user-provided image, including hover effects and tooltips.
 
 **Implementation Details:**
 - Used hooks for data fetching with proper loading/error states
@@ -548,125 +548,99 @@ app.on('activate', () => mainWindow === null && createWindow());
 ### Phase 2.2: Import Playlists with yt-dlp
 
 **Completed Tasks:**
-- [ ] Implement yt-dlp integration for fetching playlist metadata
-- [ ] Create wrapper functions for yt-dlp commands
-- [ ] Fixed CSP issues for loading YouTube thumbnails
-- [ ] Implemented fallback mechanism for image loading
-- [ ] Added development asset handling for static files
+- [x] Implement yt-dlp integration for fetching playlist metadata
+- [x] Create wrapper functions for yt-dlp commands
+- [x] Fixed CSP issues for loading YouTube thumbnails
+- [x] Implemented fallback mechanism for image loading (including private/deleted video placeholders)
+- [x] Added development asset handling for static files (placeholder added)
 
 **Files Created/Updated:**
-- [ ] `src/backend/services/ytDlpManager.ts`
-  - Wrapper for yt-dlp commands
+- [x] `src/backend/services/ytDlpManager.ts`
+  - Wrapper for yt-dlp commands using `yt-dlp-wrap`
   - Playlist metadata extraction functions
-- [ ] `src/backend/backend.ts`
-  - Added CSP configuration to allow YouTube image domains
-  - Implemented development asset management function
-- [ ] `src/frontend/components/CachedImage.tsx`
-  - Enhanced with robust image fallback mechanism
-  - Added hardcoded placeholder for when all else fails
+  - Playlist import function saving to JSON (aligned with `Playlist` type)
+  - Handles yt-dlp binary path and initialization
+- [x] `src/backend/utils/logger.ts` (New file)
+  - Basic logger utility created for use by services like `ytDlpManager`.
+- [x] `src/backend/backend.ts` (Updated)
+  - Added CSP configuration to allow YouTube image domains (`i.ytimg.com`, `img.youtube.com`)
+  - Added placeholder function for development asset handling.
+- [x] `src/frontend/components/CachedImage.tsx` (New file)
+  - Component with robust image fallback mechanism (primary src -> fallbackSrc -> hardcoded default).
+  - Includes specific placeholders (using Lucide icons) for 'private' and 'deleted' video statuses.
 
 **Implementation Notes:**
-- Fixed Content Security Policy to properly allow loading external images from YouTube
-- Created a function to ensure development assets are copied to the correct locations
-- Enhanced CachedImage component with multiple fallback levels and error handling
-- Added base64 encoded placeholder image as final fallback option
-
-**Sample Code for `src/backend/services/ytDlpManager.ts`:**
-```
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { writeMetadata } from '../utils/fileUtils';
-const execAsync = promisify(exec);
-
-export async function getPlaylistMetadata(playlistUrl: string): Promise<any> {
-  const command = `yt-dlp --dump-json "${playlistUrl}"`;
-  const { stdout, stderr } = await execAsync(command);
-  if (stderr) throw new Error(`yt-dlp error: ${stderr}`);
-  const metadata = JSON.parse(stdout);
-  return metadata;
-}
-
-export async function importPlaylist(playlistUrl: string, playlistName: string): Promise<void> {
-  const metadata = await getPlaylistMetadata(playlistUrl);
-  const videos = metadata.entries.map((entry: any) => ({
-    id: entry.id,
-    title: entry.title,
-    url: entry.webpage_url,
-  }));
-  await writeMetadata(playlistName, { name: playlistName, videos });
-}
-```
+- Fixed Content Security Policy in `backend.ts` to allow external images from YouTube.
+- `ytDlpManager.ts` created to manage `yt-dlp` interactions, including metadata fetching and playlist import.
+- `CachedImage.tsx` component implemented with multi-level fallbacks and status-specific placeholders.
+- Basic `logger.ts` utility created in `src/backend/utils`.
+- Placeholder for development asset handling added to `backend.ts`.
 
 ### Phase 2.3: Playlist State Management
 
 **Tasks:**
-- [ ] Implement state management with Zustand
-- [ ] Create playlist store structure
-- [ ] Implement data persistence strategies (using `better-sqlite3` for local database)
-- [ ] Add playlist filtering and sorting capabilities
-- [ ] Create actions for CRUD operations
-- [ ] Implement error handling and loading states
+- [ ] Implement state management with Zustand for frontend UI state if needed beyond React Query.
+- [ ] Create playlist store structure (if Zustand is adopted for complex UI states).
+- [x] Implement data persistence strategies (backend uses `better-sqlite3`; frontend relies on React Query caching and backend persistence).
+- [x] Add playlist filtering and sorting capabilities (currently in `MyPlaylistsPage.tsx` using React Query data).
+- [x] Create actions for CRUD operations (handled by React Query mutation hooks calling backend IPC).
+- [x] Implement error handling and loading states (handled by React Query).
 
 **Files Created/Updated:**
-- [ ] `src/frontend/store/playlistStore.ts` (~150 lines)
+- [ ] `src/frontend/store/playlistStore.ts` (~150 lines) // Marked as not yet implemented
   - Enhanced store with TypeScript interfaces
   - Actions for creating, updating, and deleting playlists
   - Synchronization with localStorage for persistence
   - Video status tracking capabilities
   - Integration with data fetching hooks
-- [ ] `src/shared/constants/appConstants.ts` (~50 lines)
+- [ ] `src/shared/constants/appConstants.ts` (~50 lines) // This file might exist, but its role in a dedicated playlist Zustand store is not yet defined.
   - Application-wide constants and defaults
   - Rate limit configurations
   - UI constants for consistent layout
   - File path constants and naming conventions
 
 **Implementation Notes:**
-- Used Zustand for state management due to its minimal API and easy integration with React
-- Implemented custom selectors for optimized component renders
-- Created type-safe actions with proper TypeScript interfaces for all operations
-- Added middleware for persistent storage using localStorage
-- Implemented automatic state synchronization with backend process data
-- Added derived state for filtering and sorting playlists by various criteria
-- Created a unified error handling strategy for failed operations
-- Used React Query for data fetching with Zustand for UI state
-- Implemented optimistic updates for improved UX during mutations
-- Added debounced search functionality for playlist filtering
-- Created middleware for logging state changes during development
+- Current frontend state for playlists (data, loading, errors) is primarily managed by **React Query** via hooks in `usePlaylistQueries.ts`.
+- Filtering and sorting logic is currently implemented within `MyPlaylistsPage.tsx` using `useMemo` on data fetched by React Query.
+- Backend persistence is handled by `playlist-manager.ts` using `better-sqlite3`.
+- A dedicated frontend Zustand store (`playlistStore.ts`) for more complex UI-specific state or optimistic updates beyond React Query's capabilities has **not yet been implemented**.
+- If Zustand is introduced for playlists, it would likely focus on client-side UI state that doesn't directly map to server state, or for more intricate optimistic update scenarios.
 
 ### Phase 2.4: Display Playlists
 
 **Tasks:**
-- [ ] Create UI components for playlist display
-- [ ] Implement responsive grid layout using `PlaylistGrid.tsx`
-- [ ] Add search and filtering capabilities to `PlaylistActionsBar.tsx`
+- [x] Create UI components for playlist display
+- [x] Implement responsive grid layout using `PlaylistGrid.tsx`
+- [x] Add search and filtering capabilities to `PlaylistActionsBar.tsx`
 - [ ] Create skeleton loading states
-- [ ] Implement empty and error states
-- [ ] Add sorting and filtering functionality
-- [ ] Implement view toggle (Grid/List) on the 'My Playlists' page, with the toggle button and state managed by `MyPlaylists.tsx`.
+- [x] Implement empty and error states
+- [x] Add sorting and filtering functionality
+- [x] Implement view toggle (Grid/List) on the 'My Playlists' page, with the toggle button and state managed by `MyPlaylists.tsx` (tooltip added).
 
 **Files Created/Updated:**
-- [ ] `src/frontend/components/PlaylistGrid/PlaylistGrid.tsx` (~200 lines, renamed from PlaylistList.tsx)
+- [x] `src/frontend/components/PlaylistGrid/PlaylistGrid.tsx` (~200 lines, renamed from PlaylistList.tsx)
   - Enhanced component for displaying playlist grid, utilizing `PlaylistCard.tsx` for items.
   - Integration with playlist store for data
   - Responsive grid layout with various breakpoints
   - Filtering and search implementation
   - Loading, empty, and error states
-- [ ] `src/frontend/components/PlaylistGrid/PlaylistActionsBar/PlaylistActionsBar.tsx` (~150 lines)
+- [x] `src/frontend/components/PlaylistGrid/PlaylistActionsBar/PlaylistActionsBar.tsx` (~150 lines)
   - Search input with debounce
   - Dropdown filters for playlist attributes
   - Sort order selection (newest, oldest, alphabetical)
   - Tag filtering system.
-- [ ] `src/frontend/components/ui/Skeleton/Skeleton.tsx` (~80 lines)
+- [ ] `src/frontend/components/ui/Skeleton/Skeleton.tsx` (~80 lines) // Marked as not explicitly done recently
   - Skeleton loading state for playlists
   - Animated pulse effect
   - Responsive design matching the actual content
-- [ ] `src/frontend/pages/MyPlaylists/MyPlaylists.tsx` (updates from Phase 1.3)
+- [x] `src/frontend/pages/MyPlaylists/MyPlaylists.tsx` (updates from Phase 1.3)
   - Manages the state for grid/list view toggle.
   - Renders the Grid/List toggle button (using Lucide Icons).
   - Conditionally renders `PlaylistGrid.tsx` or `PlaylistListView.tsx`.
-- [ ] `src/frontend/components/PlaylistListView/PlaylistListView/PlaylistListView.tsx` (~180 lines)
+  - Placeholders removed, tooltips added to action buttons.
+- [x] `src/frontend/components/PlaylistListView/PlaylistListView/PlaylistListView.tsx` (~180 lines)
   - Component to display playlists in a list format (e.g., rows).
-- [ ] `src/frontend/components/PlaylistListView/PlaylistItemRow/PlaylistItemRow.tsx` (~120 lines)
+- [x] `src/frontend/components/PlaylistListView/PlaylistItemRow/PlaylistItemRow.tsx` (~120 lines)
   - Component for rendering a single playlist as a row in the list view.
   - Utilizes `PlaylistActionsDropdown.tsx` to display playlist actions.
 

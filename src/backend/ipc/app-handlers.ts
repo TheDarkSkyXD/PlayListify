@@ -18,5 +18,5 @@ export function registerAppHandlers() {
   // Add other general app-related IPC handlers here
   // For example, getting app path, user data path, etc.
 
-  console.log('IPC app handlers registered. ⚙️');
+  console.log('IPC app handlers registered.');
 } 

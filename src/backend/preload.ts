@@ -8,7 +8,12 @@ import {
   DownloadQueueItem,
   IpcResponse,
   Settings as AppSpecificSettings, // Use this for download item format/quality hints
-  VideoQuality as AppSpecificVideoQuality // If UserSettings.defaultQuality is too broad for specific cases
+  VideoQuality as AppSpecificVideoQuality, // If UserSettings.defaultQuality is too broad for specific cases
+  UpdatePlaylistPayload,
+  PlaylistPreviewData,
+  PlaylistCreationDetails,
+  AddVideoByUrlPayload,
+  AddVideoToCustomPlaylistPayload,
 } from '../shared/types';
 
 // Type for progress data
@@ -30,8 +35,7 @@ const electronAPI = {
 
   // Settings API
   settings: {
-    get: <K extends keyof UserSettings>(key: K, defaultValue?: UserSettings[K]): Promise<UserSettings[K] | undefined> =>
-      ipcRenderer.invoke(IPC_CHANNELS.GET_SETTING, key, defaultValue),
+    get: (key: string, defaultValue?: any) => ipcRenderer.invoke(IPC_CHANNELS.GET_SETTING, key, defaultValue),
     set: <K extends keyof UserSettings>(key: K, value: UserSettings[K]): Promise<void> =>
       ipcRenderer.invoke(IPC_CHANNELS.SET_SETTING, key, value),
     getAll: (): Promise<UserSettings> => ipcRenderer.invoke(IPC_CHANNELS.GET_ALL_SETTINGS),
@@ -87,21 +91,16 @@ const electronAPI = {
   playlists: {
     getAll: (): Promise<IpcResponse<Playlist[]>> => ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_GET_ALL),
     getById: (id: string): Promise<IpcResponse<Playlist | null>> => ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_GET_BY_ID, id),
-    create: (details: Pick<Playlist, 'name' | 'description' | 'source' | 'youtubePlaylistId'>): Promise<IpcResponse<{ playlistId: string }>> =>
+    create: (details: PlaylistCreationDetails): Promise<IpcResponse<{ playlistId: string }>> =>
       ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_CREATE, details),
-    updateDetails: (id: string, details: Partial<Pick<Playlist, 'name' | 'description'>>): Promise<IpcResponse<void>> =>
-      ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_UPDATE_DETAILS, id, details),
+    updateDetails: (payload: UpdatePlaylistPayload): Promise<IpcResponse<Playlist>> =>
+      ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_UPDATE_DETAILS, payload),
     delete: (id: string): Promise<IpcResponse<void>> => ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_DELETE, id),
-    addVideo: (playlistId: string, videoDetails: Pick<Video, 'id' | 'title' | 'thumbnailUrl' | 'url'> ): Promise<IpcResponse<void>> => 
-      ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_ADD_VIDEO, playlistId, videoDetails),
-    getVideos: (playlistId: string): Promise<IpcResponse<PlaylistVideo[]>> => 
-      ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_GET_VIDEOS, playlistId),
-    removeVideo: (playlistId: string, videoId: string): Promise<IpcResponse<void>> =>
-      ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_REMOVE_VIDEO, playlistId, videoId),
-    reorderVideos: (playlistId: string, videoIdsInOrder: string[]): Promise<IpcResponse<void>> =>
-      ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_REORDER_VIDEOS, playlistId, videoIdsInOrder),
-    importFromUrl: (url: string): Promise<IpcResponse<{ playlistId: string }>> =>
-      ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_IMPORT_FROM_URL, url),
+    getVideos: (playlistId: string): Promise<IpcResponse<PlaylistVideo[]>> => ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_GET_ALL_VIDEOS, playlistId),
+    reorderVideos: (playlistId: string, videoIdsInOrder: string[]) => ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_REORDER_VIDEOS, playlistId, videoIdsInOrder),
+    addVideoToCustomByUrl: (payload: AddVideoToCustomPlaylistPayload) => ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_ADD_VIDEO_BY_URL, payload) as Promise<IpcResponse<Video | null>>,
+    removeVideo: (playlistId: string, videoId: string): Promise<IpcResponse<void>> => ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_REMOVE_VIDEO, playlistId, videoId),
+    importFromUrl: (url: string): Promise<IpcResponse<Playlist | null>> => ipcRenderer.invoke(IPC_CHANNELS.PLAYLIST_IMPORT_FROM_URL, url),
   },
 
   // Thumbnail API
@@ -111,6 +110,25 @@ const electronAPI = {
     getForPlaylist: (playlistId: string): Promise<IpcResponse<{ thumbnailPathOrUrl: string | null }>> =>
       ipcRenderer.invoke(IPC_CHANNELS.THUMBNAIL_GET_FOR_PLAYLIST, playlistId),
     clearCache: (): Promise<IpcResponse<void>> => ipcRenderer.invoke(IPC_CHANNELS.THUMBNAIL_CLEAR_CACHE),
+  },
+
+  // Add ytDlp API
+  ytDlp: {
+    getPlaylistMetadata: (url: string): Promise<IpcResponse<PlaylistPreviewData>> =>
+      ipcRenderer.invoke(IPC_CHANNELS.YTDLP_GET_PLAYLIST_METADATA, url),
+    getQuickPlaylistPreview: (url: string): Promise<IpcResponse<PlaylistPreviewData>> =>
+      ipcRenderer.invoke(IPC_CHANNELS.YTDLP_GET_QUICK_PLAYLIST_PREVIEW, url),
+    downloadVideo: (videoId: string, playlistId?: string, quality?: string): Promise<IpcResponse<void>> =>
+      ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DOWNLOAD_VIDEO, videoId, playlistId, quality),
+    getAvailableQualities: (url: string): Promise<IpcResponse<string[]>> => 
+      ipcRenderer.invoke(IPC_CHANNELS.YTDLP_GET_AVAILABLE_QUALITIES, url),
+    ytDlpGetPlaylistMetadata: (url: string, maxItems?: number, attemptRepair?: boolean) => 
+      ipcRenderer.invoke(IPC_CHANNELS.YTDLP_GET_PLAYLIST_METADATA, url, maxItems, attemptRepair),
+    ytDlpGetVideoMetadataForPreview: (url: string) => ipcRenderer.invoke(IPC_CHANNELS.GET_VIDEO_METADATA_FOR_PREVIEW, url),
+  },
+
+  shell: {
+    openExternal: (url: string): Promise<void> => ipcRenderer.invoke('shell:openExternal', url),
   },
 };
 

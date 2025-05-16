@@ -28,7 +28,8 @@
     "electron/**/*.ts", 
     "tests/**/*.ts", 
     "tests/**/*.tsx",
-    "src/shared/types/**/*.d.ts"
+    "src/shared/types/**/*.d.ts",
+    "src/frontend/renderer.d.ts"
   ],
   "exclude": ["node_modules", ".webpack"]
 } 

@@ -45,5 +45,5 @@ export function registerFileHandlers(): void {
         return result;
     });
 
-    console.log('IPC file handlers registered. ⚙️'); // Updated log message
+    console.log('IPC file handlers registered.'); // Updated log message
 } 

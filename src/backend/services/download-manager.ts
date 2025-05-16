@@ -5,16 +5,11 @@ import path from 'path'; // For path manipulations
 import fs from 'fs-extra'; // For ensuring directory exists
 import { app } from 'electron';
 
-import { IpcResponse, DownloadQueueItem, VideoFormat, Settings } from '../../shared/types';
+import { IpcResponse, DownloadQueueItem, VideoFormat, Settings, DownloadAddItemDetails } from '../../shared/types';
 // Assuming settingsService provides a getSetting function
 import { getSetting } from './settingsService'; // Corrected path
 // Assuming pathUtils provides functions to get binary paths
 import { getManagedYtDlpPath, getManagedFfmpegPath } from '../utils/pathUtils'; // Corrected function names
-
-type DownloadAddItemDetails = Pick<DownloadQueueItem, 'url' | 'id' | 'title' | 'outputPath' | 'playlistId' | 'thumbnailUrl'> & {
-  format?: Settings['downloadFormat']; // Use type from Settings
-  quality?: Settings['defaultQuality']; // Use type from Settings
-};
 
 // In-memory store for downloads
 const downloads = new Map<string, DownloadQueueItem>();
@@ -61,7 +56,7 @@ async function processDownload(downloadId: string) {
   if (!item || !ytDlpWrap || !downloadQueue) {
     console.error(`[DownloadManager] Cannot process download ${downloadId}, item or manager not ready.`);
     if (item) {
-        item.status = 'failed';
+        item.status = 'error';
         downloads.set(downloadId, item);
         downloadEvents.emit('statusChanged', item);
     }
@@ -114,7 +109,7 @@ async function processDownload(downloadId: string) {
       .on('ytDlpEvent', (eventType, eventData) => {})
       .on('error', (error) => {
         console.error(`[DownloadManager] Error downloading ${item.title} (ID: ${downloadId}):`, error);
-        item.status = 'failed';
+        item.status = 'error';
         downloads.set(downloadId, item);
         downloadEvents.emit('statusChanged', item);
         downloadEvents.emit('error', { downloadId, error: error.message });
@@ -132,55 +127,53 @@ async function processDownload(downloadId: string) {
       
   } catch (error: any) {
     console.error(`[DownloadManager] Failed to start download for ${item.title} (ID: ${downloadId}):`, error);
-    item.status = 'failed';
+    item.status = 'error';
     downloads.set(downloadId, item);
     downloadEvents.emit('statusChanged', item);
     downloadEvents.emit('error', { downloadId, error: error.message });
   }
 }
 
-export async function addItem(itemDetails: DownloadAddItemDetails): Promise<IpcResponse<{ downloadId: string }>> {
-  if (!downloadQueue) {
-    await initializeDownloadManager(); 
-    if (!downloadQueue) { 
-        return { success: false, error: "Download manager not initialized." };
-    }
+export const addItemToQueue = (itemDetails: DownloadAddItemDetails): DownloadQueueItem | null => {
+  if (!ytDlpWrap) {
+    console.error('[DownloadManager] YTDlpWrap instance not initialized.');
+    return null;
   }
-  
+
+  // Use itemDetails.id if provided, otherwise generate one.
+  // The ID from itemDetails usually comes from the Video object (e.g., YouTube video ID)
   const downloadId = itemDetails.id || `dl-${Date.now()}-${Math.random().toString(36).substring(2,7)}`;
 
   const newItem: DownloadQueueItem = {
-    ...itemDetails, 
     id: downloadId, 
-    status: 'queued',
-    progress: 0,
-    addedToQueueAt: new Date().toISOString(),
     url: itemDetails.url,
     title: itemDetails.title,
-    outputPath: itemDetails.outputPath,
+    thumbnailUrl: itemDetails.thumbnail,
     playlistId: itemDetails.playlistId,
-    thumbnailUrl: itemDetails.thumbnailUrl,
-    isAvailable: true, 
-    isDownloaded: false, 
-    requestedFormat: itemDetails.format,
-    requestedQuality: itemDetails.quality,
+    outputPath: itemDetails.outputPath,
+    status: 'pending',
+    progress: 0,
+    addedAt: new Date().toISOString(),
+    duration: itemDetails.duration,
+    requestedFormat: itemDetails.requestedFormat,
+    requestedQuality: itemDetails.requestedQuality,
   };
 
   downloads.set(downloadId, newItem);
   downloadEvents.emit('statusChanged', newItem);
 
-  downloadQueue.add(() => processDownload(downloadId)).catch(error => {
+  downloadQueue?.add(() => processDownload(downloadId)).catch(error => {
     console.error(`[DownloadManager] Unhandled error in PQueue for download ${downloadId}:`, error);
     const item = downloads.get(downloadId);
     if (item) {
-        item.status = 'failed';
+        item.status = 'error';
         downloads.set(downloadId, item);
         downloadEvents.emit('statusChanged', item);
     }
   });
 
   console.log(`[DownloadManager] Item ${downloadId} added to queue. Title: ${newItem.title}`);
-  return { success: true, data: { downloadId } };
+  return newItem;
 }
 
 export async function pauseItem(downloadId: string): Promise<IpcResponse<void>> {
@@ -200,7 +193,7 @@ export async function resumeItem(downloadId: string): Promise<IpcResponse<void>>
   console.log('[DownloadManager] resumeItem called for ID:', downloadId);
    const item = downloads.get(downloadId);
   if (item && item.status === 'paused') {
-    item.status = 'queued'; 
+    item.status = 'pending'; 
     downloads.set(downloadId, item);
     downloadEvents.emit('statusChanged', item);
     console.log(`[DownloadManager] Item ${downloadId} marked as resumed/re-queued (actual process resume not implemented).`);
@@ -226,8 +219,8 @@ export async function cancelItem(downloadId: string): Promise<IpcResponse<void>>
 export async function retryItem(downloadId: string): Promise<IpcResponse<void>> {
   console.log('[DownloadManager] retryItem called for ID:', downloadId);
   const item = downloads.get(downloadId);
-  if (item && (item.status === 'failed' || item.status === 'cancelled')) {
-    item.status = 'queued';
+  if (item && (item.status === 'error' || item.status === 'cancelled')) {
+    item.status = 'pending';
     item.progress = 0;
     downloads.set(downloadId, item);
     downloadEvents.emit('statusChanged', item);

@@ -1,6 +1,6 @@
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const path = require('path');
-// const nodeExternals = require('webpack-node-externals'); // Removed for now
+const nodeExternals = require('webpack-node-externals');
 
 module.exports = {
   /**
@@ -17,8 +17,7 @@ module.exports = {
     filename: 'index.js',
     // library: { type: 'module' }, // Removed
   },
-  // experiments: { outputModule: true }, // Removed
-  // externals: [nodeExternals({ importType: 'commonjs' })], // Removed webpack-node-externals
+  externals: [nodeExternals({ allowlist: [/^webpack/] })], // Re-added webpack-node-externals. Added allowlist for webpack HMR if needed.
   // externals: { // Removed explicit externals
   //   'fs-extra': 'commonjs fs-extra',
   //   'electron-store': 'commonjs electron-store',

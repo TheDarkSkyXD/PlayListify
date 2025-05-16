@@ -34,18 +34,40 @@ export const IPC_CHANNELS = {
   PLAYLIST_GET_ALL: 'playlist:get-all',
   PLAYLIST_GET_BY_ID: 'playlist:get-by-id',
   PLAYLIST_CREATE: 'playlist:create',
-  PLAYLIST_UPDATE_DETAILS: 'playlist:update-details',
+  PLAYLIST_UPDATE_DETAILS: 'playlist:updateDetails',
   PLAYLIST_DELETE: 'playlist:delete',
   PLAYLIST_ADD_VIDEO: 'playlist:add-video',
   PLAYLIST_REMOVE_VIDEO: 'playlist:remove-video',
   PLAYLIST_REORDER_VIDEOS: 'playlist:reorder-videos',
   PLAYLIST_IMPORT_FROM_URL: 'playlist:import-from-url',
-  PLAYLIST_GET_VIDEOS: 'playlist:get-videos',
+  PLAYLIST_GET_ALL_VIDEOS: 'playlist:getAllVideos',
+  PLAYLIST_ADD_VIDEO_BY_URL: 'playlist:addVideoByUrl',
 
   // Thumbnail Handlers
   THUMBNAIL_GET_FOR_VIDEO: 'thumbnail:get-for-video',
   THUMBNAIL_GET_FOR_PLAYLIST: 'thumbnail:get-for-playlist',
   THUMBNAIL_CLEAR_CACHE: 'thumbnail:clear-cache',
 
+  // yt-dlp related IPC channels
+  YTDLP_GET_PLAYLIST_METADATA: 'ytdlp:get-playlist-metadata',
+  YTDLP_GET_QUICK_PLAYLIST_PREVIEW: 'ytdlp:get-quick-playlist-preview',
+  YTDLP_DOWNLOAD_VIDEO: 'ytdlp:download-video',
+  YTDLP_GET_AVAILABLE_QUALITIES: 'ytdlp:get-available-qualities',
+
+  // Shell operations
+  SHELL_OPEN_EXTERNAL: 'shell:openExternal',
+  SHELL_SHOW_ITEM_IN_FOLDER: 'shell:showItemInFolder',
+  SHELL_OPEN_PATH: 'shell:openPath',
+  SHELL_TRASH_ITEM: 'shell:trashItem',
+
+  // Video specific metadata
+  GET_VIDEO_METADATA_FOR_PREVIEW: 'videos:getMetadataForPreview',
+
+  // Theme
+
   // Add other channel groups as needed (thumbnail)
-}; 
+};
+
+// Theme
+
+// Add other channel groups as needed (thumbnail) 

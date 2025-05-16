@@ -3,8 +3,8 @@ import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 import * as downloadManager from '../services/download-manager';
 import { IpcResponse, DownloadQueueItem } from '../../shared/types';
 
-// Type for itemDetails, matching what's expected by downloadManager.addItem
-type DownloadAddItemDetails = Parameters<typeof downloadManager.addItem>[0];
+// Type for itemDetails, matching what's expected by downloadManager.addItemToQueue
+type DownloadAddItemDetails = Parameters<typeof downloadManager.addItemToQueue>[0];
 
 // Function to get the main window (you might have a more robust way to manage this)
 function getMainWindow(): BrowserWindow | null {
@@ -14,7 +14,11 @@ function getMainWindow(): BrowserWindow | null {
 export function registerDownloadHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.DOWNLOAD_ADD_ITEM, async (event, itemDetails: DownloadAddItemDetails): Promise<IpcResponse<{ downloadId: string }>> => {
     console.log('IPC: DOWNLOAD_ADD_ITEM received', itemDetails);
-    return downloadManager.addItem(itemDetails);
+    const newItem = downloadManager.addItemToQueue(itemDetails);
+    if (newItem) {
+      return { success: true, data: { downloadId: newItem.id } };
+    }
+    return { success: false, error: 'Failed to add item to download queue. Download manager may not be initialized.' };
   });
 
   ipcMain.handle(IPC_CHANNELS.DOWNLOAD_PAUSE_ITEM, async (event, downloadId: string): Promise<IpcResponse<void>> => {
@@ -61,5 +65,5 @@ export function registerDownloadHandlers(): void {
   //   }
   // });
 
-  console.log('IPC download handlers registered and calling DownloadManager. ⚙️');
+  console.log('IPC download handlers registered and calling DownloadManager.');
 } 

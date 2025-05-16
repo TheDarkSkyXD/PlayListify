@@ -1,35 +1,37 @@
-export interface Playlist {
+export * from './settings';
+export * from './playlist';
+export * from './ipc';
+export * from './download';
+export * from './electron';
+export * from './yt-dlp';
+export * from './video';
+
+// Define PlaylistEntryPreview before it's used
+export interface PlaylistEntryPreview {
   id: string;
-  name: string;
-  source: 'custom' | 'youtube';
-  itemCount: number;
-  createdAt: string; // ISO 8601 date string
-  updatedAt: string; // ISO 8601 date string
-  description?: string;
-  youtubePlaylistId?: string; // Only if source is 'youtube'
-}
-
-export interface Video {
-  id: string; // Usually the YouTube video ID
-  url: string; // Source URL of the video
   title: string;
-  channel?: string;
   duration?: number; // in seconds
-  thumbnailUrl?: string;
-  isAvailable: boolean;
-  isDownloaded: boolean;
-  localFilePath?: string;
-  downloadStatus?: 'pending' | 'downloading' | 'completed' | 'failed' | 'queued';
-  downloadProgress?: number; // 0-100
-  lastWatchedAt?: string; // ISO 8601 date string
-  watchProgress?: number; // 0-1 (percentage)
-  addedAt?: string; // ISO 8601 date string
+  thumbnail?: string; // Optional thumbnail for the entry itself
+  // Add other relevant preview fields if necessary, like uploader or URL
 }
 
-export interface PlaylistVideo extends Video {
-  playlistId: string;
-  position: number; // Order within the playlist
-}
+// Remove local Video definition
+// export interface Video {
+//   id: string; // Usually the YouTube video ID
+//   url: string; // Source URL of the video
+//   title: string;
+//   channel?: string;
+//   duration?: number; // in seconds
+//   thumbnailUrl?: string;
+//   isAvailable: boolean;
+//   isDownloaded: boolean;
+//   localFilePath?: string;
+//   downloadStatus?: 'pending' | 'downloading' | 'completed' | 'failed' | 'queued';
+//   downloadProgress?: number; // 0-100
+//   lastWatchedAt?: string; // ISO 8601 date string
+//   watchProgress?: number; // 0-1 (percentage)
+//   addedAt?: string; // ISO 8601 date string
+// }
 
 export interface Settings {
   downloadLocation: string;
@@ -45,6 +47,7 @@ export interface IpcResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
+  message?: string;
 }
 
 // Example for a specific error type
@@ -69,18 +72,18 @@ export interface VideoFormat {
 }
 
 // For download queue items if needed in frontend state
-export interface DownloadQueueItem extends Video {
-  playlistId?: string;
-  status: 'pending' | 'queued' | 'downloading' | 'completed' | 'failed' | 'paused' | 'cancelled';
-  progress: number; // 0-100
-  eta?: string; // Estimated time remaining
-  speed?: string; // Download speed
-  outputPath?: string;
-  selectedFormat?: VideoFormat; // Or just a format ID string
-  requestedFormat?: Settings['downloadFormat']; // Store the format requested at add time
-  requestedQuality?: Settings['defaultQuality']; // Store the quality requested at add time
-  addedToQueueAt: string; // ISO 8601 date string
-}
+// export interface DownloadQueueItem extends Video {
+//   playlistId?: string;
+//   status: 'pending' | 'queued' | 'downloading' | 'completed' | 'failed' | 'paused' | 'cancelled';
+//   progress: number; // 0-100
+//   eta?: string; // Estimated time remaining
+//   speed?: string; // Download speed
+//   outputPath?: string;
+//   selectedFormat?: VideoFormat; // Or just a format ID string
+//   requestedFormat?: Settings['downloadFormat']; // Store the format requested at add time
+//   requestedQuality?: Settings['defaultQuality']; // Store the quality requested at add time
+//   addedToQueueAt: string; // ISO 8601 date string
+// }
 
 export type { VideoQuality, Theme } from './settings';
 // Make sure UserSettings in settings.ts is the source of truth
@@ -98,4 +101,45 @@ export type { VideoQuality, Theme } from './settings';
 // }
 
 // Re-export UserSettings from settings.ts
-export type { UserSettings } from './settings'; 
+export type { UserSettings } from './settings';
+
+// Remove local CreatePlaylistPayload and UpdatePlaylistPayload, rely on re-export from ./playlist
+// export interface CreatePlaylistPayload {
+//   name: string;
+//   description?: string;
+//   isPrivate?: boolean;
+//   // Potentially videoIds if creating with initial videos
+// }
+
+// export interface UpdatePlaylistPayload {
+//   id: string; // ID of the playlist to update
+//   name?: string; // Optional: only update if provided
+//   description?: string; // Optional: only update if provided
+//   isPrivate?: boolean; // Optional: only update if provided
+//   // Cannot change source or youtubePlaylistId via this payload usually
+// }
+
+export * from './settings';
+export * from './playlist';
+export * from './ipc';
+export * from './download';
+export * from './electron'; 
+
+export interface PlaylistPreviewData {
+  id: string;
+  title: string;
+  thumbnailUrl?: string; // Main thumbnail for the playlist preview
+  videoCount: number;
+  playlist_count?: number; // Retained for potential direct use from yt-dlp raw output
+  totalDurationSeconds: number;
+  uploader?: string;
+  webpage_url?: string;
+  entries?: PlaylistEntryPreview[]; // Keep this for the list of videos in the preview
+  previewEntry?: PlaylistEntryPreview; // First entry for a quick display
+  isPartialPreview?: boolean; // Indicates if 'entries' is a partial list (e.g. first 50)
+  isDurationApproximate?: boolean; // Indicates if totalDurationSeconds is an approximation
+}
+
+export interface SharedVideoPreviewData {
+  // ... existing code ...
+} 

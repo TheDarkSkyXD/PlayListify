@@ -25,5 +25,5 @@ export function registerSettingsHandlers(): void {
         resetSettings();
     });
 
-    console.log('IPC settings handlers registered. ⚙️'); // Updated log message slightly for consistency
+    console.log('IPC settings handlers registered.'); // Updated log message slightly for consistency
 } 

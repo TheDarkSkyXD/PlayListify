@@ -21,7 +21,9 @@ module.exports = {
     alias: {
       '@': path.resolve(__dirname, 'src'),
       '@/frontend/components': path.resolve(__dirname, 'src/frontend/components'),
-      '@/frontend/lib': path.resolve(__dirname, 'src/frontend/lib')
+      '@/frontend/hooks': path.resolve(__dirname, 'src/frontend/hooks'),
+      '@/frontend/lib': path.resolve(__dirname, 'src/frontend/lib'),
+      '@frontend': path.resolve(__dirname, 'src/frontend')
     },
     fullySpecified: false,
     mainFields: ['main', 'module', 'browser']

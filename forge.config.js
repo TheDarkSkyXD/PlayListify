@@ -46,6 +46,14 @@ module.exports = {
             },
           ],
         },
+        devServer: {
+          historyApiFallback: {
+            index: '/main_window/index.html',
+            rewrites: [
+              { from: /^\/main_window\/.*$/, to: '/main_window/index.html' }
+            ]
+          },
+        },
       },
     },
     // Fuses are used to enable/disable various Electron functionality
