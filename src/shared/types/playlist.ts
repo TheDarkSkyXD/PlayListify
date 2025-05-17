@@ -6,28 +6,28 @@ export interface Playlist {
   description?: string;
   videos: Video[]; // Uses imported Video type
   thumbnail?: string; // URL or path to a representative thumbnail
-  sourceUrl?: string; // Original URL if imported from YouTube, etc.
+  source_url?: string; // Original URL if imported from YouTube, etc.
   source: 'custom' | 'youtube'; // Added to distinguish playlist origin
-  itemCount: number;            // Added to store the number of videos
-  youtubePlaylistId?: string; // Optional: Store the original YouTube Playlist ID
+  item_count: number;            // Added to store the number of videos
+  youtube_playlist_id?: string; // Optional: Store the original YouTube Playlist ID
   // Add other playlist-specific properties
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
-  totalDurationSeconds?: number; // Total duration of all videos in seconds
+  created_at: string; // ISO date string
+  updated_at: string; // ISO date string
+  total_duration_seconds?: number; // Total duration of all videos in seconds
 }
 
 // Payload for creating a new custom playlist from UI
 export interface CreatePlaylistPayload {
   name: string;
   description?: string;
-  // source will be 'custom' by default, youtubePlaylistId will be null
+  // source will be 'custom' by default, youtube_playlist_id will be null
 }
 
 // Payload for importing a YouTube playlist
 export interface ImportYouTubePlaylistPayload {
   youtubePlaylistUrl: string;
   customName?: string; // Added for passing fetched title as a suggestion
-  // name, description, source, youtubePlaylistId will be derived from the URL fetch
+  // name, description, source, youtube_playlist_id will be derived from the URL fetch
 }
 
 // Represents a video entry in a playlist preview
@@ -44,10 +44,9 @@ export interface PlaylistEntryPreview {
 export interface PlaylistPreviewData {
   id: string;
   title: string;
-  thumbnailUrl?: string; // For the playlist's main thumbnail
+  thumbnailUrl?: string; // For the playlist's main thumbnail (remains camelCase as per previous specific fixes for this DTO)
   videoCount: number; // Made non-optional, will be accurate from n_entries
-  // playlist_count?: number; // Primary source for total video count from yt-dlp - No longer needed, use videoCount
-  totalDurationSeconds?: number; // Made optional
+  total_duration_seconds?: number; // Ensuring this is snake_case
   uploader?: string;
   webpage_url?: string; // To link back to YouTube
   // entries?: PlaylistEntryPreview[]; // Commented out: not provided by flat preview
@@ -61,8 +60,8 @@ export interface PlaylistCreationDetails {
   name: string;
   description?: string;
   source: 'custom' | 'youtube'; // 'custom' for new empty, 'youtube' for import by ID
-  youtubePlaylistId?: string;   // if source is 'youtube' and importing by ID
-  sourceUrl?: string;           // if source is 'youtube' and importing by playlist URL
+  youtube_playlist_id?: string;   // if source is 'youtube' and importing by ID
+  source_url?: string;           // if source is 'youtube' and importing by playlist URL
   thumbnail?: string;           // Added for playlist thumbnail
   // isPrivate?: boolean;          // Removed
 }

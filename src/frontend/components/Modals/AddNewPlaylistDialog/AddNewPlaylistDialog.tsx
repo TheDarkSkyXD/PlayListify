@@ -21,7 +21,7 @@ import {
 import { Input } from '@/frontend/components/ui/input';
 import { Textarea } from '@/frontend/components/ui/textarea';
 import { Label } from '@/frontend/components/ui/label';
-import { YoutubeIcon, ListPlus, ChevronDown, ChevronUp, Loader2, ExternalLink, Film, Clock, Tag, XIcon } from 'lucide-react';
+import { YoutubeIcon, ListPlus, Loader2, Film, Clock, XIcon, ExternalLink, AlertTriangle } from 'lucide-react';
 import { Checkbox } from '@/frontend/components/ui/checkbox';
 
 // Import mutation hooks and payload types
@@ -38,6 +38,8 @@ interface AddNewPlaylistDialogProps {
 
 const URL_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(playlist\?list=|embed\/videoseries\?list=|watch\?v=[^&]+&list=)([^\s&]+)/;
 const DEBOUNCE_DELAY = 750; // milliseconds
+const MAX_TITLE_LENGTH = 150;
+const MAX_DESC_LENGTH = 5000;
 
 const AddNewPlaylistDialog: React.FC<AddNewPlaylistDialogProps> = ({
   open: controlledOpen,
@@ -80,8 +82,7 @@ const AddNewPlaylistDialog: React.FC<AddNewPlaylistDialogProps> = ({
     resetPreviewState();
     createPlaylistMutation.reset();
     importYouTubePlaylistMutation.reset();
-    onOpenChange(false);
-  }, [onOpenChange, resetPreviewState, createPlaylistMutation, importYouTubePlaylistMutation]);
+  }, [resetPreviewState, createPlaylistMutation, importYouTubePlaylistMutation]);
   
   const handleOpenChange = useCallback((isOpen: boolean) => {
     onOpenChange(isOpen);
@@ -94,6 +95,10 @@ const AddNewPlaylistDialog: React.FC<AddNewPlaylistDialogProps> = ({
   useEffect(() => {
     if (activeTab !== 'fromYouTube' || !youtubeUrl.trim()) {
       resetPreviewState();
+      // Clear formError specifically if it was about invalid URL, to avoid sticky unrelated form errors
+      if (formError === 'Please enter a valid YouTube playlist URL.') {
+        setFormError(null);
+      }
       return;
     }
 
@@ -127,13 +132,13 @@ const AddNewPlaylistDialog: React.FC<AddNewPlaylistDialogProps> = ({
             // console.log('[AddNewPlaylistDialog] Raw metadata for preview:', JSON.stringify(metadata, null, 2));
             // console.log('[AddNewPlaylistDialog] Playlist-level thumbnail from metadata:', metadata.thumbnailUrl);
             
-            // Directly use totalDurationSeconds from backend metadata
+            // Directly use total_duration_seconds from backend metadata
             setPlaylistPreview({
               id: metadata.id || youtubeUrl, 
               title: metadata.title,
               thumbnailUrl: metadata.thumbnailUrl, // Directly use the thumbnail from backend preview data
               videoCount: metadata.videoCount,      // Directly use videoCount from backend preview data
-              totalDurationSeconds: metadata.totalDurationSeconds, // Directly use from backend
+              total_duration_seconds: metadata.total_duration_seconds, // Use snake_case from backend
               uploader: metadata.uploader,
               webpage_url: metadata.webpage_url || youtubeUrl,
               isDurationApproximate: metadata.isDurationApproximate, // Use backend flag
@@ -156,7 +161,8 @@ const AddNewPlaylistDialog: React.FC<AddNewPlaylistDialogProps> = ({
         setIsPreviewLoading(false);
       }
     };
-    fetchPreview();
+    const timerId = setTimeout(fetchPreview, DEBOUNCE_DELAY); // Debounce
+    return () => clearTimeout(timerId); // Cleanup timeout
   }, [youtubeUrl, activeTab, resetPreviewState]);
 
   const handleSubmit = async () => {
@@ -164,7 +170,10 @@ const AddNewPlaylistDialog: React.FC<AddNewPlaylistDialogProps> = ({
 
     if (activeTab === 'fromYouTube') {
       if (!youtubeUrl || !URL_REGEX.test(youtubeUrl)) {
-        setFormError('Please enter a valid YouTube playlist URL.');
+        // Only set formError if previewError isn't already showing this exact message
+        if (previewError !== 'Please enter a valid YouTube playlist URL.') {
+          setFormError('Please enter a valid YouTube playlist URL.');
+        }
         return;
       }
       if (!playlistPreview || !playlistPreview.id) { 
@@ -185,6 +194,7 @@ const AddNewPlaylistDialog: React.FC<AddNewPlaylistDialogProps> = ({
           onSuccess: (data) => {
             // console.log('Playlist imported successfully:', data);
             resetFormAndClose();
+            onOpenChange(false);
           },
           onError: (error: Error) => {
             console.error('Error importing playlist:', error);
@@ -209,10 +219,8 @@ const AddNewPlaylistDialog: React.FC<AddNewPlaylistDialogProps> = ({
         setFormError(`Title cannot exceed ${MAX_TITLE_LENGTH} characters.`);
         return;
       }
-      // Using MAX_TITLE_LENGTH for description as MAX_DESCRIPTION_LENGTH is not defined
-      // Consider defining a specific MAX_DESCRIPTION_LENGTH if needed.
-      if (customDescription.length > MAX_TITLE_LENGTH) { 
-        setFormError(`Description cannot exceed ${MAX_TITLE_LENGTH} characters.`);
+      if (customDescription.length > MAX_DESC_LENGTH) {
+        setFormError(`Description cannot exceed ${MAX_DESC_LENGTH} characters.`);
         return;
       }
 
@@ -224,6 +232,7 @@ const AddNewPlaylistDialog: React.FC<AddNewPlaylistDialogProps> = ({
         onSuccess: (data) => {
           // console.log('Playlist created successfully:', data);
           resetFormAndClose();
+          onOpenChange(false);
         },
         onError: (error: Error) => {
           console.error('Error creating playlist:', error);
@@ -235,7 +244,11 @@ const AddNewPlaylistDialog: React.FC<AddNewPlaylistDialogProps> = ({
 
   const handleTabChange = (newTab: string) => {
     if (newTab === 'fromYouTube' && activeTab === 'customPlaylist') {
-      setYoutubeUrl(''); // Clears URL and triggers useEffect to reset preview
+      resetPreviewState(); // Explicitly reset preview when switching away from YouTube tab
+      setYoutubeUrl(''); // Clear youtube URL as well
+    } else if (newTab === 'customPlaylist' && activeTab === 'fromYouTube') {
+      resetPreviewState(); // Explicitly reset preview when switching away from custom playlist tab
+      setYoutubeUrl(''); // Clear youtube URL as well
     }
     setActiveTab(newTab);
     setFormError(null); // Clear general form errors on any tab switch
@@ -245,157 +258,169 @@ const AddNewPlaylistDialog: React.FC<AddNewPlaylistDialogProps> = ({
   const mutationErrorMessage = importYouTubePlaylistMutation.error?.message || createPlaylistMutation.error?.message;
   const displayError = formError || previewError || mutationErrorMessage;
 
-  const MAX_TITLE_LENGTH = 150;
-  const MAX_DESC_LENGTH = 5000;
-
   const [isUrlInputFocused, setIsUrlInputFocused] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      {trigger && (
-        <div onClick={() => onOpenChange(true)}>{trigger}</div>
-      )}
-      <DialogContent className="sm:max-w-2xl">
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      <DialogContent className="sm:max-w-[525px] md:max-w-[650px] lg:max-w-[750px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Add New Playlist</DialogTitle>
           <DialogDescription>
-            Create a new custom playlist or import one directly from YouTube.
+            Create a new custom playlist or import one from YouTube.
           </DialogDescription>
         </DialogHeader>
+        <div className="flex-grow overflow-y-auto pr-2"> {/* Added pr-2 for scrollbar spacing */}
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="fromYouTube">
+                <YoutubeIcon className="mr-2 h-4 w-4" /> From YouTube
+              </TabsTrigger>
+              <TabsTrigger value="customPlaylist">
+                <ListPlus className="mr-2 h-4 w-4" /> Custom Playlist
+              </TabsTrigger>
+            </TabsList>
 
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="fromYouTube" disabled={isLoading && activeTab !== 'fromYouTube'}>
-              <YoutubeIcon className="mr-2 h-4 w-4" /> From YouTube
-            </TabsTrigger>
-            <TabsTrigger value="customPlaylist" disabled={isLoading && activeTab !== 'customPlaylist'}>
-              <ListPlus className="mr-2 h-4 w-4" /> Custom Playlist
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent 
-            value="fromYouTube" 
-            className="space-y-4 py-4 overflow-y-auto max-h-[calc(100vh-22rem)]"
-          >
-            <div>
-              <Label htmlFor="youtubeUrl" className="mb-1">YouTube Playlist URL</Label>
-              <div className="relative flex items-center">
-                <Input
-                  id="youtubeUrl"
-                  placeholder="https://www.youtube.com/playlist?list=PLxxxxxx"
-                  value={youtubeUrl}
-                  onChange={(e) => {
-                      setYoutubeUrl(e.target.value);
-                  }}
-                  onFocus={() => setIsUrlInputFocused(true)}
-                  onBlur={() => setIsUrlInputFocused(false)}
-                  disabled={isLoading && activeTab === 'fromYouTube'}
-                  style={{ boxShadow: 'none', '--tw-ring-shadow': 'none', '--tw-ring-color': 'transparent' } as React.CSSProperties }
-                  className="w-full pr-8 focus:ring-0 focus:ring-transparent focus-within:ring-0 focus-within:ring-transparent border border-neutral-600 bg-neutral-700"
-                />
-                {youtubeUrl && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 h-7 w-7 rounded-full text-muted-foreground hover:text-primary"
-                    onClick={() => setYoutubeUrl('')} // Clears URL, useEffect will reset preview
-                    aria-label="Clear YouTube URL"
-                  >
-                    <XIcon className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1.5">
-              Paste the full URL of the YouTube playlist you want to import.
-            </p>
-            
-            {isPreviewLoading && (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <p className="ml-2 text-sm text-muted-foreground">Fetching playlist info...</p>
-              </div>
-            )}
-
-            {previewError && !isPreviewLoading && (
-              <p className="text-sm text-red-500 dark:text-red-400">{previewError}</p>
-            )}
-
-            {playlistPreview && !isPreviewLoading && !previewError && (
-              <div className="p-4 border border-neutral-700 rounded-md flex space-x-5 bg-neutral-800/30 w-full items-stretch min-h-[140px]">
-                <CachedImage 
-                  src={(playlistPreview?.thumbnailUrl ?? '') as string}
-                  alt={`Thumbnail for ${playlistPreview?.title ?? ''}`}
-                  className="w-56 aspect-video h-full object-cover rounded flex-shrink-0 bg-neutral-700"
-                  width={224}
-                />
-                <div className="flex flex-col justify-between h-full min-w-0 flex-grow">
-                  <div>
-                    <h4 className="text-lg font-semibold text-neutral-100 break-words" title={playlistPreview?.title ?? ''}>
-                      {playlistPreview?.title ?? ''}
-                    </h4>
-                    <p className="text-xs text-muted-foreground">
-                      By: {playlistPreview.uploader || 'N/A'}
-                    </p>
-                    <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
-                      <Film size={14} /> <span>{playlistPreview.videoCount} videos</span>
-                      <Clock size={14} />
-                      <span>
-                        {typeof playlistPreview.totalDurationSeconds === 'number' && playlistPreview.totalDurationSeconds >= 0
-                          ? `${playlistPreview.isDurationApproximate ? '~ ' : ''}Duration: ${formatDuration(playlistPreview.totalDurationSeconds)}`
-                          : 'Duration: Unavailable'}
-                      </span>
-                    </div>
-                  </div>
-                  {playlistPreview.webpage_url && (
-                    <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
-                      <ExternalLink size={14} />
-                      <a href={playlistPreview.webpage_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary">
-                        View on YouTube
-                      </a>
-                    </div>
+            {/* YouTube Import Tab */}
+            <TabsContent value="fromYouTube" className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="youtubeUrl">YouTube Playlist URL</Label>
+                <div className="relative flex items-center"> {/* Wrapper for input and clear button */}
+                  <Input
+                    id="youtubeUrl"
+                    placeholder="https://www.youtube.com/playlist?list=PL..."
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    disabled={isLoading}
+                    className="bg-slate-100 dark:bg-zinc-800 focus-visible:ring-0 focus-visible:ring-offset-0 pr-8" /* Add padding for the X button */
+                  />
+                  {youtubeUrl && !isLoading && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 h-7 w-7 text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        setYoutubeUrl('');
+                        resetPreviewState(); // Reset preview when URL is cleared
+                      }}
+                      aria-label="Clear URL"
+                    >
+                      <XIcon className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
               </div>
-            )}
-          </TabsContent>
 
-          <TabsContent 
-            value="customPlaylist" 
-            className="space-y-4 py-4 overflow-y-auto max-h-[calc(100vh-22rem)]"
+              {isPreviewLoading && (
+                <div className="flex items-center justify-center p-4">
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <span>Loading preview...</span>
+                </div>
+              )}
+
+              {playlistPreview && !isPreviewLoading && !previewError && (
+                <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                  <div className="flex items-start space-x-3">
+                    <CachedImage
+                      src={playlistPreview.thumbnailUrl || ''}
+                      alt={`Thumbnail for ${playlistPreview.title}`}
+                      className="w-28 h-auto aspect-video rounded object-cover"
+                    />
+                    <div className="flex-1 min-w-0"> {/* Added min-w-0 for truncation */}
+                      <h4 className="text-sm font-medium leading-none truncate" title={playlistPreview?.title ?? ''}>
+                        {playlistPreview?.title ?? ''}
+                      </h4>
+                      {playlistPreview.uploader && (
+                        <p className="text-sm text-muted-foreground truncate">
+                          By: {playlistPreview.uploader}
+                        </p>
+                      )}
+                      {/* Container for video count and duration */}
+                      <div className="text-sm text-muted-foreground flex items-center">
+                        <span>{playlistPreview.videoCount} videos</span>
+                        {playlistPreview.total_duration_seconds && playlistPreview.total_duration_seconds > 0 && (
+                          <>
+                            <span className="mx-1">•</span>
+                            <Clock className="h-4 w-4 mr-1" />
+                            <span>{formatDuration(playlistPreview.total_duration_seconds)}</span>
+                          </>
+                        )}
+                      </div>
+                      {playlistPreview.webpage_url && (
+                        <a
+                          href={playlistPreview.webpage_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-500 hover:underline inline-flex items-center mt-1"
+                        >
+                          View on YouTube <ExternalLink size={12} className="ml-1" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Custom Playlist Tab */}
+            <TabsContent value="customPlaylist" className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="customTitle">Playlist Title</Label>
+                <Input
+                  id="customTitle"
+                  placeholder="My Awesome Mix"
+                  value={customTitle}
+                  onChange={(e) => setCustomTitle(e.target.value)}
+                  maxLength={MAX_TITLE_LENGTH}
+                  disabled={isLoading}
+                  className="bg-slate-100 dark:bg-zinc-800 focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  {customTitle.length}/{MAX_TITLE_LENGTH}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="customDescription">Description (Optional)</Label>
+                <Textarea
+                  id="customDescription"
+                  placeholder="A short description of your playlist..."
+                  value={customDescription}
+                  onChange={(e) => setCustomDescription(e.target.value)}
+                  rows={3}
+                  maxLength={MAX_DESC_LENGTH}
+                  disabled={isLoading}
+                  className="bg-slate-100 dark:bg-zinc-800 focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  {customDescription.length}/{MAX_DESC_LENGTH}
+                </p>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+        
+        {displayError && (
+          <div className="mt-2 flex items-center text-sm text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 p-3 rounded-md border border-red-300 dark:border-red-700">
+            <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0" />
+            <p>{displayError}</p>
+          </div>
+        )}
+
+        <DialogFooter className="mt-4 pt-4 border-t">
+          <DialogClose asChild>
+            <Button variant="outline" disabled={isLoading}>Cancel</Button>
+          </DialogClose>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={
+              isLoading || 
+              (activeTab === 'fromYouTube' && (!playlistPreview || !!previewError)) ||
+              (activeTab === 'customPlaylist' && !customTitle.trim())
+            }
           >
-            <div>
-              <Label htmlFor="customTitle" className="mb-1">Playlist Title</Label>
-              <Input
-                id="customTitle"
-                placeholder="Enter playlist title"
-                value={customTitle}
-                onChange={(e) => {
-                  setCustomTitle(e.target.value);
-                }}
-                disabled={isLoading && activeTab === 'customPlaylist'}
-                className="w-full"
-              />
-            </div>
-            <div>
-              <Label htmlFor="customDescription" className="mb-1">Playlist Description</Label>
-              <Textarea
-                id="customDescription"
-                placeholder="Enter playlist description"
-                value={customDescription}
-                onChange={(e) => {
-                  setCustomDescription(e.target.value);
-                }}
-                disabled={isLoading && activeTab === 'customPlaylist'}
-                className="w-full"
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        <DialogFooter>
-          <Button type="submit" onClick={handleSubmit} disabled={isLoading}>
-            {isLoading ? 'Processing...' : 'Create Playlist'}
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {activeTab === 'fromYouTube' ? 'Import Playlist' : 'Create Playlist'}
           </Button>
         </DialogFooter>
       </DialogContent>

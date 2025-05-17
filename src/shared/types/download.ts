@@ -30,7 +30,7 @@ export interface DownloadQueueItem {
 }
 
 // Details needed to add an item to the download queue
-export interface DownloadAddItemDetails extends Pick<Video, 'id' | 'url' | 'title' | 'thumbnail' | 'duration'> {
+export interface DownloadAddItemDetails extends Pick<Video, 'id' | 'url' | 'title' | 'thumbnail_url' | 'duration'> {
   playlistId?: string; // Optional: if the video belongs to a playlist being downloaded
   outputPath: string;   // Pre-determined full path where the file will be saved
   // Optional: if specific format/quality is requested for this item, overriding global settings

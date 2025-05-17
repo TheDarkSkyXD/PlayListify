@@ -80,7 +80,7 @@ export async function fetchYouTubePlaylistPreview(playlistUrl: string, overrideA
       title: title,
       thumbnailUrl: bestThumbnailUrl,
       videoCount: videoCount,
-      totalDurationSeconds: totalDurationSec,
+      total_duration_seconds: totalDurationSec,
       uploader: uploader,
       webpage_url: webpage_url,
       isDurationApproximate: isDurationApproximate,

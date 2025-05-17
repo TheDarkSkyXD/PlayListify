@@ -55,18 +55,19 @@ export async function createNewCustomPlaylist(details: CreatePlaylistPayload): P
     description: details.description || null,
     thumbnail: null, // Custom playlists start with no thumbnail initially
     source: 'custom' as const,
-    itemCount: 0,
-    createdAt: now,
-    updatedAt: now,
-    sourceUrl: null, // Custom playlists do not have a source URL
-    youtubePlaylistId: null,
+    item_count: 0,
+    created_at: now,
+    updated_at: now,
+    source_url: null, // Custom playlists do not have a source URL
+    youtube_playlist_id: null,
+    total_duration_seconds: 0, // Added for completeness, though videos are empty initially
     videos: JSON.stringify([]) // Store videos as JSON string for custom playlists
   };
 
   try {
     const stmt = db.prepare(
-      `INSERT INTO playlists (id, name, description, thumbnail, source, itemCount, createdAt, updatedAt, sourceUrl, youtubePlaylistId, videos)
-       VALUES (@id, @name, @description, @thumbnail, @source, @itemCount, @createdAt, @updatedAt, @sourceUrl, @youtubePlaylistId, @videos)`
+      `INSERT INTO playlists (id, name, description, thumbnail, source, item_count, created_at, updated_at, source_url, youtube_playlist_id, total_duration_seconds, videos)
+       VALUES (@id, @name, @description, @thumbnail, @source, @item_count, @created_at, @updated_at, @source_url, @youtube_playlist_id, @total_duration_seconds, @videos)`
     );
     stmt.run(playlistForDb);
     logger.info(`[CustomPlaylistService] Custom playlist "${details.name}" (ID: ${newPlaylistId}) created successfully.`);
@@ -108,7 +109,7 @@ export async function addVideoToCustomPlaylistByUrl(playlistId: string, videoUrl
     const videoId = rawVideoMetadata.id;
     const now = new Date().toISOString();
 
-    const existingEntryStmt = db.prepare("SELECT videoId FROM playlist_videos WHERE playlistId = ? AND videoId =?");
+    const existingEntryStmt = db.prepare("SELECT video_id FROM playlist_videos WHERE playlist_id = ? AND video_id =?");
     const existingEntry = existingEntryStmt.get(playlistId, videoId);
     if (existingEntry) {
       logger.warn(`[CustomPlaylistService] Video ${videoId} already exists in playlist ${playlistId}.`);
@@ -119,11 +120,11 @@ export async function addVideoToCustomPlaylistByUrl(playlistId: string, videoUrl
         // Ensure we have a base object of type Video
         const videoBase: Video = { ...existingVideoDataFromDb };
         
-        const playlistContext = db.prepare("SELECT position, addedToPlaylistAt FROM playlist_videos WHERE playlistId = ? AND videoId = ?").get(playlistId, videoId) as { position: number; addedToPlaylistAt: string } | undefined;
+        const playlistContext = db.prepare("SELECT position, added_to_playlist_at FROM playlist_videos WHERE playlist_id = ? AND video_id =?").get(playlistId, videoId) as { position: number; added_to_playlist_at: string } | undefined;
 
         if (playlistContext) {
-          videoBase.positionInPlaylist = playlistContext.position;
-          videoBase.addedToPlaylistAt = playlistContext.addedToPlaylistAt;
+          videoBase.position_in_playlist = playlistContext.position;
+          videoBase.added_to_playlist_at = playlistContext.added_to_playlist_at;
         }
         finalVideoObject = videoBase;
       }
@@ -139,20 +140,18 @@ export async function addVideoToCustomPlaylistByUrl(playlistId: string, videoUrl
       duration = isNaN(parsedDuration) ? null : parsedDuration;
     }
 
-    let thumbnailUrl: string | null = null;
+    let thumbnail_url: string | null = null;
     if (typeof rawVideoMetadata.thumbnail === 'string') {
-      thumbnailUrl = rawVideoMetadata.thumbnail;
+      thumbnail_url = rawVideoMetadata.thumbnail;
     } else if (Array.isArray(rawVideoMetadata.thumbnails) && rawVideoMetadata.thumbnails.length > 0) {
-      // Attempt to get a URL from the thumbnails array (e.g., the last one which is often highest quality)
       const bestThumb = rawVideoMetadata.thumbnails[rawVideoMetadata.thumbnails.length - 1];
       if (bestThumb && typeof bestThumb.url === 'string') {
-        thumbnailUrl = bestThumb.url;
+        thumbnail_url = bestThumb.url;
       }
     }
-    if (!thumbnailUrl && Array.isArray(rawVideoMetadata.thumbnails) && rawVideoMetadata.thumbnails.length > 0 && typeof rawVideoMetadata.thumbnails[0]?.url === 'string') {
-      thumbnailUrl = rawVideoMetadata.thumbnails[0].url; // Fallback to first if last didn't work
+    if (!thumbnail_url && Array.isArray(rawVideoMetadata.thumbnails) && rawVideoMetadata.thumbnails.length > 0 && typeof rawVideoMetadata.thumbnails[0]?.url === 'string') {
+      thumbnail_url = rawVideoMetadata.thumbnails[0].url;
     }
-
 
     const videoForDb = {
         id: videoId,
@@ -160,85 +159,94 @@ export async function addVideoToCustomPlaylistByUrl(playlistId: string, videoUrl
         title: typeof rawVideoMetadata.title === 'string' ? rawVideoMetadata.title : 'Untitled Video',
         channel: typeof rawVideoMetadata.uploader === 'string' ? rawVideoMetadata.uploader : (typeof rawVideoMetadata.channel === 'string' ? rawVideoMetadata.channel : null),
         duration: duration,
-        thumbnailUrl: thumbnailUrl,
-        isAvailable: 1,
-        isDownloaded: 0,
-        localFilePath: null,
-        downloadStatus: null,
-        downloadProgress: null,
-        lastWatchedAt: null,
-        watchProgress: null,
-        addedAt: now,
-        channelTitle: typeof rawVideoMetadata.uploader === 'string' ? rawVideoMetadata.uploader : (typeof rawVideoMetadata.channel === 'string' ? rawVideoMetadata.channel : null),
-        uploadDate: typeof rawVideoMetadata.upload_date === 'string' ? rawVideoMetadata.upload_date : null,
+        thumbnail_url: thumbnail_url,
+        is_available: 1,
+        is_downloaded: 0,
+        local_file_path: null,
+        download_status: null,
+        download_progress: null,
+        last_watched_at: null,
+        watch_progress: null,
+        added_at: now,
+        channel_title: typeof rawVideoMetadata.uploader === 'string' ? rawVideoMetadata.uploader : (typeof rawVideoMetadata.channel === 'string' ? rawVideoMetadata.channel : null),
+        upload_date: typeof rawVideoMetadata.upload_date === 'string' ? rawVideoMetadata.upload_date : null,
         description: typeof rawVideoMetadata.description === 'string' ? rawVideoMetadata.description : null,
+        channel_id: rawVideoMetadata.channel_id || null,
+        uploader_id: rawVideoMetadata.uploader_id || null,
     };
     // --- End robust videoForDb construction ---
 
     const insertVideoQuery = `INSERT INTO videos (
-      id, url, title, channel, duration, thumbnailUrl, 
-      isAvailable, isDownloaded, localFilePath, downloadStatus, downloadProgress, 
-      lastWatchedAt, watchProgress, addedAt, 
-      channelTitle, 
-      uploadDate, 
-      description
+      id, url, title, channel, duration, thumbnail_url, 
+      is_available, is_downloaded, local_file_path, download_status, download_progress, 
+      last_watched_at, watch_progress, added_at, 
+      channel_title, upload_date, description, channel_id, uploader_id
     ) VALUES (
-      @id, @url, @title, @channel, @duration, @thumbnailUrl, 
-      @isAvailable, @isDownloaded, @localFilePath, @downloadStatus, @downloadProgress, 
-      @lastWatchedAt, @watchProgress, @addedAt, 
-      @channelTitle, 
-      @uploadDate, 
-      @description
-    )`;
+      @id, @url, @title, @channel, @duration, @thumbnail_url, 
+      @is_available, @is_downloaded, @local_file_path, @download_status, @download_progress, 
+      @last_watched_at, @watch_progress, @added_at, 
+      @channel_title, @upload_date, @description, @channel_id, @uploader_id
+    ) ON CONFLICT(id) DO UPDATE SET 
+        title = excluded.title,
+        channel = excluded.channel,
+        duration = excluded.duration,
+        thumbnail_url = excluded.thumbnail_url,
+        is_available = excluded.is_available,
+        channel_title = excluded.channel_title,
+        upload_date = excluded.upload_date,
+        description = excluded.description,
+        channel_id = excluded.channel_id,
+        uploader_id = excluded.uploader_id
+    `;
     const insertVideoStmt = db.prepare(insertVideoQuery);
     insertVideoStmt.run(videoForDb);
     
     // Add to playlist_videos junction table
-    const orderQuery = db.prepare("SELECT MAX(position) as max_order FROM playlist_videos WHERE playlistId = ?");
+    const orderQuery = db.prepare("SELECT MAX(position) as max_order FROM playlist_videos WHERE playlist_id = ?");
     const result = orderQuery.get(playlistId) as { max_order: number | null };
     const nextOrder = (result && typeof result.max_order === 'number') ? result.max_order + 1 : 0;
 
-    db.prepare("INSERT INTO playlist_videos (playlistId, videoId, position, addedToPlaylistAt) VALUES (?, ?, ?, ?)")
+    db.prepare("INSERT INTO playlist_videos (playlist_id, video_id, position, added_to_playlist_at) VALUES (?, ?, ?, ?)")
       .run(playlistId, videoId, nextOrder, now);
     
     // Determine the new playlist thumbnail based on the video at position 0
     const firstVideoThumbnailStmt = db.prepare(
-      `SELECT v.thumbnailUrl 
+      `SELECT v.thumbnail_url 
        FROM videos v
-       JOIN playlist_videos pv ON v.id = pv.videoId
-       WHERE pv.playlistId = ? AND pv.position = 0
+       JOIN playlist_videos pv ON v.id = pv.video_id
+       WHERE pv.playlist_id = ? AND pv.position = 0
        LIMIT 1`
     );
-    const firstVideoResult = firstVideoThumbnailStmt.get(playlistId) as { thumbnailUrl: string | null } | undefined;
-    const newPlaylistThumbnail = firstVideoResult ? firstVideoResult.thumbnailUrl : null;
+    const firstVideoResult = firstVideoThumbnailStmt.get(playlistId) as { thumbnail_url: string | null } | undefined;
+    const newPlaylistThumbnail = firstVideoResult ? firstVideoResult.thumbnail_url : null;
     logger.info(`[CustomPlaylistService] Determined new playlist thumbnail for ${playlistId}: ${newPlaylistThumbnail}`);
 
     const playlistUpdateStmt = db.prepare(
-        "UPDATE playlists SET itemCount = (SELECT COUNT(*) FROM playlist_videos WHERE playlistId = @id), updatedAt = @updatedAt, thumbnail = @newThumbnail WHERE id = @id"
+        "UPDATE playlists SET item_count = (SELECT COUNT(*) FROM playlist_videos WHERE playlist_id = @id), updated_at = @updated_at, thumbnail = @newThumbnail WHERE id = @id"
     );
     playlistUpdateStmt.run({
         id: playlistId,
-        updatedAt: now,
+        updated_at: now,
         newThumbnail: newPlaylistThumbnail // Use the thumbnail of the video at position 0
     });
 
-    // After updating itemCount and thumbnail, now update totalDurationSeconds
-    let totalDurationForPlaylist = 0;
+    // After updating itemCount and thumbnail, now update total_duration_seconds
+    let total_duration_for_playlist = 0;
     try {
       const durationResult = db.prepare(
         `SELECT SUM(v.duration) as total
          FROM videos v
-         JOIN playlist_videos pv ON v.id = pv.videoId
-         WHERE pv.playlistId = ?`
+         JOIN playlist_videos pv ON v.id = pv.video_id
+         WHERE pv.playlist_id = ?`
       ).get(playlistId) as { total: number | null } | undefined;
       
       if (durationResult && durationResult.total !== null) {
-        totalDurationForPlaylist = durationResult.total;
+        total_duration_for_playlist = durationResult.total;
       }
-      db.prepare("UPDATE playlists SET totalDurationSeconds = ? WHERE id = ?").run(totalDurationForPlaylist, playlistId);
-      logger.info(`[CustomPlaylistService] Updated totalDurationSeconds for playlist ${playlistId} to ${totalDurationForPlaylist}`);
+      db.prepare("UPDATE playlists SET total_duration_seconds = ? WHERE id = ?").run(total_duration_for_playlist, playlistId);
+      logger.info(`[CustomPlaylistService] Updated total_duration_seconds for playlist ${playlistId} to ${total_duration_for_playlist}`);
     } catch (durationError: any) {
-      logger.error(`[CustomPlaylistService] Error updating totalDurationSeconds for playlist ${playlistId}: ${durationError.message}`);
+      logger.error(`[CustomPlaylistService] Error updating total_duration_seconds for playlist ${playlistId}: ${durationError.message}`);
       // Continue without failing the whole operation if duration update fails
     }
     
@@ -249,24 +257,24 @@ export async function addVideoToCustomPlaylistByUrl(playlistId: string, videoUrl
         id: videoId,
         url: typeof rawVideoMetadata.webpage_url === 'string' ? rawVideoMetadata.webpage_url : cleanedVideoUrl,
         title: typeof rawVideoMetadata.title === 'string' ? rawVideoMetadata.title : 'Untitled Video',
-        channel: typeof rawVideoMetadata.uploader === 'string' ? rawVideoMetadata.uploader : (typeof rawVideoMetadata.channel === 'string' ? rawVideoMetadata.channel : undefined),
+        channel: (rawVideoMetadata.uploader || rawVideoMetadata.channel || null) || undefined,
         duration: duration === null ? undefined : duration,
-        thumbnail: thumbnailUrl === null ? undefined : thumbnailUrl,
-        description: typeof rawVideoMetadata.description === 'string' ? rawVideoMetadata.description : undefined,
-        channelTitle: typeof rawVideoMetadata.uploader === 'string' ? rawVideoMetadata.uploader : (typeof rawVideoMetadata.channel === 'string' ? rawVideoMetadata.channel : undefined),
-        uploadDate: convertYtDlpDateToMMDDYYYY(typeof rawVideoMetadata.upload_date === 'string' ? rawVideoMetadata.upload_date : undefined),
-        addedAt: now, // When added to our system's 'videos' table
-        // Playlist specific fields
-        addedToPlaylistAt: now, 
-        positionInPlaylist: nextOrder, 
-        // Defaultable fields from Video type
-        isAvailable: true, // This should be 1 if reflecting videoForDb, but Video type expects boolean. Assuming Video type is the source of truth for response.
-        isDownloaded: false, // This should be 0 if reflecting videoForDb. Assuming Video type is the source of truth for response.
-        localFilePath: undefined, 
-        downloadStatus: undefined,
-        downloadProgress: undefined,
-        lastWatchedAt: undefined,
-        watchProgress: undefined,
+        thumbnail_url: thumbnail_url || undefined,
+        description: (rawVideoMetadata.description || null) || undefined,
+        channel_title: (rawVideoMetadata.uploader || rawVideoMetadata.channel || null) || undefined,
+        upload_date: (rawVideoMetadata.upload_date || null) || undefined,
+        added_to_playlist_at: now,
+        position_in_playlist: nextOrder,
+        is_available: true,
+        is_downloaded: false,
+        local_file_path: undefined,
+        download_status: undefined,
+        download_progress: undefined,
+        last_watched_at: undefined,
+        watch_progress: undefined,
+        added_at: now,
+        channel_id: (rawVideoMetadata.channel_id || null) || undefined,
+        uploader_id: (rawVideoMetadata.uploader_id || null) || undefined,
     };
 
     return { success: true, data: addedVideo };

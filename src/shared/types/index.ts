@@ -125,21 +125,6 @@ export * from './ipc';
 export * from './download';
 export * from './electron'; 
 
-export interface PlaylistPreviewData {
-  id: string;
-  title: string;
-  thumbnailUrl?: string; // Main thumbnail for the playlist preview
-  videoCount: number;
-  playlist_count?: number; // Retained for potential direct use from yt-dlp raw output
-  totalDurationSeconds: number;
-  uploader?: string;
-  webpage_url?: string;
-  entries?: PlaylistEntryPreview[]; // Keep this for the list of videos in the preview
-  previewEntry?: PlaylistEntryPreview; // First entry for a quick display
-  isPartialPreview?: boolean; // Indicates if 'entries' is a partial list (e.g. first 50)
-  isDurationApproximate?: boolean; // Indicates if totalDurationSeconds is an approximation
-}
-
 export interface SharedVideoPreviewData {
   // ... existing code ...
 } 

@@ -15,30 +15,28 @@ let mainWindow: BrowserWindow | null;
 
 // --- START LOGGING SETUP ---
 const logsDirName = 'Console Logs';
-// Use app.getPath('userData') for logs in production, or process.cwd() for development flexibility
-// For simplicity in this immediate request, we'll use process.cwd() and create 'Console Logs' there.
-// A more robust solution would differentiate between dev and prod.
-const logsDirPath = path.join(app.getPath('userData'), logsDirName);
-const logFilePath = path.join(logsDirPath, 'terminallogs.txt');
+let logFilePath: string | undefined; // Deferred initialization
+let logBuffer: { level: string, args: any[] }[] = [];
+let isLogStreamInitialized = false;
 
-// Ensure logs directory exists
-try {
-  if (!fs.existsSync(logsDirPath)) {
-    fs.mkdirSync(logsDirPath, { recursive: true });
-  }
-} catch (error) {
-  // Fallback to original console if directory creation fails
-  console.error('[Logger] Failed to create logs directory:', error);
-}
+// Ensure logs directory exists - This will be done in initializeLogStream
+// try {
+//   if (!fs.existsSync(logsDirPath)) {
+//     fs.mkdirSync(logsDirPath, { recursive: true });
+//   }
+// } catch (error) {
+//   // Fallback to original console if directory creation fails
+//   console.error('[Logger] Failed to create logs directory:', error);
+// }
 
-// Clear the log file at startup
-if (fs.existsSync(logFilePath)) { // Check before attempting to unlink
-try {
-    fs.unlinkSync(logFilePath);
-} catch (error) {
-  console.error('[Logger] Failed to clear log file:', error);
-  }
-}
+// Clear the log file at startup - This will be done in initializeLogStream
+// if (fs.existsSync(logFilePath)) { // Check before attempting to unlink
+// try {
+//     fs.unlinkSync(logFilePath);
+// } catch (error) {
+//   console.error('[Logger] Failed to clear log file:', error);
+//   }
+// }
 
 const originalConsole = {
   log: console.log,
@@ -48,7 +46,61 @@ const originalConsole = {
   debug: console.debug,
 };
 
-async function writeToLogFile(level: string, ...args: any[]) {
+async function initializeLogStream() {
+  if (isLogStreamInitialized) return;
+
+  try {
+    const userDataPath = app.getPath('userData');
+    if (!userDataPath) {
+      originalConsole.error('[Logger] Failed to get userData path. Logging to file will be disabled.');
+      isLogStreamInitialized = true; // Prevent further attempts
+      // Optionally, process any buffered logs to originalConsole only
+      logBuffer.forEach(entry => originalConsole[entry.level as keyof typeof originalConsole](...entry.args));
+      logBuffer = []; // Clear buffer
+      return;
+    }
+
+    const logsDirPath = path.join(userDataPath, logsDirName);
+    logFilePath = path.join(logsDirPath, 'terminallogs.txt');
+
+    if (!fs.existsSync(logsDirPath)) {
+      fs.mkdirSync(logsDirPath, { recursive: true });
+    }
+
+    // Clear the log file at startup
+    if (fs.existsSync(logFilePath)) {
+      fs.unlinkSync(logFilePath);
+    }
+    
+    globalThis._logStream = fs.createWriteStream(logFilePath, { flags: 'a' });
+    isLogStreamInitialized = true;
+    originalConsole.log(`[Logger] Log stream initialized. Path: ${logFilePath}`);
+
+
+    // Flush buffered logs
+    const bufferToFlush = [...logBuffer];
+    logBuffer = []; // Clear buffer before writing to prevent race conditions if new logs come in
+
+    for (const entry of bufferToFlush) {
+      await writeToLogFileInternal(entry.level, ...entry.args);
+    }
+    originalConsole.log('[Logger] Flushed buffered logs.');
+
+  } catch (error) {
+    originalConsole.error('[Logger] CRITICAL: Failed to initialize log stream or flush buffer:', error);
+    isLogStreamInitialized = true; // Mark as initialized to prevent retries, even on failure
+    // Log remaining buffer to original console if stream setup failed
+    logBuffer.forEach(entry => originalConsole[entry.level as keyof typeof originalConsole](...entry.args));
+    logBuffer = [];
+  }
+}
+
+async function writeToLogFileInternal(level: string, ...args: any[]) {
+  // This internal function assumes _logStream is initialized and logFilePath is set
+  if (!globalThis._logStream || !logFilePath) {
+    originalConsole.error('[Logger Internal Error] Attempted to write with uninitialized stream/path.');
+    return;
+  }
   try {
     const timestamp = new Date().toISOString();
     const message = args.map(arg => {
@@ -62,11 +114,32 @@ async function writeToLogFile(level: string, ...args: any[]) {
       return String(arg);
     }).join(' ');
     const logMessage = `${timestamp} [${level.toUpperCase()}] ${message}\n`;
-    // Use asynchronous appendFile
-    await fs.promises.appendFile(logFilePath, logMessage);
+    globalThis._logStream.write(logMessage);
   } catch (error) {
     // If logging to file fails, still output to original console
-    originalConsole.error('[Logger] Failed to write to log file asynchronously:', error);
+    originalConsole.error('[Logger] Failed to write to log file (internal):', error);
+  }
+}
+
+
+async function writeToLogFile(level: string, ...args: any[]) {
+  if (!isLogStreamInitialized) {
+    logBuffer.push({ level, args });
+    // If app is already ready, try to initialize. Otherwise, it will be called on 'ready'.
+    // This handles logs that might occur between app start and 'ready' event.
+    if (app.isReady() && !globalThis._logStream) { // Check _logStream to prevent race if already initializing
+        initializeLogStream().catch(originalConsole.error);
+    }
+    return; // Buffering, actual write will happen after stream init
+  }
+
+  // If stream is initialized, write directly
+  if (globalThis._logStream) {
+    await writeToLogFileInternal(level, ...args);
+  } else {
+    // Should not happen if isLogStreamInitialized is true and init was successful
+    // but as a fallback, log to original console.
+    originalConsole.error('[Logger] Log stream marked initialized but is not available. Logging to console only for:', level, ...args);
   }
 }
 
@@ -93,6 +166,9 @@ console.debug = (...args: any[]) => {
 
 // Initial log message to confirm setup
 console.log('[Logger] Console logging to file initialized.');
+
+// --- END LOGGING SETUP ---
+
 async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 800,
@@ -179,6 +255,9 @@ function handleDevelopmentAssets() {
 }
 
 app.on('ready', async () => {
+  // Initialize the log stream first
+  await initializeLogStream(); // Ensure logger is ready before other operations that might log
+
   // Initialize the database first
   try {
     await initializeDB();
@@ -198,7 +277,7 @@ app.on('ready', async () => {
     newHeaders['Content-Security-Policy'] = [
       [
         `default-src 'self';`,
-        `script-src 'self' ${isDevelopment ? "'unsafe-eval'" : "''"};`,
+        `script-src 'self'${isDevelopment ? " 'unsafe-eval'" : ''};`,
         `style-src 'self' 'unsafe-inline';`,
         `font-src 'self' data:;`,
         `img-src 'self' data: https://*.ytimg.com https://*.youtube.com https://via.placeholder.com https://lh3.googleusercontent.com;`,

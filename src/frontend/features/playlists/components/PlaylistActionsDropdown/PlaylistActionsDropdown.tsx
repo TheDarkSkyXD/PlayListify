@@ -68,15 +68,15 @@ const PlaylistActionsDropdown: React.FC<PlaylistActionsDropdownProps> = ({
   onSharePlaylist,
 }) => {
   const handleOpenInYouTube = async () => { // Made async to potentially await the IPC call
-    if (playlist.sourceUrl) { // Prefer sourceUrl as it is defined in the Playlist type
+    if (playlist.source_url) { // Prefer source_url as it is defined in the Playlist type
       try {
-        await window.electronAPI.shell.openExternal(playlist.sourceUrl);
+        await window.electronAPI.shell.openExternal(playlist.source_url);
       } catch (error) {
         console.error('Failed to open URL in external browser:', error);
         // Optionally, show a toast notification to the user about the failure
       }
     } else if (playlist.source === 'youtube' && playlist.id) { // Changed: Use playlist.source
-      // Fallback: if it's a YouTube playlist and sourceUrl is missing for some reason,
+      // Fallback: if it's a YouTube playlist and source_url is missing for some reason,
       // construct the URL using playlist.id (assuming it's the YouTube Playlist ID).
       const youtubeUrl = `https://www.youtube.com/playlist?list=${playlist.id}`;
       try {
@@ -104,7 +104,7 @@ const PlaylistActionsDropdown: React.FC<PlaylistActionsDropdownProps> = ({
           <TooltipTrigger asChild>
             <div onClick={(e) => {
               e.stopPropagation();
-              console.log('Dropdown trigger wrapper clicked, propagation stopped.');
+              // console.log('Dropdown trigger wrapper clicked, propagation stopped.'); // Keep this if useful for debugging
             }}>
       <DropdownMenuTrigger asChild>
         <Button 
@@ -141,7 +141,7 @@ const PlaylistActionsDropdown: React.FC<PlaylistActionsDropdownProps> = ({
           </DropdownMenuGroup>
 
           {/* Separator 1 */}
-          {((onPlay || onSaveToLibrary)) && (onDownload || (onAddVideos || onRemoveVideos) || (onEdit || onRefresh || onDuplicate || onSharePlaylist || (isYouTube || playlist.sourceUrl))) && <DropdownMenuSeparator className={separatorClassName} />}
+          {((onPlay || onSaveToLibrary)) && (onDownload || (onAddVideos || onRemoveVideos) || (onEdit || onRefresh || onDuplicate || onSharePlaylist || (isYouTube || playlist.source_url))) && <DropdownMenuSeparator className={separatorClassName} />}
 
           {/* Group 2 */}
           <DropdownMenuGroup>
@@ -166,7 +166,7 @@ const PlaylistActionsDropdown: React.FC<PlaylistActionsDropdownProps> = ({
           </DropdownMenuGroup>
 
           {/* Separator 2 */}
-          {(onDownload || (onAddVideos || onRemoveVideos)) && (onEdit || onRefresh || onDuplicate || onSharePlaylist || (isYouTube || playlist.sourceUrl)) && <DropdownMenuSeparator className={separatorClassName} />}
+          {(onDownload || (onAddVideos || onRemoveVideos)) && (onEdit || onRefresh || onDuplicate || onSharePlaylist || (isYouTube || playlist.source_url)) && <DropdownMenuSeparator className={separatorClassName} />}
           
           {/* Group 3 */}
         {onEdit && playlist.source === 'custom' && (
@@ -195,10 +195,10 @@ const PlaylistActionsDropdown: React.FC<PlaylistActionsDropdownProps> = ({
           )}
 
           {/* Separator 3 */}
-          {(onEdit || onRefresh || onDuplicate || onSharePlaylist) && ((isYouTube || playlist.sourceUrl)) && onDelete && <DropdownMenuSeparator className={separatorClassName} />}
+          {(onEdit || onRefresh || onDuplicate || onSharePlaylist) && ((isYouTube || playlist.source_url)) && onDelete && <DropdownMenuSeparator className={separatorClassName} />}
 
           {/* Group 4 */}
-          {(isYouTube || playlist.sourceUrl) && ( // Show if it has a sourceUrl or is a YouTube playlist by source
+          {(isYouTube || playlist.source_url) && ( // Show if it has a source_url or is a YouTube playlist by source
             <DropdownMenuItem onClick={handleOpenInYouTube} className={itemClassName}>
             <YoutubeIcon className="mr-2 h-4 w-4" />
             Open in YouTube

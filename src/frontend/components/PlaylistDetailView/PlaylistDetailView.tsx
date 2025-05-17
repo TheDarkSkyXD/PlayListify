@@ -89,26 +89,26 @@ const PlaylistDetailView: React.FC<PlaylistDetailViewProps> = ({
           {playlistDetails.description || 'No description available for this playlist.'}
         </p>
         <p className="text-sm text-muted-foreground mt-2">
-          {playlistDetails.itemCount} video{playlistDetails.itemCount === 1 ? '' : 's'}
-          {playlistDetails.totalDurationSeconds !== undefined && (
+          {playlistDetails.item_count} video{playlistDetails.item_count === 1 ? '' : 's'}
+          {playlistDetails.total_duration_seconds !== undefined && (
             <>
               {' '}
               &bull; {' '}
-              {formatDuration(playlistDetails.totalDurationSeconds)}
+              {formatDuration(playlistDetails.total_duration_seconds)}
             </>
           )}
-          {playlistDetails.source === 'youtube' && playlistDetails.sourceUrl && (
+          {playlistDetails.source === 'youtube' && playlistDetails.source_url && (
             <>
               {' '}
               &bull;{' '}
               <a 
-                href={playlistDetails.sourceUrl} 
+                href={playlistDetails.source_url} 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="hover:text-primary hover:underline"
                 onClick={(e) => {
                   e.preventDefault();
-                  window.electronAPI.shell.openExternal(playlistDetails.sourceUrl || '');
+                  window.electronAPI.shell.openExternal(playlistDetails.source_url || '');
                 }}
               >
                 View on YouTube
@@ -141,9 +141,9 @@ const PlaylistDetailView: React.FC<PlaylistDetailViewProps> = ({
                   className="flex items-center p-3 bg-card border border-border rounded-lg hover:bg-muted/50 transition-colors"
               >
                 <div className="mr-3 flex-shrink-0 w-28 h-16 sm:w-32 sm:h-[72px] bg-muted rounded overflow-hidden relative">
-                  {video.thumbnail ? (
+                  {video.thumbnail_url ? (
                     <img 
-                      src={video.thumbnail} 
+                      src={video.thumbnail_url} 
                       alt={`Thumbnail for ${video.title}`} 
                       className="w-full h-full object-cover" 
                     />
@@ -160,14 +160,14 @@ const PlaylistDetailView: React.FC<PlaylistDetailViewProps> = ({
                   <p className="text-sm font-medium text-foreground truncate" title={video.title}>
                     {video.title}
                   </p>
-                  {video.channelTitle && (
-                    <p className="text-xs text-muted-foreground truncate" title={video.channelTitle}>
-                      {video.channelTitle}
+                  {video.channel_title && (
+                    <p className="text-xs text-muted-foreground truncate" title={video.channel_title}>
+                      {video.channel_title}
                     </p>
                   )}
-                  {video.uploadDate && (
+                  {video.upload_date && (
                     <p className="text-xs text-muted-foreground">
-                      {formatRelativeDate(video.uploadDate)}
+                      {formatRelativeDate(video.upload_date)}
                     </p>
                   )}
                 </div>

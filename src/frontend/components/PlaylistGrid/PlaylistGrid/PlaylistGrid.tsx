@@ -97,7 +97,7 @@ const PlaylistGrid: React.FC<PlaylistGridProps> = ({
           key={playlist.id}
           playlist={{
             ...playlist,
-            videoCount: playlist.itemCount,
+            videoCount: playlist.item_count,
             type: playlist.source,
             thumbnail: playlist.thumbnail,
           }}

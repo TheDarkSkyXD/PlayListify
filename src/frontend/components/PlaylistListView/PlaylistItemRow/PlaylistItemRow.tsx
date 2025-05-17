@@ -65,7 +65,7 @@ const PlaylistItemRow: React.FC<PlaylistItemRowProps> = ({
       <div className="flex-grow min-w-0">
         <p className="text-sm font-medium text-foreground truncate group-hover:text-primary">{playlist.name}</p>
         <p className="text-xs text-muted-foreground truncate">
-          {playlist.itemCount} items {playlist.description && `• ${playlist.description}`}
+          {playlist.item_count} items {playlist.description && `• ${playlist.description}`}
         </p>
       </div>
 

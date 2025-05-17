@@ -16,6 +16,7 @@ import {
 import chalk from 'chalk'; // Standard library for console colors
 import cp, { spawn, ChildProcess } from 'child_process';
 import { app } from 'electron'; // For default paths, if needed
+import { v4 as uuidv4 } from 'uuid';
 
 const c = chalk; // Assign chalk to c for brevity if that was the intention
 
@@ -43,6 +44,38 @@ interface ThumbnailDetail {
   height?: number;
   width?: number;
   resolution?: string;
+}
+
+// Helper function to map YtDlpVideoInfoRaw to Video
+function mapRawVideoToVideo(rawVideo: YtDlpVideoInfoRaw, index?: number): Video {
+  const video: Video = {
+    id: rawVideo.id,
+    url: rawVideo.webpage_url || rawVideo.original_url || rawVideo.id, // Fallback logic for URL
+    title: rawVideo.title,
+    thumbnail_url: getBestThumbnail(rawVideo.thumbnails) || rawVideo.thumbnail,
+    duration: rawVideo.duration,
+    description: rawVideo.description,
+    channel_title: rawVideo.uploader || rawVideo.channel, // Prefer uploader
+    uploader_id: rawVideo.uploader_id || rawVideo.channel_id,
+    channel_id: rawVideo.channel_id || rawVideo.uploader_id, // Ensure channel_id is populated
+    upload_date: rawVideo.upload_date, // Assuming YYYYMMDD, Video type takes string
+    
+    // Playlist context fields (can be overridden if video is part of a specific playlist instance later)
+    position_in_playlist: rawVideo.playlist_index !== undefined ? rawVideo.playlist_index : (index !== undefined ? index + 1 : undefined),
+    // added_to_playlist_at for a specific playlist instance is set when adding to that playlist,
+    // not globally here. This video object is a general representation.
+    
+    // Local state fields (defaults, to be updated by other services)
+    is_available: true, // Assume available unless determined otherwise
+    is_downloaded: false,
+    local_file_path: undefined,
+    download_status: undefined,
+    download_progress: undefined,
+    last_watched_at: undefined,
+    watch_progress: undefined,
+    added_at: new Date().toISOString(), // When first seen/imported by this system
+  };
+  return video;
 }
 
 export function getBestThumbnail(thumbnails: ThumbnailDetail[] | undefined): string | undefined {
@@ -447,58 +480,48 @@ export async function importPlaylist(
   customPlaylistName?: string,
   isPrivatePlaylist?: boolean
 ): Promise<Playlist> {
-  // This is the critical change for the linter error.
-  // We must get the instance and path from ensureYtDlpBinaryIsReady.
-  const { ytDlpInstance, ytDlpBinaryPath: localYtDlpBinaryPath } = await ensureYtDlpBinaryIsReady(); 
+  logger.info(c.cyan(`[ytDlpManager] Importing playlist: ${playlistUrlParam}`));
+  const ytDlpInstance = await getYtDlpInstance();
+  const simplifiedUrl = simplifyPlaylistUrl(playlistUrlParam);
 
-  logger.info(c.green(`Starting import for playlist URL: ${playlistUrlParam}`));
-  
-  // Pass overrideArgs as an empty array or actual args if needed by getPlaylistMetadata for full fetch
-  const playlistMetadata = await getPlaylistMetadata(playlistUrlParam, { overrideArgs: [] }); 
+  // Fetch full playlist metadata including all video entries
+  const metadata = await getPlaylistMetadata(simplifiedUrl);
 
-  if (!playlistMetadata || !playlistMetadata.entries || playlistMetadata.entries.length === 0) {
-    logger.error(c.red(`Failed to fetch or found no entries for playlist: ${playlistUrlParam}`));
-    throw new Error(`Failed to fetch or found no entries for playlist: ${playlistUrlParam}`);
+  if (!metadata || !metadata.entries) {
+    logger.error(c.red(`[ytDlpManager] Failed to fetch comprehensive metadata or no video entries for playlist: ${simplifiedUrl}`));
+    throw new Error(`Failed to fetch comprehensive metadata for playlist: ${simplifiedUrl}`);
   }
 
-  const videos: Video[] = playlistMetadata.entries.map((entry: YtDlpVideoInfoRaw, index: number) => ({
-    id: entry.id || `missing-id-${index}`,
-    title: entry.title || 'Unknown Title',
-    url: entry.webpage_url || entry.url || '',
-    thumbnailUrl: getBestThumbnail(entry.thumbnails as ThumbnailDetail[] | undefined) || entry.thumbnail || '',
-    duration: entry.duration || 0,
-    source: 'youtube',
-    description: entry.description || '',
-    channel: entry.channel || entry.uploader || '',
-    channelUrl: entry.channel_url || entry.uploader_url || '',
-    viewCount: entry.view_count,
-    likeCount: entry.like_count,
-    uploadDate: entry.upload_date, // Format: YYYYMMDD
-    resolution: entry.format?.includes('x') ? entry.format.split(' (')[0].split('x')[1] + 'p' : undefined, // Basic parsing
-    fps: entry.fps,
-    isLive: entry.is_live,
-    files: [],
-    playbackSpeed: 1,
-    isFavorite: false,
-  }));
+  // Map raw video entries to Video objects
+  const videos: Video[] = metadata.entries.map((rawVideo, index) => 
+    mapRawVideoToVideo(rawVideo, index)
+  );
 
-  const newPlaylistData = { // Constructing the object to match the Playlist type
-    id: playlistMetadata.id || `imported-${Date.now()}`,
-    name: customPlaylistName || playlistMetadata.title || 'Imported Playlist',
-    description: playlistMetadata.description || '',
-    videos: videos,
-    thumbnail: playlistMetadata.thumbnail,
-    sourceUrl: playlistUrlParam,
-    source: 'youtube' as 'custom' | 'youtube', // Explicitly cast to the union type
-    itemCount: videos.length, 
-    youtubePlaylistId: playlistMetadata.id, 
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    totalDurationSeconds: playlistMetadata.totalDuration, 
+  const newPlaylist: Playlist = {
+    id: metadata.id || uuidv4(), // Use yt-dlp ID or generate a new one
+    name: customPlaylistName || metadata.title || 'Unnamed Playlist',
+    description: metadata.description,
+    videos: videos, // Ensure this is Video[]
+    thumbnail: metadata.thumbnail, // Assumes getPlaylistMetadata already selected the best playlist thumbnail for ProcessedPlaylistMetadata
+    source_url: metadata.webpage_url || simplifiedUrl,
+    source: 'youtube', // Assuming import is always from YouTube here
+    item_count: metadata.itemCount || videos.length, // Use itemCount from processed metadata or fallback
+    youtube_playlist_id: metadata.id, // yt-dlp's playlist ID
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    total_duration_seconds: metadata.totalDuration,
   };
 
-  logger.info(c.green(`Successfully processed import for playlist: ${newPlaylistData.name} with ${videos.length} videos.`));
-  return newPlaylistData;
+  logger.info(c.greenBright(`[ytDlpManager] Successfully processed playlist data for: ${newPlaylist.name}`));
+  logger.debug(c.gray(`[ytDlpManager] Playlist object created: ${JSON.stringify(newPlaylist, null, 2)}`));
+  
+  // Note: This function used to write metadata to a file.
+  // This responsibility is now likely handled by the service that calls importPlaylist
+  // and then saves the Playlist object to the database.
+  // If direct file writing is still needed here for some reason, it should be re-evaluated.
+  // Example: await writePlaylistMetadata(path.join(app.getPath('userData'), 'playlists_metadata'), `${newPlaylist.id}.json`, newPlaylist);
+
+  return newPlaylist;
 }
 
 export async function ensureYtDlpBinaryIsReady(): Promise<{ ytDlpInstance: YTDlpWrap; ytDlpBinaryPath: string }> {

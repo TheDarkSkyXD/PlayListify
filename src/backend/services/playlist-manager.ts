@@ -21,25 +21,23 @@ export async function getAllPlaylists(): Promise<IpcResponse<Playlist[]>> {
   const db = getDB();
   logger.info('[PlaylistManager] getAllPlaylists called');
   try {
-    const rows = db.prepare("SELECT id, name, description, thumbnail, source, itemCount, createdAt, updatedAt, sourceUrl, youtubePlaylistId FROM playlists").all() as any[];
+    const rows = db.prepare("SELECT id, name, description, thumbnail, source, item_count, created_at, updated_at, source_url, youtube_playlist_id FROM playlists").all() as any[];
     
-    const playlists: Playlist[] = rows.map(row => {
-      // Calculate total duration for each playlist
-      let totalDuration = 0;
+    const playlists: Playlist[] = rows.map((row: any) => {
+      let total_duration_seconds = 0;
       try {
         const durationResult = db.prepare(
           `SELECT SUM(v.duration) as total
            FROM videos v
-           JOIN playlist_videos pv ON v.id = pv.videoId
-           WHERE pv.playlistId = ?`
+           JOIN playlist_videos pv ON v.id = pv.video_id
+           WHERE pv.playlist_id = ?`
         ).get(row.id) as { total: number | null } | undefined;
         
         if (durationResult && durationResult.total !== null) {
-          totalDuration = durationResult.total;
+          total_duration_seconds = durationResult.total;
         }
       } catch (durationError: any) {
         logger.error(`[PlaylistManager] Error calculating total duration for playlist ID ${row.id}: ${durationError.message}`);
-        // Keep totalDuration as 0 in case of error
       }
 
       return {
@@ -47,14 +45,14 @@ export async function getAllPlaylists(): Promise<IpcResponse<Playlist[]>> {
         name: row.name,
         description: row.description === null ? undefined : row.description,
         thumbnail: row.thumbnail === null ? undefined : row.thumbnail,
-        videos: [], // Videos usually fetched on demand or via separate query
-        sourceUrl: row.sourceUrl === null ? undefined : row.sourceUrl,
+        videos: [], 
+        source_url: row.source_url === null ? undefined : row.source_url,
         source: row.source,
-        itemCount: row.itemCount,
-        totalDurationSeconds: totalDuration, // Added total duration
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt,
-        youtubePlaylistId: row.youtubePlaylistId === null ? undefined : row.youtubePlaylistId,
+        item_count: row.item_count,
+        total_duration_seconds: total_duration_seconds, 
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        youtube_playlist_id: row.youtube_playlist_id === null ? undefined : row.youtube_playlist_id,
       };
     });
     return { success: true, data: playlists };
@@ -68,31 +66,39 @@ export async function getPlaylistById(id: string): Promise<IpcResponse<Playlist 
   const db = getDB();
   logger.info(`[PlaylistManager] getPlaylistById called with ID: ${id}`);
   try {
-    const row = db.prepare("SELECT id, name, description, thumbnail, source, itemCount, createdAt, updatedAt, sourceUrl, youtubePlaylistId FROM playlists WHERE id = ?").get(id) as any;
+    const row = db.prepare("SELECT id, name, description, thumbnail, source, item_count, created_at, updated_at, source_url, youtube_playlist_id FROM playlists WHERE id = ?").get(id) as any;
     if (row) {
       logger.info(`[PlaylistManager] Found playlist row: ${JSON.stringify(row)}`);
-      // Fetch videos for this playlist
-      const videosStmt = db.prepare("SELECT v.*, pv.position as positionInPlaylist, pv.addedToPlaylistAt FROM videos v JOIN playlist_videos pv ON v.id = pv.videoId WHERE pv.playlistId = ? ORDER BY pv.position ASC");
+      const videosStmt = db.prepare("SELECT v.*, pv.position as position_in_playlist, pv.added_to_playlist_at FROM videos v JOIN playlist_videos pv ON v.id = pv.video_id WHERE pv.playlist_id = ? ORDER BY pv.position ASC");
       const videoRows = videosStmt.all(id) as any[];
       logger.info(`[PlaylistManager] Found ${videoRows.length} video rows for playlist ID ${id}.`);
       if (videoRows.length > 0) {
         logger.debug(`[PlaylistManager] First video row data: ${JSON.stringify(videoRows[0])}`);
       }
-      const videos: Video[] = videoRows.map(vRow => ({
+      const videos: Video[] = videoRows.map((vRow: any) => ({
         id: vRow.id,
         title: vRow.title,
         url: vRow.url,
-        thumbnail: vRow.thumbnailUrl === null ? undefined : vRow.thumbnailUrl,
+        thumbnail_url: vRow.thumbnail_url === null ? undefined : vRow.thumbnail_url,
         duration: vRow.duration === null ? undefined : vRow.duration,
         description: vRow.description === null ? undefined : vRow.description,
-        channelTitle: vRow.channelTitle === null ? undefined : vRow.channelTitle,
-        uploadDate: vRow.uploadDate === null ? undefined : vRow.uploadDate,
-        addedToPlaylistAt: vRow.addedToPlaylistAt,
-        positionInPlaylist: vRow.positionInPlaylist,
+        channel_title: vRow.channel_title === null ? undefined : vRow.channel_title,
+        upload_date: vRow.upload_date === null ? undefined : vRow.upload_date,
+        added_to_playlist_at: vRow.added_to_playlist_at,
+        position_in_playlist: vRow.position_in_playlist,
+        is_available: vRow.is_available !== undefined ? vRow.is_available : undefined,
+        is_downloaded: vRow.is_downloaded !== undefined ? vRow.is_downloaded : undefined,
+        local_file_path: vRow.local_file_path === null ? undefined : vRow.local_file_path,
+        download_status: vRow.download_status === null ? undefined : vRow.download_status,
+        download_progress: vRow.download_progress === null ? undefined : vRow.download_progress,
+        last_watched_at: vRow.last_watched_at === null ? undefined : vRow.last_watched_at,
+        watch_progress: vRow.watch_progress === null ? undefined : vRow.watch_progress,
+        added_at: vRow.added_at,
+        channel_id: vRow.channel_id === null ? undefined : vRow.channel_id,
+        uploader_id: vRow.uploader_id === null ? undefined : vRow.uploader_id,
       }));
 
-      // Calculate total duration from the fetched videos array
-      const totalDurationSeconds = videos.reduce((acc, video) => acc + (video.duration || 0), 0);
+      const total_duration_seconds = videos.reduce((acc, video) => acc + (video.duration || 0), 0);
 
       const playlist: Playlist = {
         id: row.id,
@@ -100,18 +106,17 @@ export async function getPlaylistById(id: string): Promise<IpcResponse<Playlist 
         description: row.description === null ? undefined : row.description,
         thumbnail: row.thumbnail === null ? undefined : row.thumbnail,
         videos: videos, 
-        sourceUrl: row.sourceUrl === null ? undefined : row.sourceUrl,
+        source_url: row.source_url === null ? undefined : row.source_url,
         source: row.source,
-        itemCount: videos.length, // Update item count based on actual videos fetched
-        totalDurationSeconds: totalDurationSeconds, // Added calculated total duration
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt,
-        youtubePlaylistId: row.youtubePlaylistId === null ? undefined : row.youtubePlaylistId,
+        item_count: videos.length, 
+        total_duration_seconds: total_duration_seconds, 
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        youtube_playlist_id: row.youtube_playlist_id === null ? undefined : row.youtube_playlist_id,
       };
       logger.debug(`[PlaylistManager] Constructed playlist object for ID ${id}: ${JSON.stringify(playlist)}`);
-      // Update itemCount in DB if it differs
-      if (row.itemCount !== playlist.itemCount) {
-        db.prepare("UPDATE playlists SET itemCount = ? WHERE id = ?").run(playlist.itemCount, playlist.id);
+      if (row.item_count !== playlist.item_count) {
+        db.prepare("UPDATE playlists SET item_count = ? WHERE id = ?").run(playlist.item_count, playlist.id);
       }
     return { success: true, data: playlist };
     } else {
@@ -128,7 +133,7 @@ export async function updatePlaylistDetails(payload: UpdatePlaylistPayload): Pro
   logger.info('[PlaylistManager] updatePlaylistDetails called with payload:', payload);
   const now = new Date().toISOString();
   const setClauses: string[] = [];
-  const params: any = { id: payload.id, updatedAt: now };
+  const params: any = { id: payload.id, updated_at: now };
 
   if (payload.name !== undefined) {
     setClauses.push('name = @name');
@@ -148,13 +153,13 @@ export async function updatePlaylistDetails(payload: UpdatePlaylistPayload): Pro
     return getPlaylistById(payload.id); 
   }
 
-  const stmt = db.prepare(`UPDATE playlists SET ${setClauses.join(', ')}, updatedAt = @updatedAt WHERE id = @id`);
+  const stmt = db.prepare(`UPDATE playlists SET ${setClauses.join(', ')}, updated_at = @updated_at WHERE id = @id`);
   
   try {
     const result = stmt.run(params);
     if (result.changes > 0) {
       logger.info(`[PlaylistManager] Playlist ID ${payload.id} updated successfully.`);
-      return getPlaylistById(payload.id); // Return the updated playlist
+      return getPlaylistById(payload.id);
     } else {
       logger.warn(`[PlaylistManager] Playlist ID ${payload.id} not found for update.`);
       return { success: false, error: 'Playlist not found or no changes made', data: null };
@@ -170,7 +175,7 @@ export async function deletePlaylist(id: string): Promise<IpcResponse<void>> {
   logger.info(`[PlaylistManager] deletePlaylist called for ID: ${id}`);
   try {
     db.transaction(() => {
-      db.prepare("DELETE FROM playlist_videos WHERE playlistId = ?").run(id);
+      db.prepare("DELETE FROM playlist_videos WHERE playlist_id = ?").run(id);
       db.prepare("DELETE FROM playlists WHERE id = ?").run(id);
     })(); 
     logger.info(`[PlaylistManager] Playlist ID ${id} and its video associations deleted successfully (if it existed).`);
@@ -190,7 +195,7 @@ export async function addVideoToPlaylist(playlistId: string, videoDetails: Video
   logger.info(`[PlaylistManager] addVideoToPlaylist ENTERED for playlist ID: ${playlistId}, video ID: ${videoDetails.id}, title: ${videoDetails.title}`);
   try {
     logger.debug(`[PlaylistManager] addVideoToPlaylist: Checking if video ${videoDetails.id} already exists in playlist ${playlistId}`);
-    const existingEntryStmt = db.prepare("SELECT videoId FROM playlist_videos WHERE playlistId = ? AND videoId = ?");
+    const existingEntryStmt = db.prepare("SELECT video_id FROM playlist_videos WHERE playlist_id = ? AND video_id = ?");
     const existingEntry = existingEntryStmt.get(playlistId, videoDetails.id);
     
     if (existingEntry) {
@@ -199,7 +204,7 @@ export async function addVideoToPlaylist(playlistId: string, videoDetails: Video
     }
     logger.debug(`[PlaylistManager] addVideoToPlaylist: Video ${videoDetails.id} does not exist in playlist ${playlistId}. Proceeding to add.`);
 
-    const orderQuery = db.prepare("SELECT MAX(position) as max_order FROM playlist_videos WHERE playlistId = ?");
+    const orderQuery = db.prepare("SELECT MAX(position) as max_order FROM playlist_videos WHERE playlist_id = ?");
     const resultOrder = orderQuery.get(playlistId) as { max_order: number | null };
     const nextOrder = (resultOrder && typeof resultOrder.max_order === 'number') ? resultOrder.max_order + 1 : 0;
     logger.debug(`[PlaylistManager] addVideoToPlaylist: Calculated nextOrder for video ${videoDetails.id} in playlist ${playlistId}: ${nextOrder}`);
@@ -207,34 +212,42 @@ export async function addVideoToPlaylist(playlistId: string, videoDetails: Video
   const now = new Date().toISOString();
 
     const videoForDb = {
-    id: videoDetails.id,
-        title: videoDetails.title,
-    url: videoDetails.url,
-        thumbnail: videoDetails.thumbnailUrl || null, 
-        duration: null, 
-        description: null, 
-        channelTitle: videoDetails.channelName || null,
-    uploadDate: videoDetails.uploadDate || null,
-    addedAt: now,
+      id: videoDetails.id,
+      title: videoDetails.title,
+      url: videoDetails.url,
+      thumbnail_url: videoDetails.thumbnail_url || null, 
+      duration: null, 
+      description: null, 
+      channel_title: videoDetails.channel_name || null,
+      upload_date: videoDetails.upload_date || null,
+      added_at: now,
+      is_available: true, 
+      is_downloaded: false, 
+      local_file_path: null,
+      download_status: null,
+      download_progress: null,
+      last_watched_at: null,
+      watch_progress: null,
+      channel_id: null, 
+      uploader_id: null, 
     };
     logger.debug(`[PlaylistManager] addVideoToPlaylist: Video object for 'videos' table (videoForDb): ${JSON.stringify(videoForDb)}`);
     
-    const insertVideoStmt = db.prepare("INSERT OR IGNORE INTO videos (id, title, url, thumbnailUrl, duration, description, channelTitle, uploadDate, addedAt) VALUES (@id, @title, @url, @thumbnail, @duration, @description, @channelTitle, @uploadDate, @addedAt)");
+    const insertVideoStmt = db.prepare("INSERT OR IGNORE INTO videos (id, title, url, thumbnail_url, duration, description, channel_title, upload_date, added_at, is_available, is_downloaded, local_file_path, download_status, download_progress, last_watched_at, watch_progress, channel_id, uploader_id) VALUES (@id, @title, @url, @thumbnail_url, @duration, @description, @channel_title, @upload_date, @added_at, @is_available, @is_downloaded, @local_file_path, @download_status, @download_progress, @last_watched_at, @watch_progress, @channel_id, @uploader_id)");
     const insertVideoResult = insertVideoStmt.run(videoForDb);
     logger.info(`[PlaylistManager] addVideoToPlaylist: 'INSERT OR IGNORE INTO videos' for video ID ${videoDetails.id}. Changes: ${insertVideoResult.changes}`);
 
     logger.debug(`[PlaylistManager] addVideoToPlaylist: Preparing to insert into 'playlist_videos'. PlaylistID: ${playlistId}, VideoID: ${videoDetails.id}, Position: ${nextOrder}, AddedAt: ${now}`);
-    const insertJunctionStmt = db.prepare("INSERT INTO playlist_videos (playlistId, videoId, position, addedToPlaylistAt) VALUES (?, ?, ?, ?)");
+    const insertJunctionStmt = db.prepare("INSERT INTO playlist_videos (playlist_id, video_id, position, added_to_playlist_at) VALUES (?, ?, ?, ?)");
     const insertJunctionResult = insertJunctionStmt.run(playlistId, videoDetails.id, nextOrder, now);
     logger.info(`[PlaylistManager] addVideoToPlaylist: 'INSERT INTO playlist_videos' for video ID ${videoDetails.id} into playlist ${playlistId}. Changes: ${insertJunctionResult.changes}`);
     
-    // Update playlist's itemCount and updated_at
-    const countResult = db.prepare("SELECT COUNT(*) as count FROM playlist_videos WHERE playlistId = ?").get(playlistId) as { count: number };
+    const countResult = db.prepare("SELECT COUNT(*) as count FROM playlist_videos WHERE playlist_id = ?").get(playlistId) as { count: number };
     const currentItemCountInJunction = countResult ? countResult.count : 0;
     logger.info(`[PlaylistManager] addVideoToPlaylist: Current item count from 'playlist_videos' for playlist ${playlistId} is ${currentItemCountInJunction}.`);
 
-    logger.debug(`[PlaylistManager] addVideoToPlaylist: Preparing to update 'playlists' table. itemCount: ${currentItemCountInJunction}, updatedAt: ${now}, playlistId: ${playlistId}`);
-    const updatePlaylistStmt = db.prepare("UPDATE playlists SET itemCount = ?, updatedAt = ? WHERE id = ?");
+    logger.debug(`[PlaylistManager] addVideoToPlaylist: Preparing to update 'playlists' table. item_count: ${currentItemCountInJunction}, updated_at: ${now}, playlist_id: ${playlistId}`);
+    const updatePlaylistStmt = db.prepare("UPDATE playlists SET item_count = ?, updated_at = ? WHERE id = ?");
     const updatePlaylistResult = updatePlaylistStmt.run(currentItemCountInJunction, now, playlistId);
     logger.info(`[PlaylistManager] addVideoToPlaylist: 'UPDATE playlists' for playlist ${playlistId}. Changes: ${updatePlaylistResult.changes}`);
 
@@ -251,33 +264,33 @@ export async function removeVideoFromPlaylist(playlistId: string, videoId: strin
   logger.info(`[PlaylistManager] removeVideoFromPlaylist called for playlist ID: ${playlistId}, video ID: ${videoId}`);
   const now = new Date().toISOString();
   try {
-    const result = db.prepare("DELETE FROM playlist_videos WHERE playlistId = ? AND videoId = ?").run(playlistId, videoId);
+    const result = db.prepare("DELETE FROM playlist_videos WHERE playlist_id = ? AND video_id = ?").run(playlistId, videoId);
     
     if (result.changes > 0) {
       // Re-index positions for the remaining videos in the playlist
       const remainingVideos = db.prepare(
-        "SELECT videoId FROM playlist_videos WHERE playlistId = ? ORDER BY position ASC"
-      ).all(playlistId) as Array<{ videoId: string }>;
+        "SELECT video_id FROM playlist_videos WHERE playlist_id = ? ORDER BY position ASC"
+      ).all(playlistId) as Array<{ video_id: string }>;
 
       db.transaction(() => {
         for (let i = 0; i < remainingVideos.length; i++) {
           db.prepare(
-            "UPDATE playlist_videos SET position = ? WHERE playlistId = ? AND videoId = ?"
-          ).run(i, playlistId, remainingVideos[i].videoId);
+            "UPDATE playlist_videos SET position = ? WHERE playlist_id = ? AND video_id = ?"
+          ).run(i, playlistId, remainingVideos[i].video_id);
         }
       })();
       logger.info(`[PlaylistManager] Re-indexed positions for playlist ID: ${playlistId} after deleting video ID: ${videoId}`);
 
       // Determine the new playlist thumbnail based on the video at position 0
       const firstVideoThumbnailStmt = db.prepare(
-        `SELECT v.thumbnailUrl 
+        `SELECT v.thumbnail_url 
          FROM videos v
-         JOIN playlist_videos pv ON v.id = pv.videoId
-         WHERE pv.playlistId = ? AND pv.position = 0
+         JOIN playlist_videos pv ON v.id = pv.video_id
+         WHERE pv.playlist_id = ? AND pv.position = 0
          LIMIT 1`
       );
-      const firstVideoResult = firstVideoThumbnailStmt.get(playlistId) as { thumbnailUrl: string | null } | undefined;
-      const newPlaylistThumbnail = firstVideoResult ? firstVideoResult.thumbnailUrl : null;
+      const firstVideoResult = firstVideoThumbnailStmt.get(playlistId) as { thumbnail_url: string | null } | undefined;
+      const newPlaylistThumbnail = firstVideoResult ? firstVideoResult.thumbnail_url : null;
       logger.info(`[PlaylistManager] Determined new playlist thumbnail for ${playlistId} after deletion: ${newPlaylistThumbnail}`);
       
       // Calculate new total duration
@@ -286,8 +299,8 @@ export async function removeVideoFromPlaylist(playlistId: string, videoId: strin
         const durationResult = db.prepare(
           `SELECT SUM(v.duration) as total
            FROM videos v
-           JOIN playlist_videos pv ON v.id = pv.videoId
-           WHERE pv.playlistId = ?`
+           JOIN playlist_videos pv ON v.id = pv.video_id
+           WHERE pv.playlist_id = ?`
         ).get(playlistId) as { total: number | null } | undefined;
         
         if (durationResult && durationResult.total !== null) {
@@ -297,12 +310,12 @@ export async function removeVideoFromPlaylist(playlistId: string, videoId: strin
         logger.error(`[PlaylistManager] Error calculating total duration for playlist ID ${playlistId} after deletion: ${durationError.message}`);
       }
 
-      // Update playlist's itemCount, thumbnail, and totalDurationSeconds
+      // Update playlist's item_count, thumbnail, and total_duration_seconds
       db.prepare(
-        "UPDATE playlists SET itemCount = (SELECT COUNT(*) FROM playlist_videos WHERE playlistId = ?), updatedAt = ?, thumbnail = ?, totalDurationSeconds = ? WHERE id = ?"
+        "UPDATE playlists SET item_count = (SELECT COUNT(*) FROM playlist_videos WHERE playlist_id = ?), updated_at = ?, thumbnail = ?, total_duration_seconds = ? WHERE id = ?"
       ).run(playlistId, now, newPlaylistThumbnail, newTotalDuration, playlistId);
       
-      logger.info(`[PlaylistManager] Video ${videoId} removed from playlist ${playlistId} successfully. Playlist itemCount, thumbnail, and totalDurationSeconds updated.`);
+      logger.info(`[PlaylistManager] Video ${videoId} removed from playlist ${playlistId} successfully. Playlist item_count, thumbnail, and total_duration_seconds updated.`);
     return { success: true };
     } else {
       logger.warn(`[PlaylistManager] Video ${videoId} not found in playlist ${playlistId}, or playlist does not exist.`);
@@ -321,9 +334,9 @@ export async function reorderVideosInPlaylist(playlistId: string, videoIdsInOrde
   try {
     db.transaction(() => {
       for (let i = 0; i < videoIdsInOrder.length; i++) {
-        db.prepare("UPDATE playlist_videos SET position = ? WHERE playlistId = ? AND videoId = ?").run(i, playlistId, videoIdsInOrder[i]);
+        db.prepare("UPDATE playlist_videos SET position = ? WHERE playlist_id = ? AND video_id = ?").run(i, playlistId, videoIdsInOrder[i]);
       }
-      db.prepare("UPDATE playlists SET updatedAt = ? WHERE id = ?").run(now, playlistId);
+      db.prepare("UPDATE playlists SET updated_at = ? WHERE id = ?").run(now, playlistId);
     })();
     logger.info(`[PlaylistManager] Videos reordered successfully for playlist ID: ${playlistId}`);
     return { success: true };
@@ -338,42 +351,49 @@ export async function reorderVideosInPlaylist(playlistId: string, videoIdsInOrde
  */
 export async function getAllVideosForPlaylist(playlistId: string): Promise<PlaylistVideo[] | null> {
   const db = getDB();
-  logger.info('[PlaylistManager] getAllVideosForPlaylist called for playlist ID:', playlistId);
+  logger.info(`[PlaylistManager] getAllVideosForPlaylist called for playlist ID: ${playlistId}`);
   try {
-    const playlistRow = db.prepare("SELECT id, source FROM playlists WHERE id = ?").get(playlistId) as { id: string; source: 'custom' | 'youtube'; } | null;
-
-    if (!playlistRow) {
-      logger.warn(`[PlaylistManager] Playlist not found in getAllVideosForPlaylist for ID: ${playlistId}`);
+    // Check if the playlist exists first
+    const playlistExists = db.prepare("SELECT id FROM playlists WHERE id = ?").get(playlistId);
+    if (!playlistExists) {
+      logger.warn(`[PlaylistManager] getAllVideosForPlaylist - Playlist with ID ${playlistId} not found.`);
       return null;
     }
 
     // All playlist types will now fetch from the playlist_videos junction table
-    const videoRows = db.prepare("SELECT v.*, pv.position as position, pv.addedToPlaylistAt FROM videos v JOIN playlist_videos pv ON v.id = pv.videoId WHERE pv.playlistId = ? ORDER BY pv.position ASC").all(playlistId) as any[];
+    const videoRows = db.prepare("SELECT v.*, pv.position as position, pv.added_to_playlist_at FROM videos v JOIN playlist_videos pv ON v.id = pv.video_id WHERE pv.playlist_id = ? ORDER BY pv.position ASC").all(playlistId) as any[];
     logger.info(`[PlaylistManager] getAllVideosForPlaylist - Fetched ${videoRows.length} video rows from playlist_videos for playlist ID: ${playlistId}`);
     
-    const videos: PlaylistVideo[] = videoRows.map((vRow, index) => {
-      logger.debug(`[PlaylistManager] getAllVideosForPlaylist - Processing vRow[${index}] for playlist ${playlistId}: ${JSON.stringify(vRow)}`);
-      const video: PlaylistVideo = {
-        id: vRow.id,
-        title: vRow.title,
-        url: vRow.url,
-        thumbnail: vRow.thumbnailUrl === null ? undefined : vRow.thumbnailUrl,
-        duration: vRow.duration === null ? undefined : vRow.duration,
-        description: vRow.description === null ? undefined : vRow.description,
-        channelTitle: vRow.channelTitle === null ? undefined : vRow.channelTitle,
-        uploadDate: vRow.uploadDate === null ? undefined : vRow.uploadDate,
-        position: vRow.position,
-        addedToPlaylistAt: vRow.addedToPlaylistAt,
-      };
-      logger.debug(`[PlaylistManager] getAllVideosForPlaylist - Mapped video[${index}] for playlist ${playlistId}: ${JSON.stringify(video)}`);
-      return video;
-    });
-      return videos;
+    const videos: PlaylistVideo[] = videoRows.map((vRow: any) => ({
+      // Map all properties from vRow (which are snake_case from DB) to PlaylistVideo (snake_case type)
+      id: vRow.id,
+      url: vRow.url,
+      title: vRow.title,
+      channel: vRow.channel === null ? undefined : vRow.channel,
+      duration: vRow.duration === null ? undefined : vRow.duration,
+      thumbnail_url: vRow.thumbnail_url === null ? undefined : vRow.thumbnail_url, // Corrected: use thumbnail_url from vRow
+      description: vRow.description === null ? undefined : vRow.description,
+      channel_title: vRow.channel_title === null ? undefined : vRow.channel_title,
+      upload_date: vRow.upload_date === null ? undefined : vRow.upload_date,
+      is_available: vRow.is_available !== undefined ? vRow.is_available : undefined, // Ensure boolean or undefined
+      is_downloaded: vRow.is_downloaded !== undefined ? vRow.is_downloaded : undefined,
+      local_file_path: vRow.local_file_path === null ? undefined : vRow.local_file_path,
+      download_status: vRow.download_status === null ? undefined : vRow.download_status,
+      download_progress: vRow.download_progress === null ? undefined : vRow.download_progress,
+      last_watched_at: vRow.last_watched_at === null ? undefined : vRow.last_watched_at,
+      watch_progress: vRow.watch_progress === null ? undefined : vRow.watch_progress,
+      added_at: vRow.added_at, // from videos table
+      channel_id: vRow.channel_id === null ? undefined : vRow.channel_id,
+      uploader_id: vRow.uploader_id === null ? undefined : vRow.uploader_id,
+      // PlaylistVideo specific fields from playlist_videos table
+      position: vRow.position, 
+      added_to_playlist_at: vRow.added_to_playlist_at,
+    }));
 
+    return videos;
   } catch (error: any) {
-    logger.error(`[PlaylistManager] Error fetching videos for playlist ${playlistId} in getAllVideosForPlaylist: ${error.message}`);
-    return null;
+    logger.error(`[PlaylistManager] Error fetching videos for playlist ${playlistId}:`, error);
+    return null; // Return null or handle error as appropriate
   }
 }
 
-// REMOVED importPlaylistFromUrl function as it's now in youtube-playlist-service.ts 

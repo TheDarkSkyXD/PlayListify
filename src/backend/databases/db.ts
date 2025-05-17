@@ -89,7 +89,7 @@ function applyMigrations(db: SQLiteDatabase, migrationsPath: string): void {
   }
 }
 
-export function initializeDB(): Database.Database {
+export function initializeDB(): SQLiteDatabase {
   if (dbInstance) {
     logger.info('[DB] Database already initialized.');
     return dbInstance;
@@ -155,11 +155,11 @@ export function initializeDB(): Database.Database {
     // Attempt to create the specific index separately
     if (dbInstance) {
       try {
-        const indexSql = 'CREATE INDEX IF NOT EXISTS idx_playlist_videos_playlistId_position ON playlist_videos (playlistId, position);';
+        const indexSql = 'CREATE INDEX IF NOT EXISTS idx_playlist_videos_playlist_id_position ON playlist_videos (playlist_id, position);';
         dbInstance.exec(indexSql);
-        logger.info('[DB] Successfully created idx_playlist_videos_playlistId_position index.');
+        logger.info('[DB] Successfully created idx_playlist_videos_playlist_id_position index.');
       } catch (indexError: any) {
-        logger.error(`[DB] Error creating idx_playlist_videos_playlistId_position index: ${indexError.message}`);
+        logger.error(`[DB] Error creating idx_playlist_videos_playlist_id_position index: ${indexError.message}`);
         // Decide if this is critical enough to throw. For now, just log.
       }
     }

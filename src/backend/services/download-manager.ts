@@ -148,7 +148,7 @@ export const addItemToQueue = (itemDetails: DownloadAddItemDetails): DownloadQue
     id: downloadId, 
     url: itemDetails.url,
     title: itemDetails.title,
-    thumbnailUrl: itemDetails.thumbnail,
+    thumbnailUrl: itemDetails.thumbnail_url,
     playlistId: itemDetails.playlistId,
     outputPath: itemDetails.outputPath,
     status: 'pending',

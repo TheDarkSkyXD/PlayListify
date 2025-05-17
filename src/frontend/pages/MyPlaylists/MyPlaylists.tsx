@@ -148,10 +148,10 @@ const MyPlaylists: React.FC = () => {
     switch (currentSort) {
       case 'name_asc': return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
       case 'name_desc': return [...filtered].sort((a, b) => b.name.localeCompare(a.name));
-      case 'date_added_newest': return [...filtered].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      case 'date_added_oldest': return [...filtered].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      case 'item_count_most': return [...filtered].sort((a, b) => b.itemCount - a.itemCount);
-      case 'item_count_least': return [...filtered].sort((a, b) => a.itemCount - b.itemCount);
+      case 'date_added_newest': return [...filtered].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case 'date_added_oldest': return [...filtered].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      case 'item_count_most': return [...filtered].sort((a, b) => b.item_count - a.item_count);
+      case 'item_count_least': return [...filtered].sort((a, b) => a.item_count - b.item_count);
       default: return filtered;
     }
   }, [allPlaylists, searchQuery, currentFilterSource, currentSort]);

@@ -85,14 +85,18 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
           </div>
         )}
       </div>
-      <div className="p-4">
-        <h3 className="text-lg font-semibold text-white truncate" title={playlist.name}>{playlist.name}</h3>
-        {playlist.description && (
-          <p className="text-sm text-neutral-400 mt-1 h-10 overflow-hidden text-ellipsis" title={playlist.description}>
-            {playlist.description}
-          </p>
-        )}
-        <div className="mt-2 flex justify-between items-center text-xs text-neutral-400">
+      <div className="p-4 flex flex-col flex-grow">
+        <div className="flex-grow">
+          <h3 className="text-lg font-semibold text-white truncate" title={playlist.name}>{playlist.name}</h3>
+          {playlist.description && (
+            <p className="text-sm text-neutral-400 mt-1 h-10 overflow-hidden text-ellipsis" title={playlist.description}>
+              {playlist.description}
+            </p>
+          )}
+        </div>
+        
+        {/* Combined div for video count (left) and status (right) */}
+        <div className="mt-auto pt-2 flex justify-between items-center text-xs text-neutral-400">
           <span>{playlist.videoCount} video{playlist.videoCount !== 1 ? 's' : ''}</span>
           {status && (
             <span className={`capitalize px-2 py-1 rounded-full text-xs ${status === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-neutral-700'}`}>

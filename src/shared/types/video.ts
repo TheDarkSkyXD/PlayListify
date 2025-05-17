@@ -4,32 +4,32 @@ export interface Video {
   title: string;
   channel?: string; // From schema.sql (e.g. channel ID)
   duration?: number;
-  thumbnail?: string; // Main thumbnail URL (was thumbnailUrl in schema)
+  thumbnail_url?: string; // Main thumbnail URL, now snake_case
   description?: string;
-  channelTitle?: string; // From yt-dlp, often same as channel or uploader (display name)
-  uploadDate?: string; // YYYY-MM-DD format after parsing, or YYYYMMDD from yt-dlp
+  channel_title?: string; // From yt-dlp, often same as channel or uploader (display name)
+  upload_date?: string; // YYYY-MM-DD format after parsing, or YYYYMMDD from yt-dlp
   
   // Fields specific to playlist context (optional here, required in PlaylistVideo)
-  addedToPlaylistAt?: string; // ISO date string, when added to a specific playlist
-  positionInPlaylist?: number; // Position within a specific playlist
+  added_to_playlist_at?: string; // ISO date string, when added to a specific playlist
+  position_in_playlist?: number; // Position within a specific playlist
 
   // Fields from schema.sql for local state management & general video info
-  isAvailable?: boolean;
-  isDownloaded?: boolean;
-  localFilePath?: string | null;
-  downloadStatus?: string | null; 
-  downloadProgress?: number | null; 
-  lastWatchedAt?: string | null; 
-  watchProgress?: number | null; 
-  addedAt?: string; // ISO date string, when first added to the system (videos table)
-  channelId?: string; // Added from schema
-  uploaderId?: string; // Added from schema
+  is_available?: boolean;
+  is_downloaded?: boolean;
+  local_file_path?: string | null;
+  download_status?: string | null; 
+  download_progress?: number | null; 
+  last_watched_at?: string | null; 
+  watch_progress?: number | null; 
+  added_at?: string; // ISO date string, when first added to the system (videos table)
+  channel_id?: string; // Added from schema
+  uploader_id?: string; // Added from schema
 }
 
 // Represents a video specifically within the context of a playlist
 export interface PlaylistVideo extends Video {
-  position: number; // Renamed from positionInPlaylist for clarity in this context
-  addedToPlaylistAt: string; // Non-optional in this context
+  position: number; // Renamed from position_in_playlist for clarity in this context
+  added_to_playlist_at: string; // Non-optional in this context
 }
 
 
@@ -87,25 +87,25 @@ export interface VideoAddDetails {
   id: string;
   title: string;
   url: string;
-  thumbnailUrl?: string;
+  thumbnail_url?: string;
   duration?: number; // seconds
-  channelName?: string;
-  uploadDate?: string; // MM-DD-YYYY MMDDYYYY
+  channel_name?: string;
+  upload_date?: string; // MM-DD-YYYY MMDDYYYY
 }
 
 
 export interface VideoPreviewData {
   id: string;
   title: string;
-  thumbnailUrl: string;
-  channelName: string;
-  channelUrl?: string;
+  thumbnail_url: string;
+  channel_name: string;
+  channel_url?: string;
   duration?: number; // in seconds
-  uploadDate?: string; // MMDDYYYY from yt-dlp, or formatted as MM-DD-YYYY
-  viewCount?: number;
-  likeCount?: number;
+  upload_date?: string; // MMDDYYYY from yt-dlp, or formatted as MM-DD-YYYY
+  view_count?: number;
+  like_count?: number;
   description?: string;
-  webpageUrl: string;
+  webpage_url: string;
 }
 
 // Raw structure from yt-dlp --dump-json for a single video (subset of fields)
