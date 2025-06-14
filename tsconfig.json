@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ES2022",
+    "lib": ["dom", "esnext"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    // "isolatedModules": true, // Temporarily disable to test impact on global declarations and aliases
+    "noEmit": true,
+    "allowJs": true,
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"],
+      "@backend/*": ["src/backend/*"],
+      "@frontend/*": ["src/frontend/*"],
+      "@shared/*": ["src/shared/*"]
+    },
+    "outDir": "./dist"
+  },
+  "include": [
+    "src/**/*.ts", 
+    "src/**/*.tsx", 
+    "electron/**/*.ts", 
+    "tests/**/*.ts", 
+    "tests/**/*.tsx",
+    "src/shared/types/**/*.d.ts"
+  ],
+  "exclude": ["node_modules", ".webpack"]
+} 

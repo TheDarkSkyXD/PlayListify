@@ -1,0 +1,2 @@
+2025-06-13 21:30:48 [LOG]: [Logging] Log file initialized and cleared at: F:\My Github Repos\Open Source Repos\PlayListify\Console Logs\terminallogs.txt
+2025-06-13 21:30:48 [LOG]: [Logging] Console methods overridden.
