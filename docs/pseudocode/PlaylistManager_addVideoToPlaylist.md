@@ -1,83 +1,79 @@
-# Pseudocode: `PlaylistManager.addVideoToPlaylist`
+# Pseudocode for `PlaylistManager.addVideoToPlaylist` (Revised)
 
-**Method:** `addVideoToPlaylist(playlistId: integer, videoId: string): Promise<void>`
+**Objective:** Add a reference to a video to a specific playlist, ensuring atomicity and handling potential duplicate entries gracefully. This revised logic relies on a database-level `UNIQUE` constraint on `(playlist_id, video_id)` to prevent duplicates atomically.
 
-**Description:** Adds a specified video to a specified playlist. It handles validation, ensures the playlist and video exist, and prevents duplicate entries.
+**File:** `PlaylistManager_addVideoToPlaylist.md`
 
----
-
-### **Parameters**
-
--   `playlistId` (integer) -- The unique identifier for the target playlist. Must be a positive integer.
--   `videoId` (string) -- The unique identifier for the video to be added. Must be a non-empty string.
-
-### **Return Value**
-
--   `Promise<void>` -- A promise that resolves when the video has been successfully added to the playlist. It rejects if any validation fails or an error occurs during the process.
-
-### **Exceptions**
-
--   `ArgumentException` -- Thrown if `playlistId` is not a positive integer or if `videoId` is an empty string.
--   `NotFoundException` -- Thrown if the specified `playlistId` or `videoId` does not correspond to an existing record in the database.
--   `ConflictException` -- Thrown if the video already exists in the target playlist, preventing duplicates.
--   `Error` -- Catches and re-throws any other unexpected errors that occur during database interaction.
+**Depends on:**
+- `PlaylistRepository.getPlaylist`
+- `VideoRepository.getVideo`
+- A database adapter with `query` and `run` methods.
+- Custom Error Types-- `InvalidArgumentException`, `NotFoundException`, `ConflictException`, `DatabaseError`.
 
 ---
 
-### **Logic**
+### **Method-- `addVideoToPlaylist(playlistId, videoId)`**
 
-`BEGIN PROMISE(RESOLVE, REJECT)`
+#### **Inputs:**
+- `playlistId` (String)-- The unique identifier for the playlist.
+- `videoId` (String)-- The unique identifier for the video to be added.
 
-    `// 1. Input Validation`
-    `IF playlistId IS NOT a positive integer OR videoId IS NULL OR videoId is an empty string THEN`
-        `REJECT(new ArgumentException("Invalid input: playlistId must be a positive integer and videoId must be a non-empty string."))`
-        `RETURN`
-    `END IF`
+#### **Outputs:**
+- **On Success:** `Promise<void>` that resolves when the video has been successfully added.
+- **On Failure:** `Promise<void>` that rejects with an appropriate error (`InvalidArgumentException`, `NotFoundException`, `ConflictException`, `DatabaseError`).
 
-    `BEGIN TRY`
-        `// 2. Verify Playlist Existence`
-        `// Use the repository to fetch the playlist to confirm it's valid.`
-        `playlist = AWAIT this.playlistRepository.getPlaylist(playlistId)`
-        `IF playlist IS NULL THEN`
-            `REJECT(new NotFoundException("Playlist not found for the given playlistId."))`
-            `RETURN`
-        `END IF`
+---
 
-        `// 3. Verify Video Existence`
-        `// Use the repository to fetch the video to confirm it's valid.`
-        `video = AWAIT this.videoRepository.getVideo(videoId)`
-        `IF video IS NULL THEN`
-            `REJECT(new NotFoundException("Video not found for the given videoId."))`
-            `RETURN`
-        `END IF`
+#### **Core Logic:**
 
-        `// 4. Check for Duplicate Video in Playlist`
-        `// Fetch all videos associated with the playlist to check for duplicates.`
-        `currentVideos = AWAIT this.videoRepository.getVideosForPlaylist(playlistId)`
-        `videoExists = currentVideos.some(v => v.id === videoId)`
-        `IF videoExists IS TRUE THEN`
-            `REJECT(new ConflictException("Video already exists in this playlist."))`
-            `RETURN`
-        `END IF`
+1.  **`RETURN NEW PROMISE`** `(RESOLVE, REJECT)` that encapsulates the entire asynchronous operation.
 
-        `// 5. Determine the Order for the New Video`
-        `// The new video will be placed at the end of the playlist.`
-        `newOrder = currentVideos.length + 1`
+2.  **`BEGIN TRY`** (for the entire operation)
 
-        `// 6. Prepare and Execute the Database INSERT Operation`
-        `sql = "INSERT INTO playlist_videos (playlist_id, video_id, video_order) VALUES (?, ?, ?)"`
-        `params = [playlistId, videoId, newOrder]`
-        `AWAIT this.playlistRepository.db.query(sql, params)`
+3.  **Input Validation:**
+    - `IF` `playlistId` is null, undefined, or an empty string, `THROW` `InvalidArgumentException("playlistId cannot be empty")`.
+    - `IF` `videoId` is null, undefined, or an empty string, `THROW` `InvalidArgumentException("videoId cannot be empty")`.
 
-        `// 7. Operation Successful`
-        `// If the query executes without throwing an error, the operation is successful.`
-        `RESOLVE()`
+4.  **Entity Existence Check:**
+    - `// The following calls will throw a NotFoundException if the entity does not exist,`
+    - `// which will be caught by the main CATCH block.`
+    - `AWAIT` `this.playlistRepository.getPlaylist(playlistId)`.
+    - `AWAIT` `this.videoRepository.getVideo(videoId)`.
 
-    `CATCH error`
-        `// 8. Generic Error Handling`
-        `// Log the error for debugging purposes and reject the promise.`
-        `LOG "Failed to add video to playlist: " + error.message`
-        `REJECT(error)`
-    `END TRY`
+5.  **Determine Insert Order:**
+    - `// This operation should ideally be part of a transaction with the INSERT for perfect atomicity.`
+    - `// For this pseudocode, we accept the minor race condition possibility.`
+    - `orderResult = AWAIT` `this.db.query("SELECT COUNT(*) as videoCount FROM playlist_videos WHERE playlist_id = ?", playlistId)`.
+    - `newOrder = orderResult[0].videoCount`.
 
-`END PROMISE`
+6.  **Prepare and Execute `INSERT` query:**
+    - `// The "order" column is quoted to avoid conflicts with SQL reserved keywords.`
+    - `sql = "INSERT INTO playlist_videos (playlist_id, video_id, \"order\") VALUES (?, ?, ?)"`.
+    - `params = [playlistId, videoId, newOrder]`.
+    - `AWAIT` `this.db.run(sql, params)`.
+
+7.  **Success:**
+    - `LOG` "Successfully added video `{videoId}` to playlist `{playlistId}`".
+    - `RESOLVE()` the promise.
+
+8.  **`END TRY`**
+
+9.  **`BEGIN CATCH (error)`**
+    - `SWITCH (error.type)`:
+        - `CASE UniqueConstraintViolation`:
+            - `REJECT` with `ConflictException("Video with ID '{videoId}' is already in playlist '{playlistId}'.")`.
+            - `BREAK`.
+        - `CASE InvalidArgumentException`:
+        - `CASE NotFoundException`:
+            - `// Re-throw the original, specific error.`
+            - `REJECT(error)`.
+            - `BREAK`.
+        - `DEFAULT`:
+            - `// Catches any other database or unexpected errors.`
+            - `LOG_ERROR` "Failed to add video to playlist due to an unexpected error: " + `error.message`.
+            - `REJECT` with `DatabaseError("An unexpected database error occurred while adding the video.")`.
+            - `BREAK`.
+    - `END SWITCH`
+10. **`END CATCH`**
+
+11. **`END PROMISE`**

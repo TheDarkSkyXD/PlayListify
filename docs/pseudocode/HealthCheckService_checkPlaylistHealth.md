@@ -12,6 +12,8 @@ This method checks the availability of all videos in a specified playlist, updat
 -   `this.youtubeService`-- An instance of `YoutubeService` to fetch live video metadata.
 -   `PromisePool`-- A conceptual class or library for managing concurrent asynchronous operations.
 -   `ArgumentException`-- Custom exception for invalid arguments.
+-   `NotFoundException`-- Custom exception for when a resource is not found.
+-   `AccessDeniedException`-- Custom exception for permission-related errors.
 
 ---
 
@@ -67,19 +69,33 @@ This method checks the availability of all videos in a specified playlist, updat
             `END IF`
 
           `} CATCH (videoError) {`
-            `// 5c. Handle errors during individual video check (e.g., video deleted, private)`
+            `// 5c. Handle errors with nuance`
             `LOG_ERROR "Error checking video ${video.id}: ${videoError.message}"`
-            
-            `// Determine the new status based on the error`
-            `failureStatus = "UNAVAILABLE" // Or derive from videoError if possible`
 
-            `// Update the database with the failure status`
-            `IF video.availabilityStatus IS NOT EQUAL TO failureStatus THEN`
-                 `AWAIT this.videoRepository.updateVideo({`
-                    `id: video.id,`
-                    `availabilityStatus: failureStatus`
-                 `})`
-                 `LOG "Updated video ${video.id} status to '${failureStatus}' due to an error."`
+            `failureStatus = NULL`
+
+            `IF videoError INSTANCEOF NotFoundException THEN`
+              `// This is a permanent error.`
+              `failureStatus = "UNAVAILABLE"`
+            `ELSE IF videoError INSTANCEOF AccessDeniedException THEN`
+              `// This is a permanent error.`
+              `failureStatus = "PRIVATE"`
+            `ELSE`
+              `// This is likely a transient error (e.g., network timeout, API rate limit).`
+              `// Log the error for debugging, but do not update the video's status.`
+              `// The video will be re-checked during the next scheduled health check.`
+              `LOG "Skipping status update for video ${video.id} due to a transient error."`
+              `// End this specific task, allowing the promise pool to continue with the next video.`
+              `RETURN`
+            `END IF`
+
+            `// 5d. Update database only for permanent failures if the status has changed.`
+            `IF failureStatus IS NOT NULL AND video.availabilityStatus IS NOT EQUAL TO failureStatus THEN`
+              `AWAIT this.videoRepository.updateVideo({`
+                `id: video.id,`
+                `availabilityStatus: failureStatus`
+              `})`
+              `LOG "Updated video ${video.id} status to '${failureStatus}' due to a permanent error."`
             `END IF`
           `}`
         `})`

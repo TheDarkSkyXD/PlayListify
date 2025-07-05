@@ -8,7 +8,7 @@ This document provides the detailed pseudocode for the `deleteVideo` method in t
 
 ## Description
 
-Deletes a video record from the database, ensuring all associated entries in the `playlist_videos` join table are also removed to maintain data integrity. The operation is performed within a transaction.
+Deletes a video record from the database by its ID. The operation is performed within a single atomic transaction. It first removes any associations in the `playlist_videos` join table and then deletes the video from the `videos` table. If no video with the specified ID is found, the operation fails and a `NotFoundException` is thrown.
 
 ## Parameters
 
@@ -28,7 +28,7 @@ Deletes a video record from the database, ensuring all associated entries in the
 
 ## Pseudocode
 
-```
+```plaintext
 CLASS VideoRepository
 
   METHOD deleteVideo(id)
@@ -39,49 +39,42 @@ CLASS VideoRepository
         RETURN
       END IF
 
-      -- 2. Database Deletion Logic
+      -- 2. Database Deletion Logic within a Transaction
       TRY
-        -- 2.1. Check for video existence before attempting deletion
-        -- This leverages the existing getVideo method to ensure we're not trying to delete a non-existent record.
-        AWAIT this.getVideo(id)
-          -- If getVideo resolves, the video exists.
-          -- If getVideo rejects with NotFoundException, the CATCH block below will handle it.
+        AWAIT this.db.transaction(ASYNC () => {
+          -- 2a. Define SQL queries
+          DEFINE sql_delete_associations = "DELETE FROM playlist_videos WHERE video_id = ?"
+          DEFINE sql_delete_video = "DELETE FROM videos WHERE id = ?"
 
-        -- 2.2. Begin a transaction to ensure atomicity
-        -- Note: The underlying db adapter is assumed to handle the transaction logic.
-        -- We represent it here conceptually.
-        AWAIT this.db.beginTransaction()
+          -- 2b. Execute deletion from the join table first to maintain referential integrity.
+          -- This step does not need to check for affected rows, as it's okay if there are no associations.
+          AWAIT this.db.query(sql_delete_associations, [id])
 
-        -- 2.3. Define SQL queries
-        sql_delete_associations = "DELETE FROM playlist_videos WHERE video_id = ?"
-        sql_delete_video = "DELETE FROM videos WHERE id = ?"
+          -- 2c. Execute deletion from the main videos table and get the result.
+          DEFINE result = AWAIT this.db.query(sql_delete_video, [id])
 
-        -- 2.4. Execute deletion from the join table first to maintain referential integrity
-        AWAIT this.db.query(sql_delete_associations, [id])
+          -- 2d. Check if the video was actually deleted.
+          -- The database driver should return a result object with a `changes` or `affectedRows` property.
+          IF result.changes == 0 THEN
+            -- If no rows were changed, the video did not exist.
+            -- Throwing an error here will cause the transaction to roll back automatically.
+            THROW new NotFoundException("Video not found.")
+          END IF
+        }) -- The transaction method automatically commits on success or rolls back on error.
 
-        -- 2.5. Execute deletion from the main videos table
-        AWAIT this.db.query(sql_delete_video, [id])
-
-        -- 2.6. Commit the transaction if all queries succeed
-        AWAIT this.db.commitTransaction()
-
-        -- 2.7. Resolve the promise indicating success
+        -- 2.3. If the transaction is successful, resolve the promise.
         RESOLVE()
 
       CATCH error
         -- 3. Error Handling
-        -- 3.1. Rollback the transaction on any error
-        AWAIT this.db.rollbackTransaction()
+        LOG "Error in deleteVideo-- " + error.message
 
-        -- 3.2. Log the specific error for debugging purposes
-        LOG "Error in deleteVideo: " + error.message
-
-        -- 3.3. Check if the error is a known NotFoundException from getVideo
+        -- 3.1. Check if the error is the one we threw for a non-existent video.
         IF error IS INSTANCEOF NotFoundException THEN
             REJECT(new NotFoundException("Video with id '" + id + "' not found."))
         ELSE
-            -- 3.4. For all other errors (e.g., database connection issues), reject with the original error.
-            REJECT(error)
+            -- 3.2. For all other errors (e.g., database connection issues), wrap in a generic database error.
+            REJECT(new DatabaseError("Failed to delete video. Reason-- " + error.message))
         END IF
       END TRY
 

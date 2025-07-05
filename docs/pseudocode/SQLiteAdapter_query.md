@@ -2,7 +2,7 @@
 
 **Method Signature:** `query(sql: string, params: any[]): Promise<any[]>`
 
-**Description:** Executes a given SQL query with optional parameters and returns the results. This method is asynchronous and ensures proper resource management and error handling.
+**Description:** Executes a given SQL query with optional parameters and returns the results. It implements a retry mechanism for connection-related failures.
 
 ---
 
@@ -11,6 +11,7 @@
   **PROMISE**(resolve, reject)
 
     **DECLARE** `statement` = `null`
+    **DECLARE** `retryAttempted` = `FALSE`
 
     // 1. **Input Validation**
     //    Ensure the SQL query string is valid before proceeding.
@@ -20,52 +21,73 @@
       **RETURN**
     **END IF**
 
-    // 2. **Database Connection Check**
-    //    Verify that the database connection is active.
-    **CALL** `CHECK_DATABASE_CONNECTION()`
-    // This helper function is expected to throw an error if the connection is not available,
-    // which will be caught by the main CATCH block.
+    **FUNCTION** `executeQuery`()
+      **TRY**
+        // 2. **Execution Logic**
+        `LOG("Executing query-- " + sql, "INFO")`
 
-    **TRY**
-      // 3. **Execution Logic**
-      `LOG("Executing query-- " + sql, "INFO")`
+        // 2.1. **Prepare the Statement**
+        `statement` = `PREPARE_STATEMENT(self.db, sql)`
 
-      // 3.1. **Prepare the Statement**
-      //      Create a prepared statement from the SQL string to prevent SQL injection.
-      `statement` = `PREPARE_STATEMENT(self.db, sql)`
+        // 2.2. **Bind Parameters**
+        **IF** `params` exists AND has items **THEN**
+          `BIND_PARAMETERS(statement, params)`
+        **END IF**
 
-      // 3.2. **Bind Parameters**
-      //      Bind the provided parameters to the prepared statement.
-      **IF** `params` exists AND has items **THEN**
-        `BIND_PARAMETERS(statement, params)`
-      **END IF**
+        // 2.3. **Execute the Statement**
+        `raw_result` = `EXECUTE_STATEMENT(statement)`
 
-      // 3.3. **Execute the Statement**
-      //      Run the prepared statement against the database.
-      `raw_result` = `EXECUTE_STATEMENT(statement)`
+        // 2.4. **Process the Result**
+        `processed_result` = `PROCESS_RESULT(raw_result)`
 
-      // 3.4. **Process the Result**
-      //      Convert the raw database result into a clean array of objects.
-      `processed_result` = `PROCESS_RESULT(raw_result)`
+        // 2.5. **Resolve the Promise**
+        `RESOLVE(processed_result)`
 
-      // 3.5. **Resolve the Promise**
-      //      Return the final result to the caller.
-      `RESOLVE(processed_result)`
+      **CATCH** `error`
+        // 3. **Error Handling & Retry Logic**
+        `LOG("Query failed-- " + error.message, "WARN")`
 
-    **CATCH** `error`
-      // 4. **Error Handling**
-      //    If any step in the TRY block fails, log the error and reject the promise.
-      `LOG("Failed to execute query-- " + error.message, "ERROR")`
-      `REJECT(error)`
+        // 3.1. **Check if Error is Connection-Related and if Retry is Possible**
+        **IF** `IS_CONNECTION_ERROR(error)` AND `retryAttempted` is `FALSE` **THEN**
+          `LOG("Connection error detected. Attempting to reconnect and retry.", "WARN")`
+          `retryAttempted` = `TRUE`
 
-    **FINALLY**
-      // 5. **Resource Cleanup**
-      //    Ensure the prepared statement is always finalized to free up resources,
-      //    preventing memory leaks.
-      **IF** `statement` is not `null` **THEN**
-        `FINALIZE_STATEMENT(statement)`
-        `LOG("Statement finalized.", "DEBUG")`
-      **END IF**
+          **TRY**
+            // 3.1.1. **Attempt Reconnection**
+            `CALL` `CHECK_DATABASE_CONNECTION()` // This will throw if it fails
+            `LOG("Reconnection successful. Retrying query.", "INFO")`
+
+            // 3.1.2. **Retry the Query**
+            // Clear previous statement before retrying
+            **IF** `statement` is not `null` **THEN**
+              `FINALIZE_STATEMENT(statement)`
+              `statement` = `null`
+            **END IF**
+            `executeQuery()` // Recursive call to retry
+          **CATCH** `reconnectError`
+            // 3.1.3. **Handle Reconnection Failure**
+            `LOG("Failed to reconnect-- " + reconnectError.message, "ERROR")`
+            `REJECT(reconnectError)` // Reject with the reconnection error
+          **END TRY**
+
+        **ELSE**
+          // 3.2. **Handle Non-Connection Error or Failed Retry**
+          `LOG("Failed to execute query (non-recoverable)-- " + error.message, "ERROR")`
+          `REJECT(error)`
+        **END IF**
+
+      **FINALLY**
+        // 4. **Resource Cleanup**
+        //    Ensure the prepared statement is always finalized if it exists.
+        **IF** `statement` is not `null` **THEN**
+          `FINALIZE_STATEMENT(statement)`
+          `LOG("Statement finalized.", "DEBUG")`
+        **END IF**
+
+    **END FUNCTION** `executeQuery`
+
+    // Initial execution
+    `executeQuery()`
 
   **END PROMISE**
 
@@ -75,7 +97,8 @@
 
 ### Helper Functions Used--
 
--   `CHECK_DATABASE_CONNECTION()`: Verifies the database is connected.
+-   `IS_CONNECTION_ERROR(error)`: Checks if an error object indicates a database connection issue (e.g., `SQLITE_BUSY`, `SQLITE_IOERR`).
+-   `CHECK_DATABASE_CONNECTION()`: Verifies and re-establishes the database connection if needed.
 -   `LOG(message, level)`: Logs messages for debugging and monitoring.
 -   `PREPARE_STATEMENT(db, sql)`: Creates a prepared SQL statement.
 -   `BIND_PARAMETERS(statement, params)`: Binds parameters to the statement.

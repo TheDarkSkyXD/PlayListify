@@ -3,7 +3,7 @@
 ## Method-- CHECK_DATABASE_CONNECTION
 
 ### Description
-Checks if the database connection is active. If the connection is lost, it attempts to reconnect using a retry mechanism with exponential backoff.
+Ensures the database connection is active by performing a lightweight "ping" query. If the connection is lost, it attempts to reconnect using a retry mechanism with exponential backoff.
 
 ### Parameters
 - None
@@ -12,7 +12,7 @@ Checks if the database connection is active. If the connection is lost, it attem
 - `void`
 
 ### Throws
-- `DatabaseConnectionError`-- If reconnection fails after all retry attempts.
+- `DatabaseConnectionError`-- If the connection check or reconnection fails after all retry attempts.
 
 ### Class Properties Used
 - `db`-- The database connection object.
@@ -23,6 +23,7 @@ Checks if the database connection is active. If the connection is lost, it attem
 
 ### Helper Functions Used
 - `LOG(message, level)`-- For logging information.
+- `EXECUTE_PING_QUERY(db)`-- Executes a simple, fast query like `SELECT 1`.
 - `CONNECT_TO_DATABASE(dbPath)`-- To establish a new database connection.
 - `CALCULATE_BACKOFF_TIME(retries, intervalMs)`-- To calculate the wait time for the next retry.
 - `MANAGE_TIMER(timerId, action, callback, delayMs)`-- To wait for a specified duration (simulating a sleep/delay).
@@ -33,15 +34,21 @@ Checks if the database connection is active. If the connection is lost, it attem
 
 1.  **START METHOD `CHECK_DATABASE_CONNECTION`**
 
-2.  **Check Initial Connection Status**
-    -   `LOG("Checking database connection status.", "INFO")`
-    -   IF `this.isConnected` is `true` THEN
-        -   `LOG("Database is already connected.", "INFO")`
-        -   **RETURN**
+2.  **Verify Connection with a Ping Query**
+    - `LOG("Verifying database connection with a ping query.", "INFO")`
+    - **TRY**
+        - `EXECUTE_PING_QUERY(this.db)`
+        - `LOG("Connection is alive.", "INFO")`
+        - SET `this.isConnected` = `true`
+        - **RETURN** // Connection is healthy, no further action needed.
+    - **CATCH** `pingError`
+        - `LOG("Ping query failed. Connection may be stale. Error: " + pingError.message, "WARN")`
+        - SET `this.isConnected` = `false`
+        - // Proceed to reconnection logic below.
 
 3.  **Initialize Reconnection Loop**
-    -   `LOG("Database is not connected. Attempting to reconnect...", "WARN")`
-    -   DECLARE `retries` = 0
+    - `LOG("Attempting to reconnect to the database...", "WARN")`
+    - DECLARE `retries` = 0
 
 4.  **BEGIN a loop** that continues as long as `retries` < `this.maxRetries`.
 

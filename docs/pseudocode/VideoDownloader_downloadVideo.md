@@ -70,7 +70,22 @@ This document outlines the detailed, language-agnostic pseudocode for the `downl
   `// -- 1. Update Task Status to In Progress`
   `AWAIT this.backgroundTaskRepository.updateTaskStatus(task.id, "IN_PROGRESS")`
 
-  `// -- 2. Perform Download`
+  `// -- 2. Determine Download Quality with Fallback Logic (Constraint)`
+  `availableQualities = videoMetadata.availableQualities`
+  `requestedQuality = task.details.quality`
+  `chosenQuality = NULL`
+
+  `IF requestedQuality IS IN availableQualities THEN`
+    `chosenQuality = requestedQuality`
+  `ELSE`
+    `LOG_WARNING("Requested quality '" + requestedQuality + "' not available. Falling back to best available quality.")`
+    `// Sort qualities numerically descending (e.g., 1080, 720, 480). Assumes 'p' suffix.`
+    `sortedQualities = SORT(availableQualities, 'numeric-desc')`
+    `chosenQuality = sortedQualities[0]`
+    `LOG_INFO("Fallback quality selected: '" + chosenQuality + "'")`
+  `END IF`
+
+  `// -- 3. Perform Download`
   `// This section represents the interaction with an external download library (e.g., yt-dlp-wrap)`
 
   `// -- Sanitize filename to prevent path issues (FR.3.2.5)`
@@ -83,7 +98,7 @@ This document outlines the detailed, language-agnostic pseudocode for the `downl
   `}, 500) // Execute at most once every 500ms`
 
   `downloadOptions = {`
-    `quality: task.details.quality,`
+    `quality: chosenQuality, // -- Use the determined quality`
     `format: task.details.format,`
     `output: finalFilePath,`
     `includeSubtitles: task.details.includeSubtitles,`
@@ -91,24 +106,24 @@ This document outlines the detailed, language-agnostic pseudocode for the `downl
   `}`
 
   `// -- Await the completion of the external download process`
-  `downloadResult = AWAIT EXTERNAL_DOWNLOAD_LIBRARY(videoMetadata.id, downloadOptions)`
+  `AWAIT EXTERNAL_DOWNLOAD_LIBRARY(videoMetadata.id, downloadOptions)`
 
-  `// -- 3. Embed Thumbnail into the downloaded file (FR.3.2.6)`
+  `// -- 4. Embed Thumbnail into the downloaded file (FR.3.2.6)`
   `IF videoMetadata.thumbnailUrl IS NOT NULL THEN`
     `AWAIT EMBED_THUMBNAIL(finalFilePath, videoMetadata.thumbnailUrl)`
   `END IF`
 
-  `// -- 4. Update Video Record in Database`
-  `// The video entry is updated with the final path and downloaded status.`
+  `// -- 5. Update Video Record in Database`
+  `// The video entry is updated with the final path, downloaded status, and actual quality.`
   `updatePayload = {`
     `status: "DOWNLOADED",`
     `filePath: finalFilePath,`
     `downloadedAt: CURRENT_TIMESTAMP(),`
-    `downloadedQuality: downloadResult.quality`
+    `downloadedQuality: chosenQuality // -- Reflect the actual downloaded quality`
   `}`
   `AWAIT this.videoRepository.updateVideo(videoMetadata.id, updatePayload)`
 
-  `// -- 5. Final Status Update on Success`
+  `// -- 6. Final Status Update on Success`
   `AWAIT this.backgroundTaskRepository.updateTaskStatus(task.id, "COMPLETED")`
 
 `} CATCH (downloadError) {`
