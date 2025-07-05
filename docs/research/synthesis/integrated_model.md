@@ -1,42 +1,46 @@
-# An Integrated Model for a Persistent Backend Task Service
+# Synthesis: An Integrated Model for the Playlistify Application
 
-*This document synthesizes the findings from all research arcs into a single, coherent architectural model for the "Playlistify" persistent backend task management service.*
+This document presents a cohesive architectural model for the Playlistify application, synthesizing the key findings from all three research arcs: Local Media Library Management, Robust Video Downloading, and Secure API Integration.
 
-## 1. Core Components
+## Core Architectural Principles
 
-The integrated model consists of three core components that work together:
+1.  **Decoupled & Database-Driven:** The application's architecture is fundamentally database-driven. The SQLite database is the single source of truth for all metadata, state, and relationships. The file system is treated as a simple, content-addressable blob store, completely decoupled from the application's logical data structure.
+2.  **Secure by Default:** The architecture prioritizes security by embracing modern Electron patterns. It establishes a hard boundary between the privileged main process and the unprivileged renderer process, communicating only through a strictly-defined, type-safe API exposed via the Context Bridge. All sensitive data is encrypted at rest using the operating system's native credential vault.
+3.  **Optimized for Common Operations:** Design choices are optimized for the most frequent user actions (reading/querying data) while providing robust, transactional integrity for less frequent but critical write operations (importing/downloading).
 
-1.  **The Task Database (`tasks.db`):** A single SQLite database file that acts as the persistent, single source of truth for all task-related information.
-2.  **The Task Service (`BackgroundTaskService.ts`):** A backend service that encapsulates all logic for interacting with the task database. It is the only component that directly queries or modifies the database.
-3.  **The Task Queue (`p-queue`):** An in-memory queue that controls the concurrency of I/O-bound task execution.
+## The Integrated Model
 
-## 2. The Task Lifecycle & State Machine
+### 1. The Backend (Main Process)
 
-The system is modeled as a transactional state machine, driven by changes to the `status` field in the `tasks` table.
+The backend is the core of the application, responsible for all business logic, data persistence, and interaction with external services.
 
-1.  **Creation (`QUEUED`):** A new task is created by inserting a row into the `tasks` table with a `status` of `QUEUED`. This is an atomic operation and serves as the "journal entry" for the task.
-2.  **Execution (`RUNNING`):** The Task Queue dequeues a task and, in a single `IMMEDIATE` transaction, updates its status to `RUNNING`. This atomic update acts as a lock, preventing other workers from picking up the same task.
-3.  **Progress Updates:** During execution, non-critical progress updates are sent to the Task Service. The service can use a **hybrid caching** strategy: batching these updates and flushing them to the database periodically in a single transaction to reduce disk I/O.
-4.  **Completion (`COMPLETED` / `FAILED`):** Upon completion, the worker notifies the Task Service, which atomically updates the task's status to its terminal state (`COMPLETED` or `FAILED`) and logs the result or error.
+*   **Data Layer (`better-sqlite3`):**
+    *   A single SQLite database file manages all application metadata (playlists, videos, settings, download queue).
+    *   The schema uses a junction table (`playlist_videos`) to manage the many-to-many relationship between playlists and videos.
+    *   The database connection is always initialized with `PRAGMA foreign_keys = ON;`.
+    *   A dedicated migration library (e.g., `node-pg-migrate`) manages all schema changes automatically on application startup.
 
-## 3. Resilience and Recovery Model
+*   **Services Layer:**
+    *   **`PlaylistService`:** Manages all CRUD operations for playlists and videos, wrapping bulk operations in database transactions for performance.
+    *   **`DownloadService`:** Orchestrates the download process. It uses `p-queue` to manage a priority-based download queue and executes `yt-dlp` via `yt-dlp-wrap` for the actual downloading and metadata embedding.
+    *   **`SettingsService`:** Manages user settings via `electron-store`. It uses Electron's `safeStorage` API to encrypt and decrypt any sensitive data (like OAuth tokens) before storing it.
+    *   **`AuthService`:** Handles the OAuth 2.0 flow for authenticating with the YouTube API.
 
-The system's resilience is built on several layers:
+*   **IPC Layer:**
+    *   A secure API is exposed to the renderer process via the `preload.ts` script and `contextBridge`. This API is strictly typed and does not expose any Node.js or Electron primitives.
+    *   All incoming requests from the renderer are handled by dedicated IPC handlers that call the appropriate service methods.
 
-1.  **Database-Level Resilience:**
-    *   **WAL Mode:** The SQLite database **must** be configured to use Write-Ahead Logging (`PRAGMA journal_mode = WAL;`) to allow the UI to read the database while background tasks are writing to it.
-    *   **Busy Timeout:** The database connection **must** be configured with a busy timeout (e.g., 5000ms) to gracefully handle transient database locks without throwing immediate `SQLITE_BUSY` errors.
-2.  **Application-Level Recovery:**
-    *   **State-Driven Recovery:** On application startup, the Task Service **must** query the database for any tasks left in a `RUNNING` state. These tasks are considered interrupted.
-    *   **Safe Re-queue:** Interrupted tasks should be atomically updated back to `QUEUED` to be processed again.
-    *   **Idempotency:** To ensure that re-queued tasks do not cause duplicate work, all task execution logic **must** be idempotent. This is achieved by having the worker check a separate `processed_task_ids` table before executing its core logic (the "Idempotent Consumer" pattern).
-    *   **Checkpointing:** For long-running, divisible tasks like large file downloads, the task should periodically save its progress (e.g., bytes downloaded) to the `details` JSON blob. The recovery logic can then use this checkpoint to resume the task from where it left off.
+### 2. The Frontend (Renderer Process)
 
-## 4. Concurrency and Dependency Model
+The frontend is responsible for the user interface and user interaction.
 
-1.  **Concurrency Control:** Task concurrency is managed by the `p-queue` instance. This is appropriate for the I/O-bound nature of the tasks (downloads, database writes) and does not require the complexity of `worker_threads`.
-2.  **Dependency Management:**
-    *   **Schema:** Parent-child relationships are managed via a `parentId` column in the `tasks` table.
-    *   **Validation:** Circular dependencies **must** be checked at the application layer using a Depth-First Search (DFS) graph traversal *before* a new dependency is committed to the database.
+*   **UI Layer (`React`):** A standard React application for rendering the UI components.
+*   **State Management (`React Query` & `Zustand`):**
+    *   `React Query` is the primary mechanism for fetching, caching, and synchronizing server state from the backend. It handles loading, error, and success states for all data-related operations.
+    *   `Zustand` is used for managing purely client-side UI state that does not need to be persisted (e.g., the state of a modal dialog).
+*   **Communication:** The frontend communicates with the backend exclusively through the `window.electronAPI` object exposed by the preload script. It has no direct access to `ipcRenderer` or the file system.
 
-This integrated model provides a robust, resilient, and performant foundation for the "Playlistify" backend task management service, aligning with the findings from all three research arcs.
+### 3. The File System
+
+*   **Application Data:** The SQLite database file, `electron-store` settings file, and logs are stored in the user's application data directory (`app.getPath('userData')`).
+*   **Media Storage:** Downloaded media files are stored in a user-configurable location. Within this location, a performance-optimized, hashed directory structure (e.g., `.../media/d7/f5/`) is used for the physical storage of files, preventing file system bottlenecks. The database maps the logical playlist structure to these physical file paths.

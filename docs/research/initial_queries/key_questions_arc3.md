@@ -1,19 +1,21 @@
-# Key Research Questions: Arc 3 - Concurrency, Dependencies, and Scalability
+# Arc 3: Key Questions for Secure API Integration & Settings
 
-This document outlines the central questions for Arc 3. This research arc investigates the challenges of running multiple tasks concurrently, managing relationships between them, and ensuring the system performs well as the number of tasks grows, all within the constraints of a local SQLite database.
+This research arc focuses on the secure handling of user data, API credentials, and the communication pathways within the Electron application.
 
-### Core Questions:
+1.  **Settings & Credential Management (`electron-store`):**
+    *   What are the best practices for securely storing sensitive data, such as OAuth refresh tokens for the YouTube API, using `electron-store`? Should encryption be used, and if so, how should the encryption key be managed?
+    *   How should the application structure its settings schema to be both flexible for future additions and type-safe?
+    *   What is a robust strategy for handling settings migrations if the schema changes in a future application update?
+    *   Where should `electron-store` save its data to ensure it persists correctly across application updates and is compliant with OS-specific guidelines (e.g., AppData on Windows, Application Support on macOS)?
 
-1.  **Concurrency Models:** What are the common models for managing concurrency in a multi-tasking desktop application environment?
-    *   *Sub-question:* Compare the implementation, performance, and complexity of using a job queue (like `p-queue`) with dedicated worker threads (`worker_threads` in Node.js) for processing background tasks.
+2.  **YouTube API Integration (`googleapis`):**
+    *   What is the most secure and user-friendly OAuth 2.0 flow for a desktop Electron application to get permission to access a user's YouTube playlists?
+    *   How can the application efficiently use the YouTube Data API v3 to fetch playlist data while respecting API quotas and minimizing costs? What are the best practices for using `fields` parameters and caching responses?
+    *   What is the proper way to handle token expiration and refreshing using the `googleapis` library in a long-running desktop application?
+    *   How should the application handle API errors gracefully, such as quota exceeded, permission denied, or playlist not found?
 
-2.  **Task Dependencies:** How can the system efficiently manage and enforce complex parent-child task dependencies?
-    *   *Sub-question:* What are the database schema and query patterns required to ensure a child task cannot run before its parent is in a specific state?
-    *   *Sub-question:* How should the system handle the failure of a parent task? Should child tasks be automatically canceled?
-
-3.  **Circular Dependency Detection:** What are the standard algorithms for detecting and preventing circular dependencies when establishing or modifying task relationships (e.g., preventing Task A from depending on Task B if Task B already depends on Task A)?
-    *   *Sub-question:* Should this validation occur at the application layer before a database write, or can it be enforced with database constraints?
-
-4.  **SQLite Performance & Bottlenecks:** What are the known performance considerations and potential bottlenecks for a task management system built on SQLite, and how can they be mitigated?
-    *   *Sub-question:* How does high-frequency writing (e.g., constant progress updates) impact database performance, and what is the role of WAL (Write-Ahead Logging) mode in mitigating this?
-    *   *Sub-question:* What are the best practices for transaction management to ensure both data integrity and high throughput?
+3.  **Secure Inter-Process Communication (IPC):**
+    *   What are the most current and secure patterns for exposing backend functionality to the frontend renderer process in Electron, using a `preload.ts` script?
+    *   How can a type-safe IPC contract be established and maintained between the frontend and backend to prevent runtime errors and improve developer experience?
+    *   What specific validation should be performed in the main process on all data received from the renderer process via IPC channels to prevent security vulnerabilities?
+    *   How can the application provide granular, context-aware feedback to the user (e.g., toasts, modals) based on the success or failure of an IPC operation?

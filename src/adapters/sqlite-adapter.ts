@@ -1,81 +1,84 @@
 ﻿// src/adapters/sqlite-adapter.ts
 
-import sqlite3 from 'sqlite3';
+import Database, { RunResult } from 'better-sqlite3';
 import fs from 'fs';
 import { DatabaseConnectionError, SchemaExecutionError, DatabaseError } from '../shared/errors';
 
-export class SQLiteAdapter {
-    public db: sqlite3.Database;
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    constructor(dbOrPath: string | sqlite3.Database) {
-        if (typeof dbOrPath === 'string') {
-            this.db = new sqlite3.Database(dbOrPath, (err) => {
-                if (err) {
-                    throw new DatabaseConnectionError(`Failed to connect to database: ${err.message}`);
-                }
-            });
-        } else {
-            this.db = dbOrPath;
+export class SQLiteAdapter {
+    public db: Database;
+    private readonly maxRetries = 3;
+    private readonly retryDelay = 50;
+
+    constructor(dbOrPath: string | Database) {
+        try {
+            if (typeof dbOrPath === 'string') {
+                this.db = new (Database as any)(dbOrPath);
+            } else {
+                this.db = dbOrPath;
+            }
+            this.db.pragma('journal_mode = WAL');
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            throw new DatabaseConnectionError(`Failed to connect to database: ${message}`);
         }
     }
 
-    public initializeSchema(callback: (error?: Error) => void): void {
+    public initializeSchema(): void {
         const schemaPath = './schema/database_schema.sql';
         try {
             if (fs.existsSync(schemaPath)) {
                 const schema = fs.readFileSync(schemaPath, 'utf8');
-                this.db.exec(schema, (err) => {
-                    if (err) {
-                        callback(new SchemaExecutionError(`Failed to execute schema: ${err.message}`));
-                    } else {
-                        callback();
-                    }
-                });
-            } else {
-                callback(); // No schema file, so nothing to do.
+                this.db.exec(schema);
             }
         } catch (error) {
-            if (error instanceof Error) {
-                callback(new SchemaExecutionError(`Failed to execute schema: ${error.message}`));
-            } else {
-                callback(new SchemaExecutionError('An unknown error occurred during schema execution.'));
+            const message = error instanceof Error ? error.message : String(error);
+            throw new SchemaExecutionError(`Failed to execute schema: ${message}`);
+        }
+    }
+
+    private async _executeWithRetries<T>(operation: () => T): Promise<T> {
+        let attempts = 0;
+        while (true) {
+            try {
+                return operation();
+            } catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
+                if ((message.includes('SQLITE_BUSY') || message.includes('SQLITE_LOCKED')) && attempts < this.maxRetries) {
+                    attempts++;
+                    await delay(this.retryDelay);
+                } else {
+                    throw err;
+                }
             }
         }
     }
 
-    public query(sql: string, params: any[] = []): Promise<any[]> {
-        return new Promise((resolve, reject) => {
-            this.db.all(sql, params, (err, rows) => {
-                if (err) {
-                    reject(new DatabaseError(`Query failed: ${err.message}`));
-                } else {
-                    resolve(rows);
-                }
-            });
-        });
+    public async query<T>(sql: string, params: any[] = []): Promise<T[]> {
+        const operation = () => this.db.prepare(sql).all(...params) as T[];
+        return this._executeWithRetries(operation);
     }
 
-    public run(sql: string, params: any[] = []): Promise<{ changes: number, lastID: number }> {
-        return new Promise((resolve, reject) => {
-            this.db.run(sql, params, function (err) {
-                if (err) {
-                    reject(new DatabaseError(`Execution failed: ${err.message}`));
-                } else {
-                    resolve({ changes: this.changes, lastID: this.lastID });
-                }
-            });
-        });
+    public async run(sql: string, params: any[] = []): Promise<RunResult> {
+        const operation = () => this.db.prepare(sql).run(...params);
+        return this._executeWithRetries(operation);
     }
 
-    public close(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.db.close((err) => {
-                if (err) {
-                    reject(new DatabaseConnectionError(`Failed to close database: ${err.message}`));
-                } else {
-                    resolve();
-                }
-            });
-        });
+    public transaction<T>(action: () => T): T {
+        if (this.db.inTransaction) {
+            return action();
+        }
+        const transaction = this.db.transaction(action);
+        return transaction();
+    }
+    
+    public close(): void {
+        try {
+            this.db.close();
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            throw new DatabaseConnectionError(`Failed to close database: ${message}`);
+        }
     }
 }

@@ -47,11 +47,11 @@ mkdir -p docs
 ```
 
 ### Completed Setup Tasks
-- [x] Project initialization with Electron Forge
-- [x] TypeScript configuration
-- [x] Webpack configuration for backend and frontend processes
+- [ ] Project initialization with Electron Forge
+- [ ] TypeScript configuration
+- [ ] Webpack configuration for backend and frontend processes
 - [ ] PostCSS and Tailwind CSS setup
-- [x] Basic project structure creation
+- [ ] Basic project structure creation
 - [ ] TypeScript declarations for webpack entries
 - [ ] License update to AGPL-3.0
 - [ ] Settings management with electron-store
@@ -62,20 +62,20 @@ mkdir -p docs
 
 ### Current Progress
 1. **Project Structure**
-   - [x] Basic directory structure
-   - [x] Configuration files setup
-   - [x] Build system configuration
+   - [ ] Basic directory structure
+   - [ ] Configuration files setup
+   - [ ] Build system configuration
 
 2. **Development Environment**
-   - [x] TypeScript configuration
-   - [x] Webpack setup
+   - [ ] TypeScript configuration
+   - [ ] Webpack setup
    - [ ] PostCSS and Tailwind CSS integration
    - [ ] Development server configuration
 
 3. **Core Setup**
-   - [x] Main process entry point
+   - [ ] Main process entry point
    - [ ] Renderer process setup
-   - [x] Preload script configuration
+   - [ ] Preload script configuration
    - [ ] IPC communication foundation
    - [ ] Settings management with electron-store
    - [ ] File system utilities with fs-extra
@@ -83,15 +83,15 @@ mkdir -p docs
 
 ### Next Steps
 1. **UI Development (Phase 2.1)**
-   - [x] Implement base layout components
-   - [x] Create playlist management UI
-   - [x] Build playlist creation form
-   - [x] Implement responsive grid layout for playlists
+   - [ ] Implement base layout components
+   - [ ] Create playlist management UI
+   - [ ] Build playlist creation form
+   - [ ] Implement responsive grid layout for playlists
 
 2. **Core Features (Phase 2)**
-   - [x] Implement playlist creation and management (Phase 2.1)
-   - [x] Develop YouTube playlist import with yt-dlp (Phase 2.2)
-   - [x] Create local storage and state management (Phase 2.3)
+   - [ ] Implement playlist creation and management (Phase 2.1)
+   - [ ] Develop YouTube playlist import with yt-dlp (Phase 2.2)
+   - [ ] Create local storage and state management (Phase 2.3)
    - [ ] Build playlist display and filtering features (Phase 2.4)
    - [ ] Implement rate limiting for API calls (Phase 2.5)
 
@@ -335,32 +335,32 @@ app.on('activate', () => mainWindow === null && createWindow());
 ### Phase 1.4: Configure Routing and Data Fetching
 
 **Tasks:**
-- [x] Set up routing with TanStack Router
-- [x] Configure React Query for data management
+- [ ] Set up routing with TanStack Router
+- [ ] Configure React Query for data management
 
 **Files Created/Updated:**
-- [x] `src/frontend/App.tsx`
-  - [x] Added QueryClientProvider with configuration
-  - [x] Set up stale time and refetch options
-  - [x] Implemented theme detection and management
-- [x] `src/shared/types/index.ts` (~85 lines)
-  - [x] Created comprehensive TypeScript interfaces for playlists, videos, settings, etc.
-  - [x] Defined type-safe structures for core application entities
-  - [x] Added error handling types
-- [x] `src/frontend/router/index.tsx` (~45 lines)
+- [ ] `src/frontend/App.tsx`
+  - [ ] Set up stale time and refetch options
+  - [ ] Added QueryClientProvider with configuration
+  - [ ] Implemented theme detection and management
+- [ ] `src/shared/types/index.ts` (~85 lines)
+  - [ ] Created comprehensive TypeScript interfaces for playlists, videos, settings, etc.
+  - [ ] Defined type-safe structures for core application entities
+  - [ ] Added error handling types
+- [ ] `src/frontend/router/index.tsx` (~45 lines)
   - Implemented TanStack Router with route definitions
   - Set up route structure with dashboard, settings, and playlist views
   - Added catch-all route for redirects
   - Provided type safety through declarations
-- [x] `src/frontend/hooks/usePlaylistQueries.ts` (~140 lines)
-  - [x] Created React Query hooks for data operations
-  - [x] Implemented query caching and invalidation strategies
-  - [x] Added store synchronization with query results
-  - [x] Set up mutation hooks for create, update, and delete operations
-- [x] `src/backend/services/playlistService.ts` (~135 lines)
-  - [x] Implemented playlist data service
-  - [x] Created CRUD operations for playlists
-  - [x] Added YouTube playlist import functionality
+- [ ] `src/frontend/hooks/usePlaylistQueries.ts` (~140 lines)
+  - [ ] Created React Query hooks for data operations
+  - [ ] Implemented query caching and invalidation strategies
+  - [ ] Added store synchronization with query results
+  - [ ] Set up mutation hooks for create, update, and delete operations
+- [ ] `src/backend/services/playlistService.ts` (~135 lines)
+  - [ ] Implemented playlist data service
+  - [ ] Created CRUD operations for playlists
+  - [ ] Added YouTube playlist import functionality
 
 **Notes:**
 - React Query is already configured in the App.tsx file with sensible defaults (5 minute stale time, no refetch on window focus)
@@ -373,31 +373,31 @@ app.on('activate', () => mainWindow === null && createWindow());
 
 ### Phase 1.5: Persistent Storage and File System
 
-**Status: Completed** ✅
+
 
 **Tasks:**
-- [x] Implement settings management with electron-store
-- [~] Create file system utilities with fs-extra
+- [ ] Implement settings management with electron-store
+- [ ] Create file system utilities with fs-extra
 
 **Files Created:**
-- [x] `src/backend/services/settingsService.ts` (~150 lines)
-  - [x] Settings storage and retrieval with TypeScript type safety
-  - [x] Default configuration management
-  - [x] Directory initialization
-  - [x] Account management functions
-- [x] `src/backend/utils/fileUtils.ts` (~230 lines)
-  - [x] File system operations for playlists and videos
-  - [x] Directory and file management utilities
-  - [x] Playlist metadata handling
-  - [x] File validation functions
-- [x] `src/backend/ipc/file-handlers.ts` (~150 lines)
-  - [x] IPC communication between backend and frontend processes
-  - [x] Settings IPC handlers
-  - [x] File system operation handlers
-  - [x] Path validation handlers
-- [x] `src/backend/ipc/settings-handlers.ts` (~50 lines)
-  - [x] IPC handlers for settings management
-  - [x] Type-safe getters and setters for application settings
+- [ ] `src/backend/services/settingsService.ts` (~150 lines)
+  - [ ] Settings storage and retrieval with TypeScript type safety
+  - [ ] Default configuration management
+  - [ ] Directory initialization
+  - [ ] Account management functions
+- [ ] `src/backend/utils/fileUtils.ts` (~230 lines)
+  - [ ] File system operations for playlists and videos
+  - [ ] Directory and file management utilities
+  - [ ] Playlist metadata handling
+  - [ ] File validation functions
+- [ ] `src/backend/ipc/file-handlers.ts` (~150 lines)
+  - [ ] IPC communication between backend and frontend processes
+  - [ ] Settings IPC handlers
+  - [ ] File system operation handlers
+  - [ ] Path validation handlers
+- [ ] `src/backend/ipc/settings-handlers.ts` (~50 lines)
+  - [ ] IPC handlers for settings management
+  - [ ] Type-safe getters and setters for application settings
 
 **Notes:**
 - Used electron-store for persistent settings with strict TypeScript typing
@@ -409,24 +409,24 @@ app.on('activate', () => mainWindow === null && createWindow());
 
 ### Phase 1.6: IPC Communication
 
-**Status: Completed** ✅
+
 
 **Tasks:**
-- [x] Set up IPC communication channels
-- [x] Implement type-safe API for frontend process
+- [ ] Set up IPC communication channels
+- [ ] Implement type-safe API for frontend process
 
 **Files Created:**
-- [x] `src/backend/ipc/app-handlers.ts` (~100 lines)
+- [ ] `src/backend/ipc/app-handlers.ts` (~100 lines)
   - IPC handlers for general application information.
-- [x] `src/backend/ipc/download-handlers.ts` (~125 lines)
+- [ ] `src/backend/ipc/download-handlers.ts` (~125 lines)
   - IPC handlers for download operations. Corresponding `download-manager.ts` service created with queue management and core download processing logic (further implementation ongoing).
 - [ ] `src/backend/ipc/file-handlers.ts` (~150 lines)
   - IPC handlers for file system operations.
-- [x] `src/backend/ipc/playlist-handlers.ts` (~100 lines)
+- [ ] `src/backend/ipc/playlist-handlers.ts` (~100 lines)
   - IPC handlers for playlist operations. Corresponding `playlist-manager.ts` service created with full CRUD operations for playlists and videos using `better-sqlite3`.
 - [ ] `src/backend/ipc/settings-handlers.ts` (~50 lines)
   - IPC handlers for settings management.
-- [x] `src/backend/ipc/thumbnail-handlers.ts` (~100 lines)
+- [ ] `src/backend/ipc/thumbnail-handlers.ts` (~100 lines)
   - IPC handlers for thumbnail operations. Corresponding `thumbnailService.ts` created with placeholder functions.
 
 **Implementation Details:**
@@ -445,12 +445,12 @@ app.on('activate', () => mainWindow === null && createWindow());
 
 ### Phase 1.7: Secure Preload Script
 
-**Status: Completed** ✅
 
-- [x] Configure secure preload script
-- [x] Implement type-safe API for frontend process
+
+- [ ] Configure secure preload script
+- [ ] Implement type-safe API for frontend process
 **Files Created:**
-- [x] `src/backend/preload.ts` (~100 lines)
+- [ ] `src/backend/preload.ts` (~100 lines)
   - Secure preload script
   - Type-safe API for frontend process
 
@@ -462,25 +462,25 @@ app.on('activate', () => mainWindow === null && createWindow());
 
 ### Phase 1.8: Basic Logging and Console Output Management
 
-**Status: Completed** ✅
+
 
 **Objective:** Implement basic logging to a file and manage console output effectively for easier debugging and monitoring during development.
 
-- [x] **Implement Console Logging to File:**
-  - [x] Create a `Console Logs` directory if it doesn't exist.
-  - [x] Create a `terminallogs.txt` file within `Console Logs`.
-    - [x] Redirect `console.log`, `console.warn`, `console.error`, `console.info`, `console.debug` to write to `terminallogs.txt`.
-    - [x] Ensure each log entry is timestamped.
-    - [x] Ensure the application still outputs to the original console.
-    - [x] At the beginning of the main process, before any logging occurs, check if `terminallogs.txt` exists.
-    - [x] If it exists, delete it to ensure a fresh log for each session.
-    - [x] Handle potential errors during file deletion gracefully.
-    - [x] If creating the log directory or writing to the log file fails, fall back to the original console output without crashing the application.
-    - [x] Log any errors related to the logging mechanism itself to the original console.
+- [ ] **Implement Console Logging to File:**
+  - [ ] Create a `Console Logs` directory if it doesn't exist.
+  - [ ] Create a `terminallogs.txt` file within `Console Logs`.
+    - [ ] Redirect `console.log`, `console.warn`, `console.error`, `console.info`, `console.debug` to write to `terminallogs.txt`.
+    - [ ] Ensure each log entry is timestamped.
+    - [ ] Ensure the application still outputs to the original console.
+    - [ ] At the beginning of the main process, before any logging occurs, check if `terminallogs.txt` exists.
+    - [ ] If it exists, delete it to ensure a fresh log for each session.
+    - [ ] Handle potential errors during file deletion gracefully.
+    - [ ] If creating the log directory or writing to the log file fails, fall back to the original console output without crashing the application.
+    - [ ] Log any errors related to the logging mechanism itself to the original console.
 **Files Modified:**
-- [x] `src/backend/backend.ts` (~50-70 new lines)
-- [x] `Console Logs/terminallogs.txt` (log file)
-- [x] `Console Logs/ConsoleLogs.txt` (log file)
+- [ ] `src/backend/backend.ts` (~50-70 new lines)
+- [ ] `Console Logs/terminallogs.txt` (log file)
+- [ ] `Console Logs/ConsoleLogs.txt` (log file)
   - Added logic to create `Console Logs` directory and `terminallogs.txt`.
   - Implemented redirection of console methods to write to the log file.
   - Added timestamping for log entries.
@@ -503,34 +503,34 @@ app.on('activate', () => mainWindow === null && createWindow());
 ### Phase 2.1: Playlist Creation UI
 
 **Tasks:**
-- [x] Build UI components for playlist management
-- [x] Create playlist creation form within `AddNewPlaylistDialog.tsx`
+- [ ] Build UI components for playlist management
+- [ ] Create playlist creation form within `AddNewPlaylistDialog.tsx`
 
 **Files Created/Updated:**
-- [x] `src/frontend/components/PlaylistGrid/PlaylistGrid/PlaylistGrid.tsx` (~200 lines)
+- [ ] `src/frontend/components/PlaylistGrid/PlaylistGrid/PlaylistGrid.tsx` (~200 lines)
   - Implemented responsive playlist grid layout
   - Added loading, error, and empty states
-- [x] `src/frontend/components/Modals/AddNewPlaylistDialog/AddNewPlaylistDialog.tsx` (~300 lines, renamed from `CreatePlaylistModal.tsx`)
+- [ ] `src/frontend/components/Modals/AddNewPlaylistDialog/AddNewPlaylistDialog.tsx` (~300 lines, renamed from `CreatePlaylistModal.tsx`)
   - Dialog titled "Add New Playlist" with an "Add Playlist" button.
   - Features two tabs:
     - **"From YouTube" Tab**: For importing playlists by pasting a YouTube URL. Includes form validation for URLs.
     - **"Custom Playlist" Tab**: For creating a new local playlist with fields for Title and Description (with character limits and counters).
   - Loading states during form submission.
   - Error handling.
-- [x] `src/frontend/components/Modals/ConfirmDeleteDialog/ConfirmDeleteDialog.tsx` (~80 lines)
+- [ ] `src/frontend/components/Modals/ConfirmDeleteDialog/ConfirmDeleteDialog.tsx` (~80 lines)
   - Reusable confirmation dialog for destructive actions
   - Customizable title, message and button text
   - Integrates with shadcn/ui Dialog component
-- [x] `src/frontend/components/Modals/EditPlaylistDetailsDialog/EditPlaylistDetailsDialog.tsx` (~150 lines)
+- [ ] `src/frontend/components/Modals/EditPlaylistDetailsDialog/EditPlaylistDetailsDialog.tsx` (~150 lines)
     - Dialog for editing the Title and Description of an existing custom or imported playlist (with character limits and counters).
 
 **Additional Components Created:**
-- [x] `src/frontend/features/playlists/components/PlaylistCard/PlaylistCard.tsx` (~150 lines)
+- [ ] `src/frontend/features/playlists/components/PlaylistCard/PlaylistCard.tsx` (~150 lines)
   - Individual playlist card with thumbnail and metadata (fallback icon changed to PlayCircle).
   - Hover effects.
   - Utilizes `PlaylistActionsDropdown.tsx` to display playlist actions.
   - Dynamic styling based on playlist status
-- [x] `src/frontend/features/playlists/components/PlaylistActionsDropdown/PlaylistActionsDropdown.tsx` (~180 lines)
+- [ ] `src/frontend/features/playlists/components/PlaylistActionsDropdown/PlaylistActionsDropdown.tsx` (~180 lines)
     - Reusable dropdown menu component containing actions for a single playlist (Refresh, Delete, Duplicate, Download, Open in YouTube, Edit, Play).
     - Handles conditional display logic (e.g., 'Open in YouTube').
     - Integrates with UI library (e.g., Shadcn DropdownMenu).
@@ -553,41 +553,41 @@ app.on('activate', () => mainWindow === null && createWindow());
 **Tasks:**
 
 *   **Backend (`ytDlpManager.ts` & `logger.ts`):**
-    *   [x] Initialize `yt-dlp-wrap` and handle yt-dlp binary path in [`src/backend/services/ytDlpManager.ts`](src/backend/services/ytDlpManager.ts).
-    *   [x] Implement wrapper function in `ytDlpManager.ts` to fetch raw playlist metadata using `yt-dlp-wrap`.
-    *   [x] Implement function in `ytDlpManager.ts` to parse raw metadata and transform it into the application's `Playlist` type.
-    *   [x] Implement function in `ytDlpManager.ts` to save the imported playlist data (e.g., to JSON, or integrate with `playlistService.ts`/`playlist-manager.ts` if it uses a database).
-    *   [x] Create basic [`logger.ts`](src/backend/utils/logger.ts) in `src/backend/utils/` for use by `ytDlpManager.ts` and other services.
-    *   [x] Integrate logging from `logger.ts` into `ytDlpManager.ts` for key operations and errors.
+    *   [ ] Initialize `yt-dlp-wrap` and handle yt-dlp binary path in [`src/backend/services/ytDlpManager.ts`](src/backend/services/ytDlpManager.ts).
+    *   [ ] Implement wrapper function in `ytDlpManager.ts` to fetch raw playlist metadata using `yt-dlp-wrap`.
+    *   [ ] Implement function in `ytDlpManager.ts` to parse raw metadata and transform it into the application's `Playlist` type.
+    *   [ ] Implement function in `ytDlpManager.ts` to save the imported playlist data (e.g., to JSON, or integrate with `playlistService.ts`/`playlist-manager.ts` if it uses a database).
+    *   [ ] Create basic [`logger.ts`](src/backend/utils/logger.ts) in `src/backend/utils/` for use by `ytDlpManager.ts` and other services.
+    *   [ ] Integrate logging from `logger.ts` into `ytDlpManager.ts` for key operations and errors.
 
 *   **Backend (`backend.ts` - CSP & Assets):**
-    *   [x] Update [`src/backend/backend.ts`](src/backend/backend.ts) to configure Content Security Policy (CSP) to allow YouTube image domains (e.g., `i.ytimg.com`, `img.youtube.com`).
-    *   [x] (Optional/Verify) Add placeholder or implement development asset handling in `src/backend/backend.ts` if required for this phase.
+    *   [ ] Update [`src/backend/backend.ts`](src/backend/backend.ts) to configure Content Security Policy (CSP) to allow YouTube image domains (e.g., `i.ytimg.com`, `img.youtube.com`).
+    *   [ ] (Optional/Verify) Add placeholder or implement development asset handling in `src/backend/backend.ts` if required for this phase.
 
 *   **Frontend (`CachedImage.tsx` - Thumbnail Handling):**
-    *   [x] Create [`src/frontend/components/CachedImage.tsx`](src/frontend/components/CachedImage.tsx) component.
-    *   [x] Implement robust image loading in `CachedImage.tsx` with a primary `src`.
-    *   [x] Implement a `fallbackSrc` prop and mechanism in `CachedImage.tsx`.
-    *   [x] Implement a hardcoded default placeholder image in `CachedImage.tsx` if both `src` and `fallbackSrc` fail.
-    *   [x] Add specific placeholder icons (e.g., using Lucide icons) in `CachedImage.tsx` for 'private' and 'deleted' video statuses, potentially triggered by props or metadata.
+    *   [ ] Create [`src/frontend/components/CachedImage.tsx`](src/frontend/components/CachedImage.tsx) component.
+    *   [ ] Implement robust image loading in `CachedImage.tsx` with a primary `src`.
+    *   [ ] Implement a `fallbackSrc` prop and mechanism in `CachedImage.tsx`.
+    *   [ ] Implement a hardcoded default placeholder image in `CachedImage.tsx` if both `src` and `fallbackSrc` fail.
+    *   [ ] Add specific placeholder icons (e.g., using Lucide icons) in `CachedImage.tsx` for 'private' and 'deleted' video statuses, potentially triggered by props or metadata.
 
 *   **Integration & UI:**
-    *   [x] Integrate the playlist import functionality into the UI (e.g., in [`src/frontend/components/Modals/AddNewPlaylistDialog/AddNewPlaylistDialog.tsx`](src/frontend/components/Modals/AddNewPlaylistDialog/AddNewPlaylistDialog.tsx) "From YouTube" tab).
-    *   [x] Ensure the frontend can display thumbnails fetched via `yt-dlp` metadata, using `CachedImage.tsx`.
-    *   [x] Handle loading states and error feedback in the UI during playlist import.
+    *   [ ] Integrate the playlist import functionality into the UI (e.g., in [`src/frontend/components/Modals/AddNewPlaylistDialog/AddNewPlaylistDialog.tsx`](src/frontend/components/Modals/AddNewPlaylistDialog/AddNewPlaylistDialog.tsx) "From YouTube" tab).
+    *   [ ] Ensure the frontend can display thumbnails fetched via `yt-dlp` metadata, using `CachedImage.tsx`.
+    *   [ ] Handle loading states and error feedback in the UI during playlist import.
 
 **Files Created/Updated:**
-- [x] `src/backend/services/ytDlpManager.ts`
+- [ ] `src/backend/services/ytDlpManager.ts`
   - Wrapper for yt-dlp commands using `yt-dlp-wrap`
   - Playlist metadata extraction functions
   - Playlist import function saving to JSON (aligned with `Playlist` type)
   - Handles yt-dlp binary path and initialization
-- [x] `src/backend/utils/logger.ts` (New file)
+- [ ] `src/backend/utils/logger.ts` (New file)
   - Basic logger utility created for use by services like `ytDlpManager`.
-- [x] `src/backend/backend.ts` (Updated)
+- [ ] `src/backend/backend.ts` (Updated)
   - Added CSP configuration to allow YouTube image domains (`i.ytimg.com`, `img.youtube.com`)
   - Added placeholder function for development asset handling.
-- [x] `src/frontend/components/CachedImage.tsx` (New file)
+- [ ] `src/frontend/components/CachedImage.tsx` (New file)
   - Component with robust image fallback mechanism (primary src -> fallbackSrc -> hardcoded default).
   - Includes specific placeholders (using Lucide icons) for 'private' and 'deleted' video statuses.
 
@@ -3752,7 +3752,7 @@ related_tasks = ["SUBTASK-WRITER-StylingDocs-20250613203947"]
 * [ ] **Task 3 (AC: 3):** Create the `TopNavbar.tsx` component.
     * [ ] Subtask 3.1: It should include placeholders for a `+ Add` button and a user avatar.
 * [ ] **Task 4 (AC: 1, 2, 3):** Integrate the `Sidebar.tsx` and `TopNavbar.tsx` components into `MainLayout.tsx`.
-* [cite_start][x] **Task 5 (AC: 1):** Configure the application's router (`TanStack React Router`) to use the `MainLayout` for all primary views. [cite: 1, 1187]
+* [cite_start][ ] **Task 5 (AC: 1):** Configure the application's router (`TanStack React Router`) to use the `MainLayout` for all primary views. [cite: 1, 1187]
 
 ## Dev Technical Guidance
 
@@ -3872,7 +3872,7 @@ related_tasks = ["SUBTASK-WRITER-StylingDocs-20250613203947"]
 * [ ] **Task 8 (AC: 1, 2, 3):** Create the `playlist:get-details` IPC handler.
     * [ ] Subtask 8.1: The handler will receive a `playlistId`.
     * [ ] Subtask 8.2: It will use the `PlaylistRepository` and `VideoRepository` to query the SQLite database and retrieve the playlist details and a list of all its associated videos.
-    * [cite_start][x] Subtask 8.3: It will return a single JSON object containing the playlist's metadata and an array of video objects, conforming to the `Playlist` and `Video` data models. [cite: 1]
+    * [cite_start][ ] Subtask 8.3: It will return a single JSON object containing the playlist's metadata and an array of video objects, conforming to the `Playlist` and `Video` data models. [cite: 1]
 
 ## Dev Technical Guidance
 
@@ -3973,7 +3973,7 @@ related_tasks = ["SUBTASK-WRITER-StylingDocs-20250613203947"]
 * [cite_start][ ] **Task 6 (AC: 5):** Create the `playlist:create-custom` IPC handler as defined in the Architecture Document. [cite: 1070]
     * [ ] Subtask 6.1: The handler should accept `{title: string, description: string}`.
     * [ ] Subtask 6.2: It must perform validation by querying the database to ensure no other playlist exists with the same title. If a duplicate is found, it should return an error.
-    * [cite_start][x] Subtask 6.3: If the title is unique, it will create a new record in the `playlists` table with `type: 'CUSTOM'` and the provided details. [cite: 1172, 1178]
+    * [cite_start][ ] Subtask 6.3: If the title is unique, it will create a new record in the `playlists` table with `type: 'CUSTOM'` and the provided details. [cite: 1172, 1178]
 ## Dev Technical Guidance
 
 * **UI Components:** Use the `Tabs`, `Input`, `Textarea`, and `Button` components from `shadcn/ui`.

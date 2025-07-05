@@ -1,24 +1,45 @@
 # Information Sources
 
-This document outlines the primary and secondary sources of information that will be leveraged throughout the research process.
+This document outlines the primary and secondary sources of information that will be leveraged across all three research arcs.
 
-## 1. Primary Information Sources
+## Primary Sources (Direct Technical Documentation & Code)
 
-These sources will provide the foundational technical data and established best practices.
+1.  **`better-sqlite3` Documentation:**
+    *   Official API documentation for `better-sqlite3` on GitHub.
+    *   Performance benchmarks and best practice guides from the library's authors.
+    *   Source code of `better-sqlite3` for understanding its synchronous nature and performance characteristics.
 
-*   **AI-Powered Search Tool (`brave search`):** This will be the main tool for executing precision queries based on the key questions defined for each research arc. It will be used to find technical articles, blog posts from engineers, and official documentation.
-*   **Official Documentation:**
-    *   **SQLite:** The official documentation for SQLite, particularly sections on performance, transactions, and the Write-Ahead Log (WAL).
-    *   **Electron:** Documentation related to application lifecycle, inter-process communication (IPC), and performance best practices.
-    *   **Node.js:** Documentation for `worker_threads` and file system (`fs`) modules.
-    *   **`better-sqlite3`:** The library's documentation for transaction management and performance tuning.
-    *   **`p-queue`:** The library's documentation for queue management and concurrency control.
-*   **Academic Papers & Journals:** Sources like ACM Digital Library and IEEE Xplore will be queried for papers on task scheduling, database transaction management, and concurrency control in single-machine environments.
+2.  **`yt-dlp` Documentation:**
+    *   Official `yt-dlp` documentation, particularly the sections on command-line options, format selection, and authentication.
+    *   The `yt-dlp-wrap` library's documentation and source code.
+    *   Community forums and issue trackers for `yt-dlp` to find solutions to common problems.
 
-## 2. Secondary Information Sources
+3.  **`fluent-ffmpeg` and `ffmpeg` Documentation:**
+    *   Official `ffmpeg` documentation for command-line arguments related to format conversion, metadata embedding, and stream manipulation.
+    *   The `fluent-ffmpeg` library's documentation and examples.
 
-These sources will provide context, real-world examples, and alternative perspectives.
+4.  **Electron and Node.js Documentation:**
+    *   Official Electron documentation, especially sections on Inter-Process Communication (IPC), security (`contextBridge`, `preload` scripts), and application packaging.
+    *   Node.js documentation for `fs` and `path` modules.
+    *   `electron-store` library documentation for settings management.
 
-*   **Engineering Blogs:** Blogs from companies that have built and scaled similar systems (even if in different contexts) can provide valuable insights into practical challenges and solutions.
-*   **Stack Overflow & Community Forums:** Searching for discussions related to SQLite performance, Electron app resilience, and Node.js concurrency will provide context on common problems and community-vetted solutions.
-*   **Open-Source Project Analysis:** Reviewing the source code of established open-source desktop applications that manage background tasks (e.g., video converters, file synchronizers) can reveal proven architectural patterns.
+5.  **Google API Documentation:**
+    *   Google Identity Platform documentation for OAuth 2.0 flows for desktop applications.
+    *   YouTube Data API v3 reference documentation, including quota information and usage policies.
+    *   `googleapis` Node.js client library documentation.
+
+## Secondary Sources (Articles, Tutorials, and Best Practices)
+
+1.  **Technology Blogs and Publications:**
+    *   Articles on web development and software architecture from sources like Smashing Magazine, InfoQ, and Martin Fowler's blog.
+    *   Tutorials and guides on Electron application development from various online platforms.
+
+2.  **Community Forums:**
+    *   Stack Overflow, for specific technical questions and solutions related to the libraries and frameworks being used.
+    *   Reddit communities such as r/electronjs, r/node, and r/sqlite.
+
+3.  **Open Source Project Analysis:**
+    *   Analysis of existing open-source YouTube downloaders or media managers to understand their architectural decisions and solutions to common problems (e.g., `youtube-dl-gui`, `4k-video-downloader` architecture if available).
+
+4.  **Academic Papers and Journals:**
+    *   (If necessary) Papers on database performance, file system organization, or secure application design from sources like ACM Digital Library or IEEE Xplore.

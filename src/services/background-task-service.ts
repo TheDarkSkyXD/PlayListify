@@ -1,129 +1,191 @@
-﻿// src/services/background-task-service.ts
+// src/services/background-task-service.ts
 
-import { BackgroundTask, BackgroundTaskType, BackgroundTaskStatus } from '../shared/data-models';
+import { EventEmitter } from 'events';
 import { BackgroundTaskRepository } from '../repositories/background-task-repository';
+import { BackgroundTask, BackgroundTaskStatus, BackgroundTaskType } from '../shared/data-models';
+import { SQLiteAdapter } from '../adapters/sqlite-adapter';
 import {
-  InvalidInputError,
-  InvalidStateTransitionError,
-  CircularDependencyError,
-  TaskNotFoundError,
-  ParentTaskNotFoundError
+    InvalidInputError,
+    ParentTaskNotFoundError,
+    InvalidStateTransitionError,
+    TaskNotFoundError,
+    CircularDependencyError,
+    DatabaseError,
 } from '../shared/errors';
 
-/**
- * Service for managing background tasks
- * 
- * This is a stub implementation for TDD. The actual implementation
- * will be developed to make the tests pass.
- */
-export class BackgroundTaskService {
-  constructor(private repository: BackgroundTaskRepository) {}
+const VALID_TASK_TYPES: BackgroundTaskType[] = ['IMPORT_PLAYLIST', 'DOWNLOAD_VIDEO', 'REFRESH_PLAYLIST'];
 
-  async createTask(input: { task_type: BackgroundTaskType; title: string; parent_id?: number }): Promise<BackgroundTask> {
-    // Validate input
-    if (!input.title || input.title.trim().length === 0) {
-      throw new InvalidInputError('Task title cannot be null or empty');
+export class BackgroundTaskService extends EventEmitter {
+    private unfinishedTasks: Map<number, BackgroundTask> = new Map();
+
+    constructor(private repository: BackgroundTaskRepository) {
+        super();
     }
 
-    if (!['IMPORT_PLAYLIST', 'DOWNLOAD_VIDEO', 'REFRESH_PLAYLIST'].includes(input.task_type)) {
-      throw new InvalidInputError('Invalid task type');
+    private async validateTaskInput(taskInput: Partial<BackgroundTask>): Promise<void> {
+        if (!taskInput.title || taskInput.title.trim().length === 0) {
+            throw new InvalidInputError('Task title cannot be null or empty.');
+        }
+        if (!taskInput.task_type || !VALID_TASK_TYPES.includes(taskInput.task_type)) {
+            throw new InvalidInputError(`Invalid task type: ${taskInput.task_type}`);
+        }
+        if (taskInput.parent_id) {
+            const parent = await this.repository.getById(taskInput.parent_id);
+            if (!parent) {
+                throw new ParentTaskNotFoundError(`Parent task with id ${taskInput.parent_id} not found.`);
+            }
+        }
     }
 
-    // Check if parent exists if parent_id is provided
-    if (input.parent_id) {
-      const parent = await this.repository.getById(input.parent_id);
-      if (!parent) {
-        throw new ParentTaskNotFoundError('Parent task not found');
-      }
+    private handleParentTaskSync(parentId: number | undefined): void {
+        if (parentId === undefined) return;
+
+        const childTasks = this.repository.getChildTasksSync(parentId);
+        if (childTasks.length === 0) return;
+
+        const totalChildren = childTasks.length;
+        const finishedChildren = childTasks.filter(t => ['COMPLETED', 'FAILED', 'CANCELLED', 'COMPLETED_WITH_ERRORS'].includes(t.status));
+        
+        const progress = finishedChildren.length / totalChildren;
+        this.repository.updateSync(parentId, { progress });
+
+        if (finishedChildren.length === totalChildren) {
+            const hasFailures = childTasks.some(t => t.status === 'FAILED' || t.status === 'CANCELLED' || t.status === 'COMPLETED_WITH_ERRORS');
+            const newStatus = hasFailures ? 'COMPLETED_WITH_ERRORS' : 'COMPLETED';
+            this.repository.updateSync(parentId, { status: newStatus });
+        }
     }
 
-    // Create the task object
-    const taskData = {
-      task_type: input.task_type,
-      title: input.title.trim(),
-      parent_id: input.parent_id,
-      status: 'QUEUED' as BackgroundTaskStatus,
-      progress: 0.0
-    };
-
-    // Create the task in the repository
-    return await this.repository.create(taskData);
-  }
-
-  async updateTaskStatus(taskId: number, status: BackgroundTaskStatus): Promise<boolean> {
-    const task = await this.repository.getById(taskId);
-    if (!task) {
-      throw new TaskNotFoundError('Task not found');
+    async createTask(taskInput: Partial<BackgroundTask>): Promise<BackgroundTask> {
+        await this.validateTaskInput(taskInput);
+        const createdTask = await this.repository.create({
+            ...taskInput,
+            status: 'QUEUED',
+            progress: 0.0,
+        });
+        this.unfinishedTasks.set(createdTask.id, createdTask);
+        this.emit('task-update', createdTask);
+        return createdTask;
     }
 
-    // Check for invalid state transitions
-    const terminalStates = ['COMPLETED', 'FAILED', 'CANCELLED'];
-    if (terminalStates.includes(task.status)) {
-      throw new InvalidStateTransitionError('Cannot update status of completed task');
+    updateTaskStatus(taskId: number, status: BackgroundTaskStatus): boolean {
+        return this.repository.adapter.transaction(() => {
+            const task = this.repository.getByIdSync(taskId);
+            if (!task) {
+                throw new TaskNotFoundError(`Task with id ${taskId} not found.`);
+            }
+
+            if (task.status === status) {
+                return true;
+            }
+
+            const validTransitions: { [key in BackgroundTaskStatus]?: BackgroundTaskStatus[] } = {
+                QUEUED: ['IN_PROGRESS', 'CANCELLED', 'FAILED', 'COMPLETED'],
+                IN_PROGRESS: ['COMPLETED', 'FAILED', 'CANCELLED', 'COMPLETED_WITH_ERRORS'],
+                COMPLETED: [],
+                FAILED: [],
+                CANCELLED: [],
+                COMPLETED_WITH_ERRORS: []
+            };
+
+            const allowedNextStates = validTransitions[task.status as BackgroundTaskStatus];
+            if (!allowedNextStates || !allowedNextStates.includes(status)) {
+                throw new InvalidStateTransitionError(`Cannot transition task from ${task.status} to ${status}.`);
+            }
+
+            const updatedTask = this.repository.updateSync(taskId, { status });
+            if (updatedTask) {
+                if (updatedTask.status !== 'IN_PROGRESS' && updatedTask.status !== 'QUEUED') {
+                    this.unfinishedTasks.delete(taskId);
+                } else {
+                    this.unfinishedTasks.set(taskId, updatedTask);
+                }
+                this.emit('task-update', updatedTask);
+                this.handleParentTaskSync(updatedTask.parent_id);
+                return true;
+            }
+            return false;
+        });
     }
 
-    // Update the task status
-    return await this.repository.update(taskId, { status });
-  }
+    updateTaskProgress(taskId: number, progress: number): boolean {
+        if (isNaN(progress) || progress < 0 || progress > 1) {
+            throw new InvalidInputError('Progress must be a number between 0 and 1.');
+        }
 
-  async updateTaskProgress(taskId: number, progress: number): Promise<void> {
-    if (isNaN(progress) || progress < 0 || progress > 1) {
-      throw new InvalidInputError('Progress must be a number between 0 and 1');
+        return this.repository.adapter.transaction(() => {
+            let task = this.repository.getByIdSync(taskId);
+            if (!task) {
+                throw new TaskNotFoundError(`Task with id ${taskId} not found.`);
+            }
+
+            if (task.status !== 'IN_PROGRESS' && task.status !== 'QUEUED' && progress < 1) {
+                throw new InvalidStateTransitionError(`Cannot update progress for task with status ${task.status}.`);
+            }
+
+            if (task.status === 'QUEUED' && progress > 0 && progress < 1) {
+                const updatedTaskResult = this.repository.updateSync(taskId, { status: 'IN_PROGRESS' });
+                if (!updatedTaskResult) {
+                    throw new TaskNotFoundError(`Task with id ${taskId} not found after status update.`);
+                }
+                task = updatedTaskResult;
+            }
+
+            const updatedTask = this.repository.updateSync(taskId, { progress });
+            if (updatedTask) {
+                this.unfinishedTasks.set(taskId, updatedTask);
+                this.emit('task-update', updatedTask);
+                this.handleParentTaskSync(updatedTask.parent_id);
+                return true;
+            }
+            return false;
+        });
     }
 
-    const task = await this.repository.getById(taskId);
-    if (!task) {
-      throw new TaskNotFoundError('Task not found');
+    async getTask(taskId: number): Promise<BackgroundTask | null> {
+        if (this.unfinishedTasks.has(taskId)) {
+            return this.unfinishedTasks.get(taskId)!;
+        }
+        const task = await this.repository.getById(taskId);
+        if(task && (task.status === 'QUEUED' || task.status === 'IN_PROGRESS')){
+            this.unfinishedTasks.set(task.id, task);
+        }
+        return task;
     }
 
-    // Check for invalid state transitions
-    const terminalStates = ['COMPLETED', 'FAILED', 'CANCELLED'];
-    if (terminalStates.includes(task.status)) {
-      throw new InvalidStateTransitionError('Cannot update progress of completed task');
+    async resumeUnfinishedTasks(): Promise<void> {
+        const tasks = await this.repository.getUnfinishedTasks();
+        this.unfinishedTasks.clear();
+        for (const task of tasks) {
+            this.unfinishedTasks.set(task.id, task);
+        }
     }
 
-    // Update the task progress
-    await this.repository.update(taskId, { progress });
-  }
-
-  async getTask(taskId: number): Promise<BackgroundTask | null> {
-    return await this.repository.getById(taskId);
-  }
-
-  async resumeUnfinishedTasks(): Promise<void> {
-    // Get all unfinished tasks and reset their status to QUEUED
-    const unfinishedTasks = await this.repository.getUnfinishedTasks();
-    
-    for (const task of unfinishedTasks) {
-      if (task.status === 'IN_PROGRESS') {
-        await this.repository.update(task.id, { status: 'QUEUED' });
-      }
-    }
-  }
-
-  async getUnfinishedTasks(): Promise<BackgroundTask[]> {
-    return await this.repository.getUnfinishedTasks();
-  }
-
-  async updateTaskParent(taskId: number, parentId: number): Promise<void> {
-    // Check for circular dependencies
-    const task = await this.repository.getById(taskId);
-    if (!task) {
-      throw new TaskNotFoundError('Task not found');
+    getUnfinishedTasks(): BackgroundTask[] {
+        return Array.from(this.unfinishedTasks.values());
     }
 
-    // Simple circular dependency check (would need more sophisticated implementation)
-    if (taskId === parentId) {
-      throw new CircularDependencyError('Task cannot be its own parent');
-    }
+    async updateTaskParent(taskId: number, parentId: number): Promise<void> {
+        if (taskId === parentId) {
+            throw new CircularDependencyError('A task cannot be its own parent.');
+        }
+        const task = await this.getTask(taskId);
+        if (!task) {
+            throw new TaskNotFoundError(`Task with id ${taskId} not found.`);
+        }
+        const parentTask = await this.getTask(parentId);
+        if (!parentTask) {
+            throw new ParentTaskNotFoundError(`Parent task with id ${parentId} not found.`);
+        }
 
-    // Check if parent exists
-    const parent = await this.repository.getById(parentId);
-    if (!parent) {
-      throw new ParentTaskNotFoundError('Parent task not found');
-    }
+        let current: BackgroundTask | null = parentTask;
+        while (current) {
+            if (current.id === taskId) {
+                throw new CircularDependencyError('Circular dependency detected.');
+            }
+            current = current.parent_id ? await this.getTask(current.parent_id) : null;
+        }
 
-    // Update the task's parent
-    await this.repository.update(taskId, { parent_id: parentId });
-  }
+        await this.repository.update(taskId, { parent_id: parentId });
+    }
 }

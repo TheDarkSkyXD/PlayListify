@@ -1,38 +1,45 @@
-# Primary Findings (Arc 1, Part 2): State Management & Persistence Patterns
+# Arc 1: Primary Findings - Indexing and Query Optimization
 
-*This document contains findings for Research Arc 1 related to database flushing and caching strategies.*
+## Finding 3: The Indexing Trade-Off
 
-## Finding 1.4: Write-Through vs. Write-Back Caching for Task State
+**Source(s):** Powersync Blog, Medium (Squeezing Performance), Android Developers
 
-When updating task states frequently (e.g., progress updates), the choice between write-through and write-back caching becomes a critical trade-off between data integrity and performance.
+**Key Insight:** Indexes are the primary mechanism for improving query performance in SQLite, but they come at a cost to write performance (INSERT, UPDATE, DELETE). A balanced approach is required.
 
-### Write-Through Caching (High Integrity)
+**Paraphrased Summary:**
+For a media-heavy application like Playlistify, where reads (e.g., loading playlists, searching, filtering) are expected to be far more frequent than writes (e.g., adding a new playlist), a robust indexing strategy is critical.
 
-*   **Description:** In a write-through strategy, data is written to the cache (in-memory representation) and the backing store (the SQLite database) simultaneously. The operation is only considered complete after the data is successfully written to both.
-*   **Pros:**
-    *   **High Data Integrity:** The database is always up-to-date. If the application crashes, the last known state of a task is safely persisted on disk. This is the simplest and most reliable method for ensuring data is not lost.
-    *   **Simplicity:** The logic is straightforward, as there is no need to manage "dirty" data in the cache that needs to be written later.
-*   **Cons:**
-    *   **Higher Latency:** Every write operation must wait for the disk I/O to complete, which is significantly slower than writing to memory. This can become a bottleneck if task progress is updated very frequently.
-*   **Use Case:** This approach is strongly preferred for applications where data integrity is a primary concern, such as databases and file systems. For a task management service, this applies to critical state transitions like "queued" -> "running" or "running" -> "completed".
+*   **Performance Gain:** Indexes work like a book's index, allowing the database to quickly find rows that match a `WHERE` clause without scanning the entire table. This is essential for features like searching for videos by title or filtering playlists.
+*   **Performance Cost:** Every time a row is added, updated, or deleted, the database must also update every index that includes that row. This can significantly slow down bulk operations like importing a large playlist. The performance penalty can be as much as a 5x reduction in insert speed for each secondary index.
 
-*   **Source:** [Write-through vs Write-back Cache: What's the Difference?](https://www.linkedin.com/advice/0/what-difference-between-write-through-write-back-rlx4e) - States that write-through is preferable for applications requiring high data integrity.
-*   **Source:** [disk cache mode: "write back" vs "write through" in iscsi context - Server Fault](https://serverfault.com/questions/1113656/disk-cache-mode-write-back-vs-write-through-in-iscsi-context) - Notes that drives where data integrity is a concern (like for databases) usually have write caching disabled (i.e., operate in write-through mode).
+**Recommendation:** Indexes should be added judiciously to columns that are frequently used in `WHERE` clauses, `JOIN` conditions, and for `ORDER BY` operations.
 
-### Write-Back Caching (High Performance)
+---
 
-*   **Description:** In a write-back strategy, data is only written to the cache. The write to the backing database is deferred and happens later (e.g., after a certain delay, or when the cache is full). The cache keeps track of which data is "dirty" (has not been written to the database).
-*   **Pros:**
-    *   **High Performance / Low Latency:** Write operations are extremely fast as they only involve updating memory. Multiple updates to the same piece of data can be combined into a single, more efficient database write.
-*   **Cons:**
-    *   **Risk of Data Loss:** If the application crashes before the dirty data in the cache is flushed to the database, those updates are lost permanently.
-    *   **Complexity:** The implementation is more complex, as it requires logic to manage the flushing of dirty cache entries.
-*   **Use Case:** This approach is suitable for applications that require high write performance and can tolerate some degree of data loss or sensitivity, such as video games or image editing software. It could be considered for non-critical, high-frequency updates like task progress percentages, where losing the absolute latest value in a crash is acceptable.
+## Finding 4: Strategic Indexing for Common Queries
 
-*   **Source:** [cpu architecture - Write-back vs Write-Through caching? - Stack Overflow](https://stackoverflow.com/questions/27087912/write-back-vs-write-through-caching) - Highlights that write-back has better performance because memory writes are slower than cache writes.
+**Source(s):** SQLite Query Optimizer Overview, Android Developers
 
-### Hybrid Approach
+**Key Insight:** The most effective indexing strategy is to create indexes specifically for the most common and performance-critical queries the application will execute.
 
-A hybrid approach is often the most practical solution for a task management service:
-*   Use **write-through** for critical, low-frequency state transitions (e.g., `CREATE`, `START`, `FAIL`, `COMPLETE`).
-*   Use **write-back** for non-critical, high-frequency progress updates (e.g., `progress: 5%` -> `progress: 6%`). The progress can be flushed to the database periodically (e.g., every few seconds) or when a critical state transition occurs.
+**Paraphrased Summary:**
+Based on the proposed schema and expected application features, the following indexes are recommended as a starting point:
+
+1.  **On the `videos` table:**
+    *   `CREATE INDEX idx_videos_title ON videos (title);`
+        *   **Reason:** To accelerate text-based searches for videos by their title. The SQLite Query Optimizer can use this index for `LIKE` queries, but it is most effective when the search term does not start with a wildcard (`%`).
+    *   `CREATE INDEX idx_videos_author ON videos (author);`
+        *   **Reason:** To allow for efficient filtering or searching by the video's author/channel.
+
+2.  **On the `playlists` table:**
+    *   `CREATE INDEX idx_playlists_name ON playlists (name);`
+        *   **Reason:** To speed up searching for playlists by name.
+
+3.  **On the `playlist_videos` junction table:**
+    *   **Crucially, SQLite automatically creates indexes on primary keys and foreign keys in many cases, but creating explicit indexes on foreign key columns is a best practice.**
+    *   `CREATE INDEX idx_playlist_videos_playlist_id ON playlist_videos (playlist_id);`
+        *   **Reason:** This is vital for quickly retrieving all videos belonging to a specific playlist. It optimizes the `JOIN` operation when you query for the contents of a single playlist.
+    *   `CREATE INDEX idx_playlist_videos_video_id ON playlist_videos (video_id);`
+        *   **Reason:** This is useful for finding all playlists that contain a specific video.
+
+**Note:** The query planner might not always use an index if it determines a full table scan would be faster (e.g., on very small tables). It's important to use `EXPLAIN QUERY PLAN` during development to verify that indexes are being used as expected for critical queries.

@@ -1,18 +1,21 @@
-# Key Research Questions: Arc 2 - Resilience, Error Handling, and Recovery
+# Arc 2: Key Questions for Robust Video Downloading and Conversion
 
-This document outlines the central questions for Arc 2. This research arc focuses on ensuring the task management system is robust and can gracefully handle and recover from unexpected failures, such as application crashes or database issues.
+This research arc addresses the core functionality of the application: reliably downloading video content from YouTube and handling various media formats.
 
-### Core Questions:
+1.  **Downloader Integration (`yt-dlp-wrap`):**
+    *   What are the most effective command-line arguments for `yt-dlp` to ensure reliable downloading, including handling private/unlisted videos (where authenticated), and maximizing download speed?
+    *   How can `yt-dlp-wrap` be used to get detailed progress updates (e.g., percentage, speed, ETA) and stream them to the frontend via IPC for a responsive user experience?
+    *   What are the best error handling strategies when using `yt-dlp`? How should the application differentiate between recoverable errors (e.g., network timeout) and non-recoverable errors (e.g., video unavailable)?
+    *   What is the best way to manage the `yt-dlp` binary itself? How to handle updates to `yt-dlp` to get the latest fixes without breaking the application?
 
-1.  **Crash Resilience:** What are the standard industry patterns for making task execution resilient to application crashes or unexpected shutdowns in a desktop environment?
-    *   *Sub-question:* Explore the concepts of task journaling (logging intentions before acting) and checkpointing (periodically saving progress) as they apply to a local SQLite-based system. What are their implementation costs and benefits?
+2.  **Download & Queue Management (`p-queue`):**
+    *   What is the optimal concurrency level for a download queue to balance performance and resource usage (CPU, network) without getting rate-limited by YouTube?
+    *   How should a queuing system built with `p-queue` handle priorities? For example, should a user-initiated single video download take precedence over a background playlist sync?
+    *   What is a robust mechanism for pausing, resuming, and canceling downloads, especially multi-part downloads that `yt-dlp` might perform?
+    *   How can the application ensure the download queue state is persistent across application restarts?
 
-2.  **Database Failure Handling:** How can the system gracefully handle database connection failures, deadlocks, or `SQLITE_BUSY` errors during a critical task update?
-    *   *Sub-question:* What are the recommended retry mechanisms (e.g., exponential backoff) for database operations within a task's lifecycle?
-
-3.  **Task Recovery on Startup:** What are the most effective strategies for identifying and resuming "unfinished," "stale," or "interrupted" tasks upon application startup?
-    *   *Sub-question:* How does the service reliably determine if a task was interrupted mid-execution versus being genuinely queued? (e.g., using a "running" status with a heartbeat or timeout mechanism).
-    *   *Sub-question:* What are the potential pitfalls of automatically resuming tasks, and how can they be mitigated?
-
-4.  **Idempotency:** What are the best practices for designing and implementing idempotent tasks to prevent duplicate processing if a task is unintentionally retried after a failure?
-    *   *Sub-question:* How can a unique task identifier be used to ensure that an operation (like a download) is only performed once, even if the "start download" command is received multiple times?
+3.  **Format Conversion and Quality (`ffmpeg`):**
+    *   What are the most efficient `ffmpeg` commands for converting downloaded video and audio streams into standard formats like MP4 and MP3?
+    *   How can the application reliably embed metadata (e.g., title, artist, album) and thumbnails into the final media files using `ffmpeg`?
+    *   What is the best strategy for implementing adaptive quality selection? How to parse `yt-dlp` format codes to find the best available MP4 stream that matches the user's preference (e.g., "up to 1080p")?
+    *   How should the application handle cases where separate video and audio streams are downloaded and need to be merged by `ffmpeg`? How to ensure this process is reliable and efficient?

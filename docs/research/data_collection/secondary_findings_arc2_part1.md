@@ -1,23 +1,38 @@
-# Secondary Findings (Arc 2, Part 1): Resilience, Error Handling, and Recovery
+# Arc 2: Secondary Findings - `yt-dlp` Command Sources
 
-*This document contains targeted findings that refine or elaborate on the primary findings for Arc 2.*
+This document contains the direct URLs for the sources used to generate the primary findings related to `yt-dlp` command-line arguments.
 
-## Finding 2.S1: Lifecycle Management of the Idempotency Key Store
+1.  **GitHub - yt-dlp/yt-dlp: A feature-rich command-line audio/video downloader**
+    *   URL: https://github.com/yt-dlp/yt-dlp
+    *   Relevance: The official source code repository and documentation. It is the ultimate authority on all available commands and, crucially, lists the external dependencies like `mutagen` and `AtomicParsley` that are required for features like embedding thumbnails in MP4 files.
 
-While the "Idempotent Consumer" pattern (Finding 2.5) is a standard for preventing duplicate task processing, a critical knowledge gap exists regarding the long-term management of the `processed_task_ids` table.
+2.  **How to Use YT-DLP: Guide and Commands (2025)**
+    *   URL: https://www.rapidseedbox.com/blog/yt-dlp-complete-guide
+    *   Relevance: Provides a practical guide with command examples, including a good example of a format selector with a fallback, which directly informed the recommended format selection string.
 
-*   **The Core Pattern:** The pattern involves storing the unique IDs of successfully processed tasks in a dedicated table to detect and discard duplicates. This is a well-established practice.
-    *   **Source:** [Handling duplicate messages using the Idempotent consumer pattern](https://microservices.io/post/microservices/patterns/2020/10/16/idempotent-consumer.html) - Describes using a separate `PROCESSED_MESSAGES` table.
-    *   **Source:** [Building an Idempotent Event Consumer with Quarkus and Kafka](https://medium.com/event-driven-utopia/building-an-idempotent-event-consumer-with-quarkus-and-kafka-1b342088d8db) - Reinforces that consumers must record successfully processed messages.
+3.  **Yt-dlp Commands: The Complete Tutorial For Beginners (2025) - OSTechNix**
+    *   URL: https://ostechnix.com/yt-dlp-tutorial/
+    *   Relevance: A clear tutorial that demonstrates the use of multiple `--write-*` flags together (`--write-description`, `--write-info-json`, `--write-thumbnail`), confirming the pattern for comprehensive data extraction.
 
-*   **The Knowledge Gap: Cleanup and Pruning:** Research does not reveal a single, standardized best practice for cleaning up this table. The table has the potential to grow indefinitely, which could become a performance and storage concern over time. Several potential strategies can be inferred, each with trade-offs:
+4.  **r/DataHoarder on Reddit: TIL about yt-dlp's amazing --embed-metadata flag...**
+    *   URL: https://www.reddit.com/r/DataHoarder/comments/13tnkn0/til_about_ytdlps_amazing_embedmetadata_flag_what/
+    *   Relevance: A community discussion that underscores the importance and utility of the `--embed-metadata` flag for creating portable, self-contained media files, which is a key goal for the Playlistify application.
 
-    1.  **No Cleanup:** For many applications, the storage overhead of a simple list of IDs is negligible, and the safest approach is to never delete from this table. This provides the strongest and simplest guarantee against reprocessing historical tasks.
-    2.  **Time-Based Cleanup (TTL):** A periodic background job could delete records older than a certain threshold (e.g., 30 days). This assumes that no message will ever be delayed or retried for longer than that threshold. This is a common strategy but introduces a small risk of reprocessing very old, delayed tasks.
-    3.  **Bounded-Size Cleanup:** The table could be managed like a circular buffer, keeping only the last N thousand processed IDs. This caps the storage size but significantly increases the risk of reprocessing if an older task is retried.
+5.  **yt-dlp(1) — Arch manual pages**
+    *   URL: https://man.archlinux.org/man/extra/yt-dlp/yt-dlp.1.en
+    *   Relevance: A formal man page that provides concise, technical descriptions of flags and confirms the default behavior and dependencies for thumbnail embedding, lending additional authority to the findings from the GitHub page.
+6.  **p-queue - npm**
+    *   URL: https://www.npmjs.com/package/p-queue
+    *   Relevance: The official package page, providing the canonical source for installation and basic usage, including the core concepts of concurrency and queue lifecycle methods like `.start()` and `.pause()`.
 
-*   **Conclusion:** There is no one-size-fits-all answer. The choice of a cleanup strategy depends on the specific requirements of the system:
-    *   **For maximum safety and simplicity:** Do not automatically prune the idempotency key store.
-    *   **For managing storage in a system with a defined message lifespan:** A time-based (TTL) cleanup is the most common and reasonable compromise.
+7.  **GitHub - sindresorhus/p-queue: Promise queue with concurrency control**
+    *   URL: https://github.com/sindresorhus/p-queue
+    *   Relevance: The official source code repository. The documentation here is the most detailed and authoritative, providing examples and clarifying advanced usage, including the `priority` option.
 
-    Given the context of a desktop application where storage is a consideration and tasks are unlikely to be delayed for extremely long periods, a **time-based cleanup strategy** appears to be the most appropriate practical solution, though it must be implemented with care.
+8.  **Python Stacks, Queues, and Priority Queues in Practice – Real Python**
+    *   URL: https://realpython.com/queue-in-python/
+    *   Relevance: While focused on Python, this article provides an excellent conceptual overview of how priority queues work, which is directly applicable to understanding the `priority` option in `p-queue`.
+
+9.  **What is Priority Queue | Introduction to Priority Queue - GeeksforGeeks**
+    *   URL: https://www.geeksforgeeks.org/priority-queue-set-1-introduction/
+    *   Relevance: A foundational computer science article explaining the theory behind priority queues, reinforcing the logic for using them to handle user-initiated tasks ahead of background tasks.

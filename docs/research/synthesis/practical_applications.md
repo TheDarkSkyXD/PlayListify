@@ -1,34 +1,51 @@
-# Practical Applications for the Playlistify Project
+# Synthesis: Practical Applications and Development Tasks
 
-*This document translates the key research insights into specific, practical applications and recommendations for the development of the "Playlistify" task management service.*
+This document translates the key research insights into a checklist of practical, actionable tasks for the development team.
 
-### 1. Database Configuration (`BackgroundTaskService.ts`)
+## Arc 1: Local Media Library Management
 
-*   **Action:** Immediately upon initializing the `better-sqlite3` database connection, the following PRAGMA commands must be executed in order:
-    1.  `PRAGMA journal_mode = WAL;` - To ensure concurrent read/write access.
-    2.  `PRAGMA synchronous = NORMAL;` - To improve write throughput with an acceptable trade-off for this application type.
-*   **Action:** The `better-sqlite3` connection must be configured with a `timeout` of at least `5000` milliseconds to gracefully handle temporary database locks.
-*   **Action:** All write operations (e.g., creating a task, updating a status) performed by the service must be wrapped in `IMMEDIATE` transactions (e.g., `db.transaction(...).immediate(...)`) to prevent `SQLITE_BUSY` errors between concurrent workers.
+*   **Task 1: Implement the Core Database Schema.**
+    *   [ ] Create the initial SQL schema file with `CREATE TABLE` statements for `playlists`, `videos`, and the `playlist_videos` junction table.
+    *   [ ] The schema must include all relevant fields identified in the research (e.g., `position` in `playlist_videos`, `download_path` in `videos`).
+    *   [ ] Ensure all foreign key relationships are explicitly defined.
 
-### 2. Task Schema (`/schema/database_schema.sql`)
+*   **Task 2: Set Up the Database Migration System.**
+    *   [ ] Choose and install a dedicated Node.js migration library (e.g., `node-pg-migrate`, `knex`).
+    *   [ ] Create the first migration file, which will contain the schema from Task 1.
+    *   [ ] Write a function in the main process that automatically runs any pending migrations on application startup.
 
-*   **Action:** The `tasks` table schema must include all the recommended columns from Finding 1.5, including `id`, `type`, `status`, `parentId`, `progress`, `details` (as JSON), `error`, and relevant timestamps.
-*   **Action:** Create indexes on the `status`, `type`, and `parentId` columns to ensure efficient querying.
-*   **Action:** Create a separate `processed_task_ids` table with columns `task_id` (PRIMARY KEY) and `created_at` to support idempotent task execution.
+*   **Task 3: Enforce Database Best Practices.**
+    *   [ ] In the database connection utility, ensure `PRAGMA foreign_keys = ON;` is executed immediately after every connection is opened.
+    *   [ ] Create a `db.transaction()` wrapper for all application logic that performs multiple database writes in a single operation (e.g., `importPlaylist`, `downloadVideos`).
+    *   [ ] Add the recommended indexes to the database schema to optimize common queries.
 
-### 3. Service Logic (`BackgroundTaskService.ts`)
+*   **Task 4: Implement the File Storage System.**
+    *   [ ] Create a utility function to sanitize playlist titles for use as directory names.
+    *   [ ] Implement the hashed directory storage mechanism for all downloaded media files.
+    *   [ ] Ensure the `videos` table in the database correctly stores the full, internal path to the downloaded file.
 
-*   **Action:** Implement a `recoverInterruptedTasks()` function that is called once on application startup. This function will query for all tasks with `status = 'RUNNING'` and update them to `status = 'QUEUED'`.
-*   **Action:** All task execution logic must be wrapped in an idempotency check. Before running a task's core logic, the service must first check if the `task_id` exists in the `processed_task_ids` table.
-*   **Action:** Upon successful completion of a task, its `id` must be added to the `processed_task_ids` table within the same transaction that marks the task as `COMPLETED`.
-*   **Action:** Implement a `cleanupIdempotencyKeys()` function that runs periodically (e.g., once a day) to delete records from `processed_task_ids` older than a safe threshold (e.g., 30 days).
+## Arc 2: Robust Video Downloading and Conversion
 
-### 4. Dependency Management Logic
+*   **Task 5: Implement the `yt-dlp` Wrapper Service.**
+    *   [ ] Create a service that can execute `yt-dlp` commands using `yt-dlp-wrap`.
+    *   [ ] Implement a function to fetch video/playlist metadata using the `--dump-json` command.
+    *   [ ] Implement the core download function using the recommended format selection and metadata embedding flags.
+    *   [ ] Add robust error handling to differentiate between network errors, unavailable videos, and other `yt-dlp` failures.
 
-*   **Action:** When creating a task that depends on another, the service must first load the dependency graph into memory and perform a Depth-First Search (DFS) to check for cycles. The new dependency should only be committed to the database if the check passes.
+*   **Task 6: Build the Download Manager.**
+    *   [ ] Initialize a `p-queue` instance with a user-configurable concurrency setting.
+    *   [ ] Implement the database-backed persistent queue. On startup, load any unfinished downloads from the DB into the queue.
+    *   [ ] Implement the priority system for user-initiated vs. background tasks.
+    *   [ ] Expose methods for pausing, resuming, and clearing the queue via the secure IPC channel.
 
-### 5. IPC and UI Communication (`ipc-contract.ts`, `ActivityCenter.tsx`)
+## Arc 3: Secure API Integration & Settings
 
-*   **Action:** Adhere strictly to the unidirectional data flow pattern. The `BackgroundTaskService` will be the single source of truth.
-*   **Action:** Whenever a task is created, or its status/progress is updated in the database, the service must emit an IPC event (e.g., `task:updated`) with the updated task data.
-*   **Action:** The UI (e.g., the Activity Center) must listen for this `task:updated` event and update its local, in-memory cache, which will trigger a re-render. The UI should not poll the backend for updates.
+*   **Task 7: Implement the Secure Settings Service.**
+    *   [ ] In the `SettingsService`, create distinct methods for handling sensitive vs. non-sensitive data.
+    *   [ ] All calls to set or get sensitive data (e.g., `setAuthToken`) must use the `safeStorage` API for encryption/decryption.
+    *   [ ] Ensure the application checks `safeStorage.isEncryptionAvailable()` and handles potential errors gracefully.
+
+*   **Task 8: Implement the Secure IPC Bridge.**
+    *   [ ] Define a clear, comprehensive TypeScript interface for the entire API that will be exposed to the renderer.
+    *   [ ] Implement the `preload.ts` script using `contextBridge` to expose only the functions defined in the API interface.
+    *   [ ] Add a `renderer.d.ts` file to provide type safety for the `window.electronAPI` object in the frontend codebase.

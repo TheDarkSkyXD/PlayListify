@@ -1,23 +1,23 @@
-# Key Research Insights
+# Synthesis: Key Research Insights
 
-*This document distills the most critical and actionable insights discovered during the research process.*
+This document summarizes the most critical, high-level insights derived from the comprehensive research process. These insights should serve as guiding principles during the application's specification and development phases.
 
-1.  **SQLite is More Than Sufficient.**
-    *   **Insight:** SQLite, when configured correctly, is a highly capable and performant backend for a desktop application's task queue. Its built-in support for atomic transactions and modern features like WAL mode make it a robust choice, dispelling any notion that it's merely a "simple" or "toy" database.
-    *   **Relevance:** This validates the core technology choice in the "Playlistify" blueprint and provides confidence that a reliable system can be built without introducing more complex, external database dependencies.
+1.  **SQLite is the Bedrock, But Requires Configuration.**
+    *   **Insight:** SQLite is the correct choice for the application's data layer due to its performance and portability. However, its default settings are not optimal.
+    *   **Actionable Advice:** To ensure data integrity and performance, developers must *always* enable foreign key constraints (`PRAGMA foreign_keys = ON;`) and wrap all bulk write operations in transactions (`db.transaction()`). These are not optional tweaks; they are fundamental requirements for a robust application.
 
-2.  **Concurrency is About I/O, Not CPU.**
-    *   **Insight:** For the types of tasks in this system (downloads, file operations), the performance bottleneck is I/O, not JavaScript execution speed. Therefore, the concurrency challenge is not about parallel processing (which `worker_threads` would solve) but about managing the rate of I/O operations (which a task queue like `p-queue` solves).
-    *   **Relevance:** This clarifies the architectural focus. Efforts should be spent on intelligently managing the I/O task queue, not on multi-threading the application logic itself.
+2.  **Decouple Logical Data from Physical Files.**
+    *   **Insight:** The most scalable and maintainable architecture is one that separates the *metadata about files* from the *files themselves*.
+    *   **Actionable Advice:** The SQLite database should be the single source of truth for all metadata. The file system should be treated as a dumb but performant blob store, using a hashed directory structure to prevent bottlenecks. Do not rely on file or folder names for application logic.
 
-3.  **Resilience is Designed, Not Assumed.**
-    *   **Insight:** A resilient system is not an accident; it is the result of applying specific, intentional patterns. Relying on default behaviors is insufficient. Key patterns like state-driven recovery, idempotent consumers, and checkpointing are essential building blocks for a system that can survive crashes.
-    *   **Relevance:** The specification for the task service must explicitly include requirements for these resilience patterns. It's not enough to "handle" errors; the system must be designed to recover from them automatically.
+3.  **Security is an Architectural Choice, Not an Add-on.**
+    *   **Insight:** Modern Electron security is built on the principle of least privilege, enforced by the Context Bridge.
+    *   **Actionable Advice:** Never expose Node.js or Electron modules directly to the renderer process. All communication must flow through a well-defined, type-safe API exposed via `contextBridge` in a `preload` script. All sensitive data, without exception, must be encrypted using the OS-native `safeStorage` API before being persisted.
 
-4.  **The Database is the Ultimate Source of Truth.**
-    *   **Insight:** In an Electron application, the separation between the main process (with database access) and the renderer process (the UI) is strict. The only reliable architectural pattern is one where the database, managed by the main process, is the single source of truth. The UI is a reactive, "dumb" reflection of that state.
-    *   **Relevance:** This dictates a clear, unidirectional data flow architecture using IPC. The UI should never have its own persistent state that could become out of sync with the backend.
+4.  **Leverage Specialized Tools for Specialized Jobs.**
+    *   **Insight:** The core technologies chosen for this project (`better-sqlite3`, `yt-dlp`) are powerful because they are focused. They do not try to solve every problem.
+    *   **Actionable Advice:** Embrace this philosophy by using other specialized tools to fill the gaps. Use a dedicated migration library to handle schema changes. Use a dedicated queue library (`p-queue`) to manage concurrency. Do not try to reinvent these complex components.
 
-5.  **Simplicity is Often the Best Optimization.**
-    *   **Insight:** In several cases, the simplest solution was also the most effective. Using SQLite's built-in `busy_timeout` is simpler and more effective than a custom application-level retry loop. Using a single `tasks` table is simpler than managing multiple tables.
-    *   **Relevance:** When designing the service, favor leveraging the built-in capabilities of the chosen tools (`SQLite`, `better-sqlite3`) before reaching for more complex, application-level solutions.
+5.  **Anticipate and Manage External Dependencies.**
+    *   **Insight:** Key functionality, like embedding thumbnails, depends on external command-line tools (`ffmpeg`, `mutagen`, `AtomicParsley`) being available in the application's environment.
+    *   **Actionable Advice:** The application's startup process must include robust checks to verify the existence and correct configuration of these external dependencies. The download process must be designed to handle their absence gracefully (e.g., by skipping a step and logging a warning rather than crashing).

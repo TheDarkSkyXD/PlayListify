@@ -1,42 +1,46 @@
-# Primary Findings (Arc 1, Part 1): State Management & Persistence Patterns
+# Arc 1: Primary Findings - Database Schema Design
 
-*This document contains the initial findings for Research Arc 1, focusing on task state persistence strategies.*
+## Finding 1: The Junction Table Model for Many-to-Many Relationships
 
-## Finding 1.1: Atomic State Updates via SQLite Transactions
+**Source(s):** SQLite Tutorial, Stack Overflow, Medium (Spotify Design)
 
-The most fundamental strategy for ensuring consistent and reliable persistence of task state in SQLite is the use of **ACID-compliant transactions**. SQLite guarantees that all operations wrapped within a transaction are atomic, meaning they either all complete successfully or none of them do. This prevents the database from ever entering an inconsistent state, even in the event of a program crash or power failure during the transaction.
+**Key Insight:** The most robust and standard method for modeling the relationship between playlists and videos (where one video can exist in multiple playlists, and one playlist can contain multiple videos) is to use a **junction table**, also known as a linking or associative table.
 
-A typical state change, such as moving a task from "queued" to "running" and setting its start time, should be performed within a single transaction block.
+**Paraphrased Summary:**
+For a local-first YouTube media library, the database schema should be designed around three core tables to manage the many-to-many relationship effectively:
 
-**Example Pseudocode:**
-```sql
-BEGIN TRANSACTION;
-UPDATE tasks SET status = 'running', started_at = CURRENT_TIMESTAMP WHERE id = 'task-123';
--- Any other related updates, e.g., decrementing a queue counter
-COMMIT;
-```
+1.  **`playlists` Table:** This table will store unique information about each playlist.
+    *   `playlist_id` (Primary Key)
+    *   `name` (e.g., "Coding Music", "Workout Mix")
+    *   `description`
+    *   `source_url` (if imported from YouTube)
+    *   `created_at`, `updated_at`
 
-This atomicity is a core feature of SQLite and is the primary mechanism for guaranteeing data integrity for state transitions.
+2.  **`videos` Table:** This table will store unique information about each video, ensuring that video data is not duplicated even if the video appears in multiple playlists.
+    *   `video_id` (Primary Key)
+    *   `youtube_id` (The unique ID from YouTube, e.g., `dQw4w9WgXcQ`)
+    *   `title`
+    *   `author`
+    *   `duration` (in seconds)
+    *   `thumbnail_url`
+    *   `download_path` (local file path after download)
+    *   `downloaded_quality`
 
-*   **Source:** [SQLite Transaction Explained By Practical Examples](https://www.sqlitetutorial.net/sqlite-transaction/) - Confirms that SQLite transactions are atomic and a change cannot be broken down into smaller ones.
+3.  **`playlist_videos` (Junction Table):** This is the crucial table that connects the other two. Each row in this table represents a single video's inclusion in a single playlist.
+    *   `playlist_id` (Foreign Key referencing `playlists.playlist_id`)
+    *   `video_id` (Foreign Key referencing `videos.video_id`)
+    *   `position` (An integer to maintain the specific order of videos within a playlist)
+    *   `added_at`
 
-## Finding 1.2: The Persistent Queue Pattern
+This structure prevents data redundancy and provides a flexible and scalable way to manage complex relationships.
 
-For a Node.js environment, a common and effective pattern is to abstract the task management logic into a **persistent queue** backed by SQLite. Instead of managing database transactions directly for every task operation, a dedicated queueing library can handle the process of:
+---
 
-1.  **Enqueuing:** Adding a new task as a row in the SQLite database.
-2.  **Processing:** Dequeuing the task, executing its logic, and updating its status.
-3.  **Persistence:** Ensuring the queue state survives application restarts or crashes.
+## Finding 2: SQLite Foreign Key Constraint Requirement
 
-The open-source library `node-persistent-queue` is a direct implementation of this pattern. It is designed specifically for "long-running sequential tasks" and uses SQLite for its on-disk queue, processing tasks in a First-In-First-Out (FIFO) serial manner. This pattern provides a high-level abstraction over raw database operations, simplifying the implementation of a reliable task management service.
+**Source(s):** Quackit SQLite Tutorial
 
-*   **Source:** [GitHub - damoclark/node-persistent-queue](https://github.com/damoclark/node-persistent-queue) - Provides a simple SQLite-backed queue for long-running sequential tasks.
-*   **Source:** [node-persistent-queue - npm](https://www.npmjs.com/package/node-persistent-queue) - Reinforces the library's purpose of maintaining an on-disk queue that persists through crashes.
+**Key Insight:** SQLite does not enforce foreign key constraints by default. This is a critical implementation detail that must be addressed to ensure data integrity.
 
-## Finding 1.3: Handling Database Locks with a Work Queue
-
-When dealing with potential database contention (e.g., multiple processes trying to write to the database simultaneously, leading to `SQLITE_BUSY` errors), a common strategy is to implement a **deferred execution work queue**.
-
-If a database operation is attempted while the database is locked, instead of failing immediately, the operation is placed into an in-memory queue. This "work queue" then attempts to execute the operations sequentially once the database becomes available. This pattern adds a layer of resilience specifically for handling database lock errors, ensuring that state updates are not lost due to temporary contention.
-
-*   **Source:** [node.js sqlite transaction isolation - Stack Overflow](https://stackoverflow.com/questions/29532526/node-js-sqlite-transaction-isolation) - Describes a pattern of deferring execution by storing a function in a "work queue" if the database object is locked.
+**Paraphrased Summary:**
+To ensure the relationships defined by the foreign keys in the junction table (`playlist_videos`) are actually enforced (preventing orphaned records), every connection to the SQLite database must explicitly enable foreign key support. In `better-sqlite3`, this is typically done by executing the command `PRAGMA foreign_keys = ON;` immediately after opening the database connection. Failure to do so could lead to data corruption, such as having entries in `playlist_videos` that point to playlists or videos that no longer exist.

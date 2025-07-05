@@ -1,19 +1,21 @@
-# Key Research Questions: Arc 1 - State Management & Persistence Patterns
+# Arc 1: Key Questions for Local Media Library Management
 
-This document outlines the central questions that will guide the research for Arc 1. The focus of this arc is to understand the most effective and reliable methods for managing and persisting task state in a local database environment.
+This research arc focuses on establishing a robust and scalable foundation for storing and managing user data, playlists, and downloaded media files locally.
 
-### Core Questions:
+1.  **Database Schema Design (`better-sqlite3`):**
+    *   What is an optimal SQLite schema for managing playlists, videos, and their relationships (e.g., videos within a playlist)?
+    *   How should the schema handle one-to-many and many-to-many relationships, such as a single video appearing in multiple user-created playlists?
+    *   What data types are most efficient for storing YouTube-specific metadata (e.g., video IDs, durations, view counts, thumbnails)?
+    *   What are the best practices for indexing tables in `better-sqlite3` to ensure fast queries, especially for filtering and sorting large playlists?
+    *   How should the database schema accommodate tracking download status, file paths, and actual downloaded quality for each video?
 
-1.  **Task State Persistence:** What are the most effective strategies for ensuring the consistent and reliable persistence of task state (e.g., queued, running, failed, completed, canceled, retrying) in a local SQLite database?
-    *   *Sub-question:* How can atomic operations be guaranteed when updating task states to prevent race conditions or partial updates?
+2.  **File System Management (`fs-extra`):**
+    *   What is a scalable and user-friendly directory structure for storing thousands of downloaded video and audio files?
+    *   What are the performance and reliability trade-offs between storing media in a flat structure versus a nested structure (e.g., `Artist/Album/Track` or `PlaylistName/VideoTitle`)?
+    *   How can the application reliably handle file and directory naming conflicts, especially with special characters common in video titles?
+    *   What are robust strategies for managing thumbnail images associated with videos and playlists? Should they be stored alongside media files or in a separate cache directory?
 
-2.  **Database Flushing Strategies:** What are the pros and cons of different flushing strategies for updating task status and progress in the database, especially in the context of a desktop application?
-    *   *Sub-question:* Compare write-through caching (immediate database write) vs. write-back caching (batching updates) in terms of performance, data integrity, and complexity for this use case.
-
-3.  **Schema Design:** What are the best practices for designing the schema of a `tasks` table in SQLite to support efficient querying, status reporting, hierarchical relationships (parent/child tasks), and future extensibility?
-    *   *Sub-question:* What data types are optimal for storing statuses, progress, timestamps, and serialized metadata (`details` JSON blob)?
-    *   *Sub-question:* Which columns should be indexed to optimize common queries, such as finding all "unfinished" tasks or querying tasks by status?
-
-4.  **Source of Truth:** How should the system balance in-memory state caching (e.g., for the Activity Center UI) versus relying solely on the database as the single source of truth?
-    *   *Sub-question:* What are the trade-offs between performance (reading from memory) and data consistency (reading from disk)?
-    *   *Sub-question:* What patterns can be used to keep the in-memory cache synchronized with the database without excessive polling?
+3.  **Metadata Handling and Synchronization:**
+    *   What is the most effective strategy for storing playlist and video metadata? Should it all reside in the SQLite database, within JSON sidecar files, or embedded directly into media file tags (e.g., ID3 tags for MP3s)?
+    *   How should the application handle metadata updates for imported YouTube playlists? What is the best way to detect changes (e.g., new videos, removed videos, title changes) and synchronize the local state?
+    *   What are the potential race conditions or data integrity issues when synchronizing metadata while a user is interacting with the local data, and how can they be mitigated?

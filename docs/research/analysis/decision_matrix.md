@@ -1,36 +1,24 @@
-# Decision Matrix: Research Arc Evaluation
+# Analysis: Decision Matrix
 
-*This document provides a systematic evaluation of the three research arcs investigated, measured against the primary criteria for a successful task management service.*
+This document provides a systematic evaluation of the three primary research arcs against the core architectural requirements of the Playlistify application. The purpose of this matrix is to justify the integrated model by showing how each arc contributes to a balanced and robust final design.
 
-## Evaluation Criteria
+The core criteria are:
+*   **Performance:** How does the approach affect the application's speed and responsiveness, especially as the user's library grows?
+*   **Security:** How does the approach protect user data and the application from common vulnerabilities?
+*   **Maintainability:** How does the approach affect the long-term health of the codebase, making it easier to debug, update, and extend?
 
-1.  **Reliability:** How well does the arc's focus contribute to a system that is robust, consistent, and guarantees data integrity?
-2.  **Resilience:** How well does the arc's focus contribute to the system's ability to recover from crashes and handle errors gracefully?
-3.  **Performance:** How well does the arc's focus contribute to a system that is fast, responsive, and avoids bottlenecks?
-4.  **Simplicity:** How complex are the patterns and solutions proposed within the arc to implement and maintain? (Lower score is better).
+| Research Arc | Key Technologies | Performance | Security | Maintainability | Synthesis & Justification |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1. Local Media Library Management** | `better-sqlite3`, `fs-extra`, Migration Tools | **High** | **Medium** | **High** | **Adopted.** The use of a transactional database with proper indexing and a hashed file structure provides the best possible performance for a local-first application. The high maintainability comes from a structured schema, automated migrations, and the decoupling of metadata from storage. |
+| **2. Robust Video Downloading & Conversion** | `yt-dlp`, `p-queue`, `ffmpeg` | **High** | **N/A** | **Medium** | **Adopted.** The combination of `yt-dlp`'s powerful format selection and a priority-based queue from `p-queue` ensures an efficient and responsive download experience. Maintainability is medium, as it requires careful management of external binaries and their command-line arguments. |
+| **3. Secure API Integration & Settings** | `electron-store`, `safeStorage`, `contextBridge` | **High** | **High** | **High** | **Adopted.** This arc is non-negotiable from a security standpoint. Using the OS-native `safeStorage` and a locked-down IPC bridge (`contextBridge`) provides the highest level of security with no significant performance penalty. The resulting code is highly maintainable due to the clear separation of concerns and type-safe API contract. |
 
-## Scoring
+## Conclusion
 
-*   **1:** Poorly addresses the criterion.
-*   **2:** Partially addresses the criterion.
-*   **3:** Adequately addresses the criterion.
-*   **4:** Strongly addresses the criterion.
-*   **5:** Comprehensively addresses the criterion.
+The decision matrix clearly shows that the strategies identified in all three research arcs are not mutually exclusive but are, in fact, complementary and essential for building a high-quality desktop application. The final integrated model is a direct result of combining the "best-of-breed" solutions from each arc.
 
-## Decision Matrix
+*   **Arc 1** provides the performant and maintainable **data foundation**.
+*   **Arc 2** provides the powerful and efficient **core functionality**.
+*   **Arc 3** provides the essential **security wrapper** that protects the application and its users.
 
-| Research Arc                                           | Reliability | Resilience | Performance | Simplicity | **Total Score** |
-| ------------------------------------------------------ | :---------: | :--------: | :---------: | :--------: | :-------------: |
-| **Arc 1: State Management & Persistence**              |      5      |      3     |      3      |      4     |     **15**      |
-| **Arc 2: Resilience, Error Handling, & Recovery**      |      4      |      5     |      3      |      3     |     **15**      |
-| **Arc 3: Concurrency, Dependencies, & Scalability**    |      3      |      3     |      5      |      2     |     **13**      |
-
-## Analysis & Conclusion
-
-The decision matrix reveals that **Arc 1 (State Management)** and **Arc 2 (Resilience)** are the most critical pillars for the success of this project, scoring equally high.
-
-*   **Arc 1** scored highest on **Reliability** and **Simplicity**. Its patterns (atomic transactions, clear schema) form the non-negotiable foundation of a trustworthy system. Without this, nothing else matters.
-*   **Arc 2** scored highest on **Resilience**. Its patterns (checkpointing, idempotency, recovery) are what elevate the system from a simple queue to a robust service that can be trusted with long-running, important tasks.
-*   **Arc 3** scored highest on **Performance**, but lowest on **Simplicity**. Its patterns (concurrency models, dependency graphs, WAL mode) are crucial optimizations, but they are layered on top of the foundation provided by Arcs 1 and 2. The complexity score reflects that implementing these correctly requires more intricate logic.
-
-**Conclusion:** The research confirms that all three arcs are essential, but they have a clear, logical dependency on one another. A successful implementation must prioritize the findings from **Arc 1** first, followed immediately by **Arc 2**, and then optimize with the findings from **Arc 3**. This sequence ensures that the system is built on a reliable and resilient foundation before advanced performance tuning and complex features are introduced. The integrated model presented in the synthesis phase is a direct result of this conclusion, layering the concepts from the three arcs in their logical order of importance.
+By adopting the key findings from all three arcs, the resulting architecture will be performant, secure, and maintainable, meeting all the primary goals of the research phase.

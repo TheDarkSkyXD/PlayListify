@@ -1,23 +1,20 @@
-# Executive Summary
+# Final Report: Executive Summary
 
-This report presents the findings of a comprehensive research study on the principles and best practices for designing a persistent backend task management service for a desktop application using a local SQLite database. The research was conducted to inform the technical specification of the "Playlistify" application's background task system.
+This report details the findings of a comprehensive research initiative into the best practices for developing a local-first YouTube playlist management and downloader application. The research, guided by the Multi-Arc and Adaptive Research methodology, was conducted to inform the SPARC Specification phase for the Playlistify project.
 
-The study followed a Multi-Arc Research Design, investigating three distinct but interconnected areas:
-1.  **State Management & Persistence:** How to reliably store and manage task data.
-2.  **Resilience & Recovery:** How to ensure the system gracefully handles crashes and errors.
-3.  **Concurrency & Scalability:** How to manage multiple tasks and ensure performance.
+The investigation was structured around three distinct research arcs:
+1.  **Local Media Library Management:** Focusing on database and file system architecture.
+2.  **Robust Video Downloading:** Focusing on `yt-dlp` integration and queue management.
+3.  **Secure API Integration:** Focusing on data security and Inter-Process Communication (IPC).
 
-**Key Findings:**
-The research concludes that a robust and performant system can be built using SQLite by adhering to a set of established patterns. The most critical finding is that SQLite, when configured with **Write-Ahead Logging (WAL) mode**, provides the necessary concurrency for a desktop application, allowing a responsive UI to read data while background tasks perform writes.
+**Key Findings & Recommendations:**
 
-The core of the proposed architecture is a **transactional state machine**, where all changes to a task's lifecycle are handled within atomic database transactions to guarantee data integrity. Resilience is achieved through a combination of **state-driven recovery** on startup (re-queuing any interrupted tasks), **idempotent task design** to prevent duplicate processing, and **checkpointing** for long-running operations. Concurrency for I/O-bound tasks like downloads is best managed by an in-memory **task queue** (e.g., `p-queue`) rather than more complex multi-threading models.
+The research concludes that a successful application architecture must be built on a foundation of **decoupling metadata from physical storage**. The **SQLite database must serve as the single source of truth**, with its performance and integrity assured through the mandatory use of **transactions for bulk operations** and a **dedicated migration library** for schema management.
 
-**Primary Recommendations:**
-Based on the synthesized findings, the following actions are recommended for the "Playlistify" project:
-*   **Configure SQLite for Concurrency:** Enable WAL mode and set a busy timeout on the database connection.
-*   **Adopt a Transactional Model:** Use `IMMEDIATE` transactions for all state-changing database operations.
-*   **Implement a Recovery Service:** On startup, the application must check for and re-queue any tasks that were interrupted.
-*   **Ensure Idempotency:** Task execution logic must be designed to be idempotent to allow for safe retries.
-*   **Use a Task Queue for I/O:** Manage the concurrency of downloads and other I/O-heavy tasks using a library like `p-queue`.
+For the core downloading functionality, the research recommends a robust set of **`yt-dlp` command-line arguments** to ensure reliable downloads and metadata embedding. This process should be managed by a **persistent, priority-based download queue** to provide a responsive user experience.
 
-By implementing the integrated model derived from this research, the "Playlistify" project can build a task management service that is reliable, resilient, and performant, providing a solid foundation for its core functionality.
+On the security front, the findings are unequivocal: all sensitive data, particularly OAuth tokens, must be encrypted using Electron's native **`safeStorage` API**. Furthermore, all communication between the application's frontend and backend must be strictly controlled through a **secure IPC bridge**, implemented via a `preload` script and the `contextBridge` API, to prevent security vulnerabilities.
+
+**Conclusion:**
+
+The integrated architectural model presented in this report, which synthesizes the findings from all three research arcs, provides a clear and robust blueprint for development. By adhering to these research-backed recommendations, the Playlistify project can proceed with a high degree of confidence in its architectural soundness, security posture, and long-term maintainability.

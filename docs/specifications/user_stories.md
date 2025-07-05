@@ -1,223 +1,217 @@
-# User Stories
+# Playlistify: User Stories & Acceptance Criteria
+
+This document outlines the user stories for the Playlistify application. Each story is designed to be a self-contained unit of functionality with clear, measurable, and AI-verifiable acceptance criteria that align with the project's technical architecture.
+
+---
 
 ## Epic 1: Project Foundation & Playlist Viewing
 
-### Story 1.1: Main Application Layout
-As a user, I want to see the main application window with the sidebar and top navigation bar so that I can understand the layout and see the main sections of the app.
+**Goal:** Establish the core application shell and enable users to import, view, and search within public YouTube playlists.
 
-*   Acceptance Criteria:
-    *   The application opens to a primary window within 2 seconds.
-    *   A persistent sidebar is visible on the left, taking up between 15% and 20% of the screen width (e.g., 240-320 pixels on a 1600px wide screen).
-    *   A persistent top navigation bar is visible at the top, with a height between 5% and 10% of the screen height (e.g., 40-80 pixels on an 800px tall screen).
-    *   The main view occupies the remaining screen space below the top navigation bar and to the right of the sidebar.
+---
 
-### Story 1.2: Build Dashboard UI Structure
-As a user, I want a dashboard that serves as my central starting point, designed to display my "Recent Playlists" and "Continue Watching" history.
+### **Story 1.1: Main Application Layout**
 
-*   Acceptance Criteria:
-    *   A "Dashboard" screen is created with clearly defined sections for "Recent Playlists" and "Continue Watching".
-    *   These sections initially display an appropriate empty state (e.g., "Your recent playlists will appear here"). Each empty state message should be no more than 50 characters.
-    *   The structure is ready to receive and display real data as soon as the corresponding features are completed in later stories.
-    *   The empty state messages are centered within their respective sections, using a font size of 16px.
+**As a user,** I want to see the main application window with a persistent sidebar and top navigation bar so that I can understand the layout and see the main sections of the app.
 
+*   **Acceptance Criteria:**
+    *   **AC1:** The application launches and displays a single, primary window.
+    *   **AC2:** A sidebar is rendered on the left side of the window and remains visible across all main navigation routes.
+    *   **AC3:** A top navigation bar is rendered at the top of the window and remains visible across all main navigation routes.
+    *   **AC4:** The main content area is correctly rendered to the right of the sidebar and below the top navigation bar.
 
-### Story 1.4: View Playlist Details
-As a user, I want to select an imported playlist and see the list of all its videos, including thumbnails and titles, so that I can browse its contents.
+---
 
-*   Acceptance Criteria:
-    *   Clicking a playlist in the sidebar displays its contents in the main view within 2 seconds.
-    *   The view shows the playlist's header (title, video count, etc.) and a "Last checked" timestamp.
-    *   Each video in the list displays its Thumbnail (48x48 pixels), Title, Channel Name, Duration, View Count, Upload Date, a colored status dot (green, yellow, or red), and its downloaded quality (if applicable).
-    *   A loading state is shown while data is being fetched, with a loading animation displaying for no more than 3 seconds.
+### **Story 1.2: Build Dashboard UI Structure**
 
-### Story 1.5: Search within Playlist
-As a user, I want to search for a specific video by title within a selected playlist so that I can find content quickly.
+**As a user,** I want a dashboard that serves as my central starting point, designed to display my "Recent Playlists" and "Continue Watching" history.
 
-*   Acceptance Criteria:
-    *   A search input field is present on the playlist detail view.
-    *   As the user types in the search field, the visible list of videos filters in real-time (within 0.5 seconds) to show only videos whose titles match the search query, using a case-insensitive search.
+*   **Acceptance Criteria:**
+    *   **AC1:** A "Dashboard" view is rendered when the corresponding navigation item is clicked.
+    *   **AC2:** The dashboard contains two distinct sections with the headers "Recent Playlists" and "Continue Watching".
+    *   **AC3:** When no data is available, the "Recent Playlists" section must display the exact text: "Your recent playlists will appear here."
+    *   **AC4:** When no data is available, the "Continue Watching" section must display an empty state message.
 
-### Story 1.6: Infinite Scroll for Video Lists
-As a user Browse a large playlist, I want the video list to load more items automatically as I scroll down so that I can view all content without clicking through pages.
+---
 
-*   Acceptance Criteria:
-    *   For playlists with a large number of videos (e.g., >100), the UI does not hang or become slow. Scrolling performance should maintain at least 30 frames per second.
-    *   Only the currently visible video items are rendered in the DOM.
-    *   Scrolling is smooth and performant.
+### **Story 1.3: Import Public Playlist**
+
+**As a user,** I want to use the `+ Add` menu to import a public YouTube playlist using its URL, so that the import process starts in the background and I can continue using the app.
+
+*   **Acceptance Criteria:**
+    *   **AC1:** Clicking the "Add Playlist" menu item opens a dialog. Upon pasting a valid YouTube playlist URL, a preview of the playlist (thumbnail, title, video count) is displayed within the dialog within 2 seconds.
+    *   **AC2:** When the "Import" button is clicked, a new task with `type: 'IMPORT'` and `status: 'QUEUED'` must be created in the `background_tasks` table in the SQLite database.
+    *   **AC3:** The import operation must be non-blocking. The UI thread must remain responsive, with user interactions completing in under 200ms while the import is in progress.
+    *   **AC4:** Upon task creation, a `task:update` event must be emitted via the secure IPC bridge, making the new task immediately visible in the Activity Center UI.
+    *   **AC5:** After the background task successfully inserts the playlist and video data into the SQLite database, a desktop notification with the title "Import Complete" and the body "[Playlist Title] has been successfully imported" must be displayed.
+
+---
+
+### **Story 1.4: View Playlist Details**
+
+**As a user,** I want to select an imported playlist and see the list of all its videos, including thumbnails and titles, so that I can browse its contents.
+
+*   **Acceptance Criteria:**
+    *   **AC1:** Clicking a playlist in the sidebar navigates to the playlist details view for that `playlistId`.
+    *   **AC2:** While the `playlist:get-details` IPC call is pending, the UI must display a skeleton loader that mimics the structure of the playlist header and at least five video list items.
+    *   **AC3:** The `playlist:get-details` IPC handler must query the SQLite database, joining the `playlists`, `videos`, and `playlist_videos` tables to retrieve all data for the given `playlistId`.
+    *   **AC4:** The view must render the playlist's title, total video count, and a "Last checked" timestamp in the header.
+    *   **AC5:** Each video in the list must render its thumbnail, title, channel name, duration, and a status dot.
+
+---
+
+### **Story 1.5: Search within Playlist**
+
+**As a user,** I want to search for a specific video by title within a selected playlist so that I can find content quickly.
+
+*   **Acceptance Criteria:**
+    *   **AC1:** The playlist detail view must contain a text input field for search.
+    *   **AC2:** The search input must be debounced by 300ms to prevent re-renders on every keystroke.
+    *   **AC3:** The video list must filter client-side within 50ms of the debounced search query changing, showing only videos whose titles contain a case-insensitive match of the query.
+    *   **AC4:** If the filtered result is empty, a message "No results found" must be displayed.
+
+---
+
+### **Story 1.6: Infinite Scroll for Video Lists**
+
+**As a user browsing a large playlist,** I want the video list to load more items automatically as I scroll down so that I can view all content without clicking through pages.
+
+*   **Acceptance Criteria:**
+    *   **AC1:** When scrolling through a list of 1000+ video items, the browser frame rate must remain at or above 50 FPS.
+    *   **AC2:** The number of `VideoListItem` components rendered in the DOM must not exceed the number of visible items plus a buffer of 10 (5 above, 5 below the viewport).
+    *   **AC3:** The scrollbar's size must accurately reflect the total size of the virtualized list, not just the rendered items.
+
+---
 
 ## Epic 2: Custom Playlist Management
 
-### Story 2.1: Add New Playlist (Custom or from YouTube)
-As a user, I want to select 'Add Playlist' from the main menu and then choose whether to create a new custom playlist or import one from a YouTube URL within a single dialog.
+**Goal:** Empower users to create, populate, and manage their own local playlists from scratch.
 
-*   Acceptance Criteria:
-    *   The "+ Add" dropdown menu contains a single option: "Add Playlist".
-    *   Clicking this opens a dialog titled "Add Playlist" with two tabs: "Create Custom Playlist" and "Import from YouTube URL".
-    *   The "Create Custom Playlist" tab has fields for Title (single-line text input) and Description (multi-line text input) and a "Create Playlist" button.
-    *   The Title field enforces a 100-character limit and the Description field enforces a 512-character limit. Both should display a character counter (e.g., `25/100`).
-    *   If a user tries to create a playlist with a title that already exists, an error message is displayed within 2 seconds, and the playlist will not be created.
-    *   The "Import from YouTube URL" tab contains an input field for a YouTube playlist URL.
-    *   After a valid URL is entered on the import tab, the dialog automatically fetches and displays a preview of the playlist (including the playlist thumbnail (64x64 pixels), title, video count, channel name, and a short description) within 3 seconds.
-    *   When the user clicks the final "Import" button in the dialog, the dialog closes immediately, and the import task appears in the Activity Center within 1 second.
+---
 
-### Story 2.2: Add Videos to a Custom Playlist
-As a user, I want to add a video from an existing playlist to one of my custom playlists so I can organize content according to my own themes.
+### **Story 2.1: Create a Custom Playlist**
 
-*   Acceptance Criteria:
-    *   A context menu on any video item provides an "Add to Playlist" option.
-    *   This option opens a submenu or dialog listing all the user's custom playlists.
-    *   If a user attempts to add a video to a custom playlist that already contains that video, no duplicate entry will be created. A brief, non-blocking notification (e.g., "Video is already in this playlist") is shown for 3 seconds.
-    *   Selecting a playlist correctly adds the video to it and provides a success notification (e.g., "Video added to 'My Favorites'") for 3 seconds.
+**As a user,** I want to create a new, empty custom playlist with a unique title and description.
 
-### Story 2.3: Remove Videos from a Custom Playlist
-As a user, I want to remove a video from one of my custom playlists to keep it organized and relevant.
+*   **Acceptance Criteria:**
+    *   **AC1:** The "Add Playlist" dialog must have a "Custom Playlist" tab with "Title" and "Description" fields.
+    *   **AC2:** The Title field must enforce a 100-character limit and the Description must enforce a 512-character limit, both with visible character counters.
+    *   **AC3:** On clicking "Create Playlist," the `playlist:create-custom` IPC handler must be called. The handler must first query the database to ensure the title is unique.
+    *   **AC4:** If the title already exists, the IPC handler must return an error `{ success: false, error: 'DUPLICATE_TITLE' }`, and the UI must display the message "A playlist with this title already exists."
+    *   **AC5:** If the title is unique, the handler must insert a new record into the `playlists` table with `type = 'CUSTOM'`.
 
-*   Acceptance Criteria:
-    *   A context menu on any video item *within a custom playlist* provides a "Remove from Playlist" option.
-    *   A confirmation dialog is displayed before removing the video.
-    *   The confirmation dialog clearly states that the action only removes the video from the current playlist and does not delete the video from the library or from other playlists (e.g., "This will only remove the video from the '[Playlist Name]' playlist. It will not be deleted from your library.").
-    *   After confirming removal, the video is removed from the list within 1 second.
+---
 
-### Story 2.4: Edit Custom Playlist Details
-As a user, I want to be able to change the title and description of my custom playlists after I've created them.
+### **Story 2.2: Add Videos to a Custom Playlist**
 
-*   Acceptance Criteria:
-    *   A context menu on any custom playlist provides an "Edit Details" option.
-    *   This opens a dialog pre-filled with the current title and description.
-    *   The system prevents renaming a playlist to a title that already exists, showing an error if attempted within 2 seconds.
+**As a user,** I want to add a video from an existing playlist to one of my custom playlists so I can organize content according to my own themes.
 
-### Story 2.5: Delete a Custom Playlist
-As a user, I want to delete an entire custom playlist that I no longer need.
+*   **Acceptance Criteria:**
+    *   **AC1:** The context menu for any video must have an "Add to Playlist" option, which reveals a submenu listing all custom playlists.
+    *   **AC2:** On selecting a playlist, the `playlist:add-video-to-custom` IPC handler must be called.
+    *   **AC3:** The backend handler must first check the `playlist_videos` junction table to see if the video-playlist association already exists.
+    *   **AC4:** If the association exists, no new record is created, and a notification "Video is already in this playlist" is shown.
+    *   **AC5:** If the association does not exist, a new row is inserted into the `playlist_videos` table, and a notification "Video added to '[Playlist Name]'" is shown.
 
-*   Acceptance Criteria:
-    *   A context menu on any custom playlist provides a "Delete Playlist" option.
-    *   A confirmation dialog is displayed, clearly stating that the action is permanent (e.g., "Are you sure? This will permanently delete the playlist 'My Awesome Mix'. This cannot be undone.").
-    *   If a video from the playlist is currently playing, confirming the deletion stops the video playback within 1 second before deleting the playlist.
+---
 
 ## Epic 3: Core Downloading & Offline Playback
 
-### Story 3.1: Implement Intelligent Quality Detection Service
-As a developer, I need a backend service that can analyze a YouTube video or playlist URL and determine the specific quality options available for download.
+**Goal:** Implement a robust archiving system, allowing users to download videos with smart quality selection and watch them offline.
 
-*   Acceptance Criteria:
-    *   The service uses `yt-dlp` to fetch a list of all available formats for a given URL.
-    *   The service parses this list and returns a clean, ordered set of available qualities (e.g., '720p', '1080p', '4K', '8K') within 5 seconds.
-    *   The service is exposed via an IPC handler that the frontend can call.
+---
 
-### Story 3.2: Download a Single Video via URL
-As a user, I want to download a single video from a YouTube URL that is not yet in my library, with options to select format, quality, subtitles, and save location.
+### **Story 3.1: Download a Single Video**
 
-*   Acceptance Criteria:
-    *   A global "Download Video" action is available (e.g., in the top navigation bar or a global menu), separate from playlist-specific actions.
-    *   This action opens a "Download Video" dialog where a user can paste a YouTube video URL.
-    *   When a valid URL is pasted, the dialog automatically fetches and displays a video preview within 3 seconds.
-    *   The dialog displays the default download path and provides a button for the user to change it.
-    *   The dialog allows the user to select quality, format (MP4/MP3), and whether to "Include subtitles when available".
-    *   All downloads are sanitized to have valid filenames and converted to a compatible format (MP4 H.264/AAC).
-    *   The downloaded video file has its YouTube thumbnail embedded.
-    *   Before starting, the system checks for sufficient disk space and shows an error if there is not enough space within 2 seconds.
-    *   The "Add to Download Queue" button sends the configured download task to the Activity Center.
+**As a user,** I want to download a single video from a playlist or URL with full control over the options, so I can save specific content to my library.
 
-### Story 3.3: Download an Entire Playlist
-As a user, I want to download all videos from a playlist with a single action, choosing the format, quality, and save location for the batch.
+*   **Acceptance Criteria:**
+    *   **AC1:** The "Download" dialog must allow format selection (MP4/MP3) and dynamically populate a quality dropdown based on the available qualities for that video.
+    *   **AC2:** Before downloading, the backend must verify that available disk space at the target path is greater than the video's estimated size. If not, an error is returned.
+    *   **AC3:** The backend download process must use `yt-dlp` to download the video and `fluent-ffmpeg` to embed the thumbnail into the final MP4 file's metadata.
+    *   **AC4:** The download task must be created and managed by the persistent, priority-based queue service.
+    *   **AC5:** The video's `download_status` in the `videos` table must be updated to 'COMPLETED' upon successful download.
 
-*   Acceptance Criteria:
-    *   A "Download Playlist" button on the playlist details view opens the download dialog.
-    *   The dialog displays the default download path and provides a button for the user to change it.
-    *   The dialog dynamically populates quality options based on the highest quality found within the playlist.
-    *   The download will follow a fail-fast principle. If a specific video is not available in the quality selected by the user, the download for that single video will fail, and no fallback to a lower quality will be attempted. The parent playlist download task will be marked as 'Completed with errors' in the Activity Center.
-    *   All successfully downloaded videos have their thumbnails embedded.
+---
 
-### Story 3.4: View Downloads Page
-As a user, I want to see a dedicated "Downloads" page that lists all my queued, in-progress, and completed downloads so I can track their status.
+### **Story 3.2: Download an Entire Playlist**
 
-*   Acceptance Criteria:
-    *   The page displays a list of all downloads with their title, status, and progress bar.
-    *   Failed downloads have a "Retry" button that restarts the download from the beginning.
+**As a user,** I want to download all videos from a playlist with a single action, and for any video that doesn't have my selected quality, I want the app to automatically download the best available quality instead.
 
-### Story 3.5: Basic Offline Playback
-As a user, I want to click on a successfully downloaded video and have it play within the application with a full set of basic controls.
+*   **Acceptance Criteria:**
+    *   **AC1:** Initiating a playlist download creates a "parent" task in the `background_tasks` table.
+    *   **AC2:** For each video in the playlist, a "child" download task is created and linked to the parent task.
+    *   **AC3:** For each child task, the download service must first query the video's available formats. If the user-selected quality is not present, the service must select the highest available quality from that video's format list for the download command.
+    *   **AC4:** The parent task's progress must be calculated as an aggregate of the progress of its child tasks.
+    *   **AC5:** If one or more child tasks fail, the parent task's final status must be set to `COMPLETED_WITH_ERRORS`.
 
-*   Acceptance Criteria:
-    *   When clicking a downloaded video, the player first verifies the local file exists. If not, it shows a "File not found" message within 1 second.
-    *   The player correctly loads and plays the local video file within 2 seconds.
-    *   The player controls include buttons for play/pause, volume, a loop toggle, and a menu to select available subtitle tracks.
-    *   The player's seek bar is fully functional and visually indicates the buffered/loaded portion of the video.
+---
+
+### **Story 3.3: Basic Offline Playback**
+
+**As a user,** I want to click on a successfully downloaded video and have it play within the application.
+
+*   **Acceptance Criteria:**
+    *   **AC1:** When a downloaded video is clicked, the application must first call an IPC handler to verify the local file exists at its recorded path. If not, a "File not found" message is displayed.
+    *   **AC2:** The video player must load the video using a secure, custom file protocol (e.g., `app://`) registered via Electron's `protocol.registerFileProtocol`.
+    *   **AC3:** The player UI must have working controls for play/pause, volume, and a seek bar that accurately reflects the video's current time and buffered range.
+
+---
 
 ## Epic 4: Background Tasks & Activity Center
 
-### Story 4.1: Persistent Backend Task Management Service
-As a developer, I need a centralized, persistent service to manage the state and progress of all long-running background tasks.
+**Goal:** Implement a robust system for handling long-running tasks and provide a UI for users to monitor their progress.
 
-*   Acceptance Criteria:
-    *   A `background_tasks` table is created in the SQLite database to store task information.
-    *   All new tasks (imports, downloads) are saved as a record in this table.
-    *   The service supports parent/child task relationships (for playlist downloads) to handle partial failures gracefully.
-    *   On application startup, the service reads this table to resume the state of any unfinished tasks, ensuring no progress is lost if the app is closed.
+---
 
-### Story 4.2: Integrate Core Services with Task Manager
-As a developer, I need the import and download services to report their status to the new Task Management service (now `BackgroundTaskService`) to handle partial failures gracefully, especially for operations involving multiple items like playlist downloads.
+### **Story 4.1: Persistent Backend Task Management**
 
-*   Acceptance Criteria:
-    *   Playlist imports and downloads (specifically those involving multiple sub-items like downloading all videos in a playlist) create a "parent" task. The parent task's progress reflects the completion of its "child" video tasks.
-    *   If some videos in a playlist download fail, the parent task is marked as "Completed with errors."
-    *   The download service (and any service creating tasks) updates the task's progress and final status in the database via `BackgroundTaskService`.
+**As a developer,** I need a centralized, persistent service to manage the state and progress of all long-running background tasks.
 
-### Story 4.3: Activity Center UI
-As a user, I want to see a persistent widget in the corner of the screen that shows me my active tasks, which I can cancel or clear at any time.
+*   **Acceptance Criteria:**
+    *   **AC1:** A `background_tasks` table exists in the SQLite database, as defined in the schema.
+    *   **AC2:** All long-running operations (imports, downloads) create a corresponding record in the `background_tasks` table. All database operations related to task creation and updates must be wrapped in a transaction.
+    *   **AC3:** The schema supports a `parentId` to link child tasks to a parent, enabling features like batch playlist downloads.
+    *   **AC4:** On application startup, the `BackgroundTaskService` must query the `background_tasks` table for any tasks with a non-terminal status (e.g., 'QUEUED', 'DOWNLOADING'). For each such task, it must re-enqueue the job into the `p-queue`.
 
-*   Acceptance Criteria:
-    *   A persistent widget is displayed in the bottom-right corner of the application.
-    *   The widget header shows an active task count (e.g., "Active (2)") and a minimize icon.
-    *   The widget displays a list of all `In Queue` and `In Progress` tasks.
-    *   Each task item displays its type (e.g., Import, Download), thumbnail, title, a progress bar, and a status tag.
-    *   Each active task in the widget has a "Cancel" button that stops the corresponding backend task within 2 seconds.
-    *   Progress updates from the backend are throttled to no more than 5 updates per second to keep the UI performant.
-    *   When a task is completed (successfully or failed), it remains visible with a final status and a timestamp for 5 seconds, and then automatically fades out.
-    *   A "Clear All" (trash can icon) button is present to manually remove all completed tasks from the view.
+---
+
+### **Story 4.2: Activity Center UI**
+
+**As a user,** I want to see a persistent widget that shows me my active tasks, which I can cancel or clear at any time.
+
+*   **Acceptance Criteria:**
+    *   **AC1:** A widget is persistently displayed in the bottom-right corner of the application.
+    *   **AC2:** The widget listens for `task:update` events from the backend via the IPC bridge and updates its display in real-time.
+    *   **AC3:** Each active task in the widget must have a "Cancel" button that calls a `task:cancel` IPC handler, which stops the corresponding backend task and sets its status to `CANCELLED` in the database.
+    *   **AC4:** Progress updates displayed in the UI must be throttled to update a maximum of 2 times per second to ensure UI performance.
+
+---
 
 ## Epic 5: Playlist Health & Status Sync
 
-### Story 5.1: Backend Health Check Service
-As a developer, I need a backend service that can check an imported playlist against YouTube to see if any videos have been deleted or privated.
+**Goal:** Introduce an automated status-checking system for imported playlists to keep users informed about video availability.
 
-*   Acceptance Criteria:
-    *   The service iterates through the videos of a given playlist.
-    *   For each video, it uses a lightweight `yt-dlp` command to verify its current status on YouTube.
-    *   It updates the `availability_status` (e.g., 'Live', 'Deleted', 'Private') for the video in the local database within 1 second.
-    *   The service processes videos in a low-concurrency queue (e.g., one or two at a time) to avoid sending a burst of requests that could lead to IP rate-limiting.
+---
 
-### Story 5.2: Display Video Health Status in UI
-As a user, I want to see a colored dot next to each video in an imported playlist so I know if it's still available on YouTube and when that status was last checked.
+### **Story 5.1: Backend Health Check Service**
 
-*   Acceptance Criteria:
-    *   In the video list item component, a colored dot is displayed based on the video's `availability_status` from the database.
-    *   The color-coding and tooltips must strictly follow the mapping defined in `data_models.md`:
-        *   **Green Dot:** For `AVAILABLE` status. Tooltip: "Status: Available".
-        *   **Yellow Dot:** For `PRIVATE` status. Tooltip: "Status: Private or Unlisted".
-        *   **Red Dot:** For `UNAVAILABLE` status. Tooltip: "Status: Deleted or Unavailable".
-    *   The playlist view header displays a "Status last checked: [timestamp]" (e.g., "3 hours ago") message.
+**As a developer,** I need a backend service that can check an imported playlist against YouTube to see if any videos have been deleted or privated.
 
-### Story 5.3: Implement Auto-Sync Settings UI
-As a user, I want to configure how often my playlists are automatically checked for status updates.
+*   **Acceptance Criteria:**
+    *   **AC1:** The service uses `yt-dlp` with a lightweight flag (e.g., `--get-title`) to verify a video's status.
+    *   **AC2:** After checking, the service updates the `availability_status` field for the video in the SQLite database to 'Live', 'Deleted', or 'Private'.
+    *   **AC3:** The service processes all video checks for a playlist using a `p-queue` instance configured with `{ concurrency: 2 }` to avoid IP rate-limiting.
+    *   **AC4:** After all videos in a playlist are checked, the `last_health_check` timestamp on the `playlists` table is updated.
 
-*   Acceptance Criteria:
-    *   A dedicated "Auto-Sync Settings" section is created on the Settings page.
-    *   The UI provides controls (e.g., radio buttons) to select the frequency (e.g., Hourly, Daily, Weekly, Never).
-    *   "Daily" is the default setting.
-    *   A note explaining the resource usage trade-off is present (e.g., "More frequent syncing provides the most up-to-date status but uses more system resources.").
+---
 
-### Story 5.4: Scheduled Background Sync
-As a developer, I need a scheduler that automatically and safely runs the Health Check Service on all imported playlists based on the user's chosen frequency.
+### **Story 5.2: Scheduled Background Sync**
 
-*   Acceptance Criteria:
-    *   The scheduler reads the user's sync frequency from settings to determine its interval.
-    *   **The scheduler will not initiate a new health check if the background task queue is actively processing tasks (i.e., `queue.size > 0` or `queue.pending > 0`). It will skip the current cycle and attempt to run again at its next scheduled interval.**
+**As a developer,** I need a scheduler that automatically and safely runs the Health Check Service on all imported playlists based on the user's chosen frequency.
 
-### Story 5.5: Manual Playlist Refresh
-As a user, I want a button to manually trigger a health check on a specific playlist so I can get its up-to-the-minute status on demand.
-
-*   Acceptance Criteria:
-    *   The context menu for any imported YouTube playlist has a "Refresh Status Now" button.
-    *   Clicking the button triggers the `HealthCheckService` for that single playlist.
-    *   The UI provides immediate feedback that a check is in progress for that specific playlist (e.g., a spinning icon next to the "Last checked" timestamp).
+*   **Acceptance Criteria:**
+    *   **AC1:** A scheduler, initialized on app startup, reads the user's sync frequency setting from `electron-store`.
+    *   **AC2:** The scheduler checks if it should run based on the user's setting and the `last_health_check` timestamp of each playlist.
+    *   **AC3:** The scheduler must query the `BackgroundTaskService` to check for active, user-initiated tasks. If any are found, the health check is paused and will be re-attempted on the next interval.
+    *   **AC4:** If the queue is free and it's time to run, the scheduler triggers the `HealthCheckService`.
