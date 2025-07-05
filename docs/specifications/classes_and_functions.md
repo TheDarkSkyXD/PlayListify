@@ -8,25 +8,269 @@ This document defines all classes and functions in the Playlistify application, 
 
 #### a. Class: SQLiteAdapter
 
-*   **Description:** Provides an abstraction layer for interacting with the SQLite database. This class is responsible for managing the database connection and executing SQL queries.
-*   **Data Models:** None
-*   **Class Description:** This class abstracts the underlying SQLite database, providing a consistent interface for executing queries and managing connections. It ensures that all database interactions are handled in a safe and efficient manner.
-*   **Properties:**
-    *   `db`: `sqlite3.Database` - The SQLite database connection object.
-*   **Methods:**
-    *   `constructor(dbPath: string)`
-        *   **Description:** Initializes a new SQLiteAdapter instance and connects to the database.
-        *   **Parameters:**
-            *   `dbPath`: `string` - The path to the SQLite database file.
-        *   **Return Type:** `void`
-    *   `query(sql: string, params: any[]): Promise<any[]>`
-        *   **Description:** Executes a SQL query with optional parameters.
-        *   **Parameters:**
-            *   `sql`: `string` - The SQL query to execute.
-            *   `params`: `any[]` - An array of parameters to bind to the query.
-        *   **Return Type:** `Promise<any[]>` - A promise that resolves to an array of rows returned by the query. The structure of the returned rows depends on the query executed.
-        *   **Data Models:** Varies depending on the query.
+### Description
+The `SQLiteAdapter` class provides an abstraction layer for interacting with an SQLite database. It handles database connections, schema application, and query execution.
 
+### Properties
+
+| Property          | Type                | Description                                                                                             |
+| ----------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
+| db                | sqlite3.Database    | The SQLite database connection object.                                                                  |
+| dbPath            | string              | The path to the SQLite database file.                                                                   |
+| isConnected       | boolean             | Flag indicating if the database is connected.                                                            |
+| schemaPath        | string              | Path to the database schema file.                                                                        |
+| maxRetries        | integer             | Maximum number of retries for database connection.                                                        |
+| retryIntervalMs   | integer             | Retry interval in milliseconds.                                                                        |
+
+### Constructor
+
+#### Description
+The constructor initializes a new `SQLiteAdapter` instance, connects to the database, and applies the schema.
+
+#### Parameters
+*   `dbPath` (string): The path to the SQLite database file.
+*   `schemaPath` (string, optional): The path to the database schema file. Defaults to "schema/database_schema.sql".
+*   `maxRetries` (integer, optional): The maximum number of retries for database connection. Defaults to 5.
+*   `retryIntervalMs` (integer, optional): The retry interval in milliseconds. Defaults to 1000.
+*   `connectionCheckIntervalMs` (integer, optional): The interval in milliseconds for checking the database connection. Defaults to 5000.
+
+#### Throws
+*   `ArgumentException`: If `dbPath` is null or empty or if `dbPath` is not a valid path.
+*   `DatabaseConnectionError`: If the connection fails after `maxRetries` attempts.
+*   `SchemaExecutionError`: If the schema execution fails.
+
+### Methods
+
+#### query(sql: string, params: any[]): Promise<any[]>
+
+##### Description
+Executes an SQL query with optional parameters.
+
+##### Parameters
+*   `sql` (string): The SQL query to execute.
+*   `params` (any[]): An array of parameters to bind to the SQL query.
+
+##### Returns
+*   `Promise<any[]>`: A Promise that resolves with an array of objects representing the rows returned by the query.
+
+##### Throws
+*   `Promise.reject`: If `sql` is null or empty.
+*   `Promise.reject`: If the query execution fails.
+
+### CHECK_DATABASE_CONNECTION(): void
+
+#### Description
+Checks if the database connection is active and attempts to reconnect if necessary.
+
+#### Parameters
+*   None
+
+#### Returns
+*   void
+
+#### Throws
+*   `DatabaseConnectionError`: If the reconnection fails.
+
+### Helper Functions
+
+### IS_VALID_PATH(path: string): boolean
+
+#### Description
+Checks if a given path is valid. The implementation is OS-specific. This function encapsulates the OS-specific path validation logic, making the `SQLiteAdapter` more portable and testable.
+
+#### Parameters
+*   `path` (string): The path to validate.
+
+#### Returns
+*   `boolean`: True if the path is valid, false otherwise.
+
+### CONNECT_TO_DATABASE(dbPath: string): sqlite3.Database
+
+#### Description
+Connects to the SQLite database at the specified path. This function encapsulates the direct interaction with the `sqlite3` library, allowing for easier mocking and testing. It also provides a single point of change if the underlying database library is replaced.
+
+#### Parameters
+*   `dbPath` (string): The path to the SQLite database file.
+
+#### Returns
+*   `sqlite3.Database`: The SQLite database connection object.
+
+### READ_FILE(filePath: string): string
+
+#### Description
+Reads the contents of a file at the specified path. This function encapsulates the file reading operation, allowing for easier mocking and testing.
+
+#### Parameters
+*   `filePath` (string): The path to the file.
+
+#### Returns
+*   `string`: The contents of the file.
+
+### EXECUTE_SQL(db: sqlite3.Database, sql: string): void
+
+#### Description
+Executes an SQL statement against the database. This function encapsulates the execution of raw SQL commands, providing a single point for error handling and logging.
+
+#### Parameters
+*   `db` (sqlite3.Database): The SQLite database connection object.
+*   `sql` (string): The SQL statement to execute.
+
+#### Returns
+*   `void`
+
+
+### MANAGE_TRANSACTION(db: sqlite3.Database, action: string): void
+
+#### Description
+Manages database transactions (begin, commit, rollback). This function encapsulates the transaction management, providing a consistent way to handle transactions.
+
+#### Parameters
+*   `db` (sqlite3.Database): The SQLite database connection object.
+*   `action` (string): The transaction action ("begin", "commit", "rollback").
+
+#### Returns
+*   `void`
+### IS_TRANSACTION_ACTIVE(db: sqlite3.Database): boolean
+
+#### Description
+Checks if a transaction is currently active. This function encapsulates the logic for checking the transaction status.
+
+#### Parameters
+*   `db` (sqlite3.Database): The SQLite database connection object.
+
+#### Returns
+*   `boolean`: True if a transaction is active, false otherwise.
+
+### IS_DATABASE_CONNECTED(db: sqlite3.Database): boolean
+
+#### Description
+Checks if the database connection is currently active. This function encapsulates the logic for checking the database connection status.
+
+#### Parameters
+*   `db` (sqlite3.Database): The SQLite database connection object.
+
+#### Returns
+*   `boolean`: True if the database connection is active, false otherwise.
+
+### SET_INTERVAL(callback: function, intervalMs: integer): any
+
+#### Description
+Sets up a timer that calls the callback function every intervalMs milliseconds. This function provides a consistent interface for setting intervals, abstracting away the underlying implementation.
+
+#### Parameters
+*   `callback` (function): The function to call.
+*   `intervalMs` (integer): The interval in milliseconds.
+
+#### Returns
+*   `any`: A timer ID.
+
+
+### LOG(message: string, level: string): void
+
+#### Description
+Logs a message to a suitable output (e.g., console, file). This function provides a centralized logging mechanism, allowing for easy modification of the logging behavior.
+
+#### Parameters
+*   `message` (string): The message to log.
+*   `level` (string): The logging level ("info", "error").
+
+#### Returns
+*   `void`
+### CALCULATE_BACKOFF_TIME(retries: integer, intervalMs: integer): integer
+
+#### Description
+Implements an exponential backoff strategy. This function encapsulates the backoff calculation logic, making it easier to adjust the backoff strategy.
+
+#### Parameters
+*   `retries` (integer): The number of retries.
+*   `intervalMs` (integer): The base interval in milliseconds.
+
+#### Returns
+*   `integer`: The calculated backoff time in milliseconds.
+
+### PREPARE_STATEMENT(db: sqlite3.Database, sql: string): sqlite3.Statement
+
+#### Description
+Prepares the SQL statement for execution. This function encapsulates the statement preparation process, handling potential errors and ensuring proper resource management.
+
+#### Parameters
+*   `db` (sqlite3.Database): The SQLite database connection object.
+*   `sql` (string): The SQL query to prepare.
+
+#### Returns
+*   `sqlite3.Statement`: The prepared statement.
+
+### BIND_PARAMETERS(statement: sqlite3.Statement, params: any[]): void
+
+#### Description
+Binds the parameters to the prepared statement. This function encapsulates the parameter binding process, ensuring proper escaping and preventing SQL injection.
+
+#### Parameters
+*   `statement` (sqlite3.Statement): The prepared statement.
+*   `params` (any[]): An array of parameters to bind to the statement.
+
+#### Returns
+*   `void`
+
+### EXECUTE_STATEMENT(statement: sqlite3.Statement): any
+
+#### Description
+Executes the prepared statement. This function encapsulates the execution of the prepared statement, handling potential errors and providing a consistent interface for query execution.
+
+#### Parameters
+*   `statement` (sqlite3.Statement): The prepared statement.
+
+#### Returns
+*   `any`: The result of the query execution.
+
+### PROCESS_RESULT(result: any): any[]
+
+#### Description
+Processes the result from the executed statement. This function standardizes the result format, transforming the raw database output into a consistent array of objects.
+
+#### Parameters
+*   `result` (any): The result from the executed statement.
+
+#### Returns
+*   `any[]`: An array of objects representing the rows returned by the query.
+
+### FINALIZE_STATEMENT(statement: sqlite3.Statement): void
+
+#### Description
+Finalizes the prepared statement, releasing resources. This function ensures that resources are properly released after query execution, preventing memory leaks.
+
+#### Parameters
+*   `statement` (sqlite3.Statement): The prepared statement.
+
+#### Returns
+*   `void`
+
+
+### MANAGE_TIMER(timerId: any, action: string, callback: function, delayMs: integer): any
+
+#### Description
+Sets up or clears a timer. This function encapsulates the timer management, providing a consistent interface for setting timeouts.
+
+#### Parameters
+*   `timerId` (any): The timer ID (null if setting a new timer).
+*   `action` (string): The timer action ("set", "clear").
+*   `callback` (function): The function to call (only if action is "set").
+*   `delayMs` (integer): The delay in milliseconds (only if action is "set").
+
+#### Returns
+*   `any`: A timer ID (only if action is "set").
+*   `void`: (only if action is "clear").
+### ABORT_QUERY(db: sqlite3.Database, statement: sqlite3.Statement): void
+
+#### Description
+Aborts the currently executing query. This function provides a mechanism for cancelling long-running queries, preventing them from blocking the application.
+
+#### Parameters
+*   `db` (sqlite3.Database): The SQLite database connection object.
+*   `statement` (sqlite3.Statement): The prepared statement.
+
+#### Returns
+*   `void`
 #### b. Class: PlaylistRepository
 *   **Description:** Provides methods for accessing and manipulating playlist data in the database. This class is responsible for creating, retrieving, updating, and deleting playlists.
 *   **Data Models:** `Playlist`, `User`
@@ -143,15 +387,15 @@ This document defines all classes and functions in the Playlistify application, 
 *   **Class Description:** This repository is responsible for managing background tasks in the database, including creating, updating, retrieving, and canceling tasks. It also handles task updates and emits events to the frontend.
 *   **Properties:**
     *   `db`: `SQLiteAdapter` - An instance of the SQLiteAdapter for database interaction.
-    *   `appEmitter`: `EventEmitter` - An instance of the EventEmitter class for sending task updates.
-	*   `taskQueue`: `PQueue` - An instance of the PQueue class for managing the task queue.
+    *   `appEmitter`: `EventEmitter` - An instance of the EventEmitter class for sending task updates. This emitter sends task updates to the frontend for display.
+	*   `taskQueue`: `PQueue` - An instance of the PQueue class for managing the task queue. It ensures tasks are processed in an orderly fashion, respecting concurrency limits. `appEmitter` and `taskQueue` work together to manage the task queue. `taskQueue` is used to enqueue and process tasks, while `appEmitter` is used to notify the frontend about task status changes.
 *   **Methods:**
-    *   `constructor(taskRepository: SQLiteAdapter, appEmitter: EventEmitter, taskQueue: PQueue)`
+    *   `constructor(db: SQLiteAdapter, appEmitter: EventEmitter, taskQueue: PQueue)`
         *   **Description:** Initializes a new BackgroundTaskRepository instance.
         *   **Parameters:**
             *   `db`: `SQLiteAdapter` - An instance of the SQLiteAdapter.
- 		        *  `appEmitter`: `EventEmitter` - An instance of the EventEmitter class for sending task updates.
-		        * `taskQueue`: `PQueue` - An instance of the PQueue class for managing the task queue.
+       *   `appEmitter`: `EventEmitter` - An instance of the EventEmitter class for sending task updates.
+      *   `taskQueue`: `PQueue` - An instance of the PQueue class for managing the task queue.
             *   **Return Type:** `void`
         *   `createTask(type: string, targetId: string, parentId: integer | null, details: any): Promise<BackgroundTask>`
             *   **Description:** Creates a new background task.
@@ -195,7 +439,7 @@ This document defines all classes and functions in the Playlistify application, 
 		    *   **Return Type:** `Promise<void>` - A promise that resolves when the task has been cancelled (or removed from queue).
 		      *   **Data Models:** `BackgroundTask`
 		*   `emitTaskUpdate(): void`
-			*   **Description:** Emits the task update event to the frontend.
+			*   **Description:** Emits a task update event to the frontend to notify clients of changes in task status or progress.
 			*   **Parameters:** None
 			*   **Return Type:** `void`
 		      *   **Data Models:** `BackgroundTask`
@@ -358,347 +602,4 @@ This document defines all classes and functions in the Playlistify application, 
 
 *   **Description:** Provides methods for accessing and manipulating user data in the database. This class is responsible for creating, retrieving, updating, and deleting users.
 *   **Data Models:** `User`
-*   **Class Description:** This repository manages user data in the database, providing methods to create, retrieve, update, and delete user records. It ensures data consistency and provides an abstraction layer for database interactions related to users.
-*   **Properties:**
-    *   `db`: `SQLiteAdapter` - An instance of the SQLiteAdapter for database interaction.
-*   **Methods:**
-    *   `constructor(db: SQLiteAdapter)`
-        *   **Description:** Initializes a new UserRepository instance.
-        *   **Parameters:**
-            *   `db`: `SQLiteAdapter` - An instance of the SQLiteAdapter.
-        *   **Return Type:** `void`
-    *   `getUser(id: integer): Promise<User>`
-        *   **Description:** Retrieves a user from the database by its ID.
-        *   **Parameters:**
-            *   `id`: `integer` - The ID of the user to retrieve.
-        *   **Return Type:** `Promise<User>` - A promise that resolves to a User object, or null if not found.
-        *   **Data Models:** `User`
-    *   `getUserByUsername(username: string): Promise<User>`
-        *   **Description:** Retrieves a user from the database by its username.
-        *   **Parameters:**
-            *   `username`: `string` - The username of the user to retrieve.
-        *   **Return Type:** `Promise<User>` - A promise that resolves to a User object, or null if not found.
-        *   **Data Models:** `User`
-    *   `createUser(username: string, passwordHash: string, email: string): Promise<User>`
-        *   **Description:** Creates a new user in the database.
-        *   **Parameters:**
-            *   `username`: `string` - The username of the new user.
-            *   `passwordHash`: `string` - The password hash of the new user.
-            *   `email`: `string` - The email address of the new user.
-        *   **Return Type:** `Promise<User>` - A promise that resolves to the newly created User object.
-        *   **Data Models:** `User`
-    *   `updateUser(id: integer, username: string, email: string): Promise<User>`
-        *   **Description:** Updates an existing user in the database.
-        *   **Parameters:**
-            *   `id`: `integer` - The ID of the user to update.
-            *   `username`: `string` - The new username of the user.
-            *   `email`: `string` - The new email address of the user.
-        *   **Return Type:** `Promise<User>` - A promise that resolves to the updated User object.
-        *   **Data Models:** `User`
-    *   `deleteUser(id: integer): Promise<void>`
-        *   **Description:** Deletes a user from the database.
-        *   **Parameters:**
-            *   `id`: `integer` - The ID of the user to delete.
-        *   **Return Type:** `Promise<void>` - A promise that resolves when the user is deleted.
-        *   **Data Models:** `User`
-
-#### f. Class: AuthenticationService
-
-*   **Description:** Provides methods for handling user authentication. This class is responsible for hashing and comparing passwords.
-*   **Data Models:** None
-*   **Class Description:** This service class provides methods for securely handling user authentication, including password hashing and comparison. It uses bcrypt to ensure password security and provides a consistent interface for authentication-related tasks.
-*   **Properties:**
-    *   `saltRounds`: `integer` - The number of salt rounds to use for password hashing.
-*   **Methods:**
-    *   `constructor(saltRounds: integer)`
-        *   **Description:** Initializes a new AuthenticationService instance.
-        *   **Parameters:**
-            *   `saltRounds`: `integer` - The number of salt rounds to use for password hashing.
-        *   **Return Type:** `void`
-    *   `hashPassword(password: string): Promise<string>`
-        *   **Description:** Hashes a password using bcrypt.
-        *   **Parameters:**
-            *   `password`: `string` - The password to hash.
-        *   **Return Type:** `Promise<string>` - A promise that resolves to the hashed password.
-        *   **Data Models:** None
-    *   `comparePassword(password: string, hash: string): Promise<boolean>`
-        *   **Description:** Compares a password to a hash using bcrypt.
-        *   **Parameters:**
-            *   `password`: `string` - The password to compare.
-            *   `hash`: `string` - The hash to compare against.
-        *   **Return Type:** `Promise<boolean>` - A promise that resolves to true if the password matches the hash, or false otherwise.
-        *   **Data Models:** None
-
-### 3. Utils Layer
-
-### 3. Utils Layer
-
-#### a. Function: sanitizeFilename(filename: string): string
-    *   **Description:** Sanitizes a filename by removing invalid characters.
-    *   **Parameters:**
-        *   `filename`: `string` - The filename to sanitize.
-    *   **Return Type:** `string` - The sanitized filename.
-    *   **Data Models:** None
-
-#### b. Function: formatDuration(duration: number): string
-    *   **Description:** Formats a duration in seconds into a human-readable string (e.g., "1:23").
-    *   **Parameters:**
-        *   `duration`: `number` - The duration in seconds.
-    *   **Return Type:** `string` - The formatted duration string.
-    *   **Data Models:** None
-
-#### c. Function: truncate(str: string, num: number): string
-    *   **Description:** Truncates a string to a specified length and adds an ellipsis if it exceeds the limit.
-    *   **Parameters:**
-        *   `str`: `string` - The string to truncate.
-        *   `num`: `number` - The maximum length of the string.
-    *   **Return Type:** `string` - The truncated string.
-    *   **Data Models:** None
-    *   **Return Type:** `string` - The truncated string.
-
-## Frontend
-
-### 1. Components
-
-#### a. Class: VideoPlayer
-
-*   **Description:** A React component for playing videos. This component is responsible for rendering the video player and handling playback controls.
-*   **Data Models:** `Video`, `Playlist`
-*   **Class Description:** This React component renders a video player with playback controls, displaying a single video or a video from a playlist. It handles user interactions such as play/pause, volume control, and seeking, and provides callbacks for navigating between videos in a playlist.
-*   **Properties:**
-    *   `videoId`: `string` - The ID of the video to play.
-    *   `playlistId`: `string` - The ID of the playlist the video belongs to.
-    *   `videoUrl`: `string` - The URL of the video.
-    *   `title`: `string` - The title of the video.
-    *   `onNext`: `() => void` - Callback function for playing the next video.
-    *   `onPrevious`: `() => void` - Callback function for playing the previous video.
-    *   `hasNext`: `boolean` - Whether there is a next video.
-    *   `hasPrevious`: `boolean` - Whether there is a previous video.
-*   **State:**
-    *   `playing`: `boolean` - Whether the video is currently playing.
-    *   `volume`: `number` - The volume level (0-1).
-    *   `muted`: `boolean` - Whether the video is muted.
-    *   `played`: `number` - The current playback progress (0-1).
-    *   `duration`: `number` - The total duration of the video.
-    *   `videoPath`: `string | null` - The path to the video file.
-    *   `loading`: `boolean` - Whether the video is loading.
-    *   `error`: `string | null` - Any error message.
-*   **Refs:**
-    *   `playerRef`: `React.RefObject<ReactPlayer>` - A reference to the ReactPlayer component.
-*   **Methods:**
-    *   `constructor(props: VideoPlayerProps)`
-        *   **Description:** Initializes a new VideoPlayer instance.
-        *   **Parameters:**
-            *   `props`: `VideoPlayerProps` - The properties of the component.
-        *   **Return Type:** `void`
-    *   `useEffect(() => { ... }, [videoId, playlistId, videoUrl])`: `void`
-        *   **Description:** React hook that checks if the video file exists and get its path.
-        *   **Parameters:** None
-        *   **Return Type:** `void`
-    *   `handlePlayPause(): void`
-        *   **Description:** Toggles the playback state of the video.
-        *   **Parameters:** None
-        *   **Return Type:** `void`
-    *   `handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>): void`
-        *   **Description:** Handles changes to the volume slider.
-        *   **Parameters:**
-            *   `e`: `React.ChangeEvent<HTMLInputElement>` - The event object.
-        *   **Return Type:** `void`
-    *   `handleToggleMute(): void`
-        *   **Description:** Toggles the mute state of the video.
-        *   **Parameters:** None
-        *   **Return Type:** `void`
-    *   `handleProgress(state: any): void`
-        *   **Description:** Handles progress updates from the ReactPlayer component.
-        *   **Parameters:**
-            *   `state`: `any` - The progress state object.
-        *   **Return Type:** `void`
-    *   `handleDuration(duration: number): void`
-        *   **Description:** Handles the duration of the video.
-        *   **Parameters:**
-            *   `duration`: `number` - The duration of the video.
-        *   **Return Type:** `void`
-    *   `handleSeekChange(values: number[]): void`
-        *   **Description:** Handles seeking the video.
-        *   **Parameters:**
-            *   `values`: `number[]` - The seek value.
-        *   **Return Type:** `void`
-    *   `handleSeekMouseUp(values: number[]): void`
-        *   **Description:** Handles mouse up event after seeking.
-        *   **Parameters:**
-            *   `values`: `number[]` - The seek value.
-        *   **Return Type:** `void`
-    *   `handleSeekMouseDown(values: number[]): void`
-        *   **Description:** Handles mouse down event for seeking.
-        *   **Parameters:**
-            *   `values`: `number[]` - The seek value.
-        *   **Return Type:** `void`
-	*    `handleNext(): void`
-	        *   **Description:** Handles playing the next video in the playlist.
-	        *   **Parameters:** None
-	        *   **Return Type:** `void`
-	*   `handlePrevious(): void`
-	        *   **Description:** Handles playing the previous video in the playlist.
-	        *   **Parameters:** None
-	        *   **Return Type:** `void`
-
-#### c. Class: PlaylistDetailsView
-
-*   **Description:** A React component for viewing the details of a playlist.
-*   **Class Description:** This React component displays the details of a playlist, including its videos, and allows users to search, add, remove, and edit videos in the playlist.
-*   **Properties:**
-	   *   `playlistId`: `string` - The ID of the playlist to view.
-*   **State:**
-	   *   `playlist`: `Playlist` - The playlist object.
-	   *   `videos`: `Video[]` - An array of videos in the playlist.
-	   *   `searchQuery`: `string` - The current search query.
-*   **Methods:**
-	   *   `constructor(props: PlaylistDetailsViewProps)`
-	       *   **Description:** Initializes a new PlaylistDetailsView instance.
-	       *   **Parameters:**
-	           *   `props`: `PlaylistDetailsViewProps` - The properties of the component.
-	       *   **Return Type:** `void`
-	   *   `useEffect(() => { ... }, [playlistId])`: `void`
-	       *   **Description:** React hook that fetches the playlist details when the component mounts or the playlistId changes.
-	       *   **Parameters:** None
-	       *   **Return Type:** `void`
-	   *   `handleSearchChange(e: React.ChangeEvent<HTMLInputElement>): void`
-	       *   **Description:** Handles changes to the search input.
-	       *   **Parameters:**
-	           *   `e`: `React.ChangeEvent<HTMLInputElement>` - The event object.
-	       *   **Return Type:** `void`
-	   *   `handleAddToPlaylist(videoId: string): void`
-	       *   **Description:** Handles adding a video to the playlist.
-	       *   **Parameters:**
-	           *   `videoId`: `string` - The ID of the video to add.
-	       *   **Return Type:** `void`
-	   *   `handleRemoveFromPlaylist(videoId: string): void`
-	       *   **Description:** Handles removing a video from the playlist.
-	       *   **Parameters:**
-	           *   `videoId`: `string` - The ID of the video to remove.
-	       *   **Return Type:** `void`
-	   *   `handleEditPlaylistDetails(): void`
-	       *   **Description:** Handles editing the playlist details.
-	       *   **Parameters:** None
-	       *   **Return Type:** `void`
-	   *   `handleDeletePlaylist(): void`
-	       *   **Description:** Handles deleting the playlist.
-	       *   **Parameters:** None
-	       *   **Return Type:** `void`
-	*   `handleRefreshStatus(): void`
-	    *   **Description:** Handles refreshing the status of the playlist.
-	    *   **Parameters:** None
-	    *   **Return Type:** `void`
-
-#### d. Class: AddNewPlaylistDialog
-
-*   **Description:** A React component for adding playlists, either custom or from YouTube.
-*   **Class Description:** This React component provides a dialog for adding new playlists, allowing users to create custom playlists or import them from YouTube. It manages the state of the dialog and handles the creation or import process.
-*   **Properties:**
-    *   `open`: `boolean` - Whether the dialog is open.
-    *   `onOpenChange`: `(open: boolean) => void` - Callback function for when the dialog is opened or closed.
-*   **State:**
-    *   `selectedTab`: `string` - The currently selected tab ("custom" or "youtube").
-    *   `customPlaylistTitle`: `string` - The title of the custom playlist.
-    *   `customPlaylistDescription`: `string` - The description of the custom playlist.
-    *   `youtubePlaylistURL`: `string` - The URL of the YouTube playlist.
-	*   `youtubePlaylistMetadata`: `object | null` - Metadata about the YouTube playlist
-*   **Methods:**
-    *   `constructor(props: DialogProps)`
-        *   **Description:** Initializes a new AddNewPlaylistDialog instance.
-        *   **Parameters:**
-            *   `props`: `DialogProps` - The properties of the component.
-        *   **Return Type:** `void`
-    *   `handleCreateCustomPlaylist(): void`
-        *   **Description:** Creates a new custom playlist.
-        *   **Parameters:** None
-        *   **Return Type:** `void`
-    *   `handleImportYouTubePlaylist(): void`
-        *   **Description:** Imports a playlist from YouTube.
-        *   **Parameters:** None
-        *   **Return Type:** `void`
-    *   `handleTitleChange(e: React.ChangeEvent<HTMLInputElement>): void`
-        *   **Description:** Handles changes to the custom playlist title input.
-        *   **Parameters:**
-            *   `e`: `React.ChangeEvent<HTMLInputElement>` - The event object.
-        *   **Return Type:** `void`
-    *   `handleDescriptionChange(e: React.ChangeEvent<HTMLTextAreaElement>): void`
-        *   **Description:** Handles changes to the custom playlist description input.
-        *   **Parameters:**
-            *   `e`: `React.ChangeEvent<HTMLTextAreaElement>` - The event object.
-        *   **Return Type:** `void`
-     *  `handleYouTubeURLChange(e: React.ChangeEvent<HTMLInputElement>): void`
-          *   **Description:** Handles changes to the YouTube playlist URL input.
-          *   **Parameters:**
-              *   `e`: `React.ChangeEvent<HTMLInputElement>` - The event object.
-          *   **Return Type:** `void`
-    *   `handleClearYouTubeURL(): void`
-         *   **Description:** Clears the YouTube playlist URL input.
-         *   **Parameters:** None
-         *   **Return Type:** `void`
-
-#### e. Class: UserProfileView
-
-*   **Description:** A React component for viewing and editing the user profile.
-*   **Class Description:** This React component displays the user profile and allows users to edit their information. It fetches the user data and handles the editing process.
-*   **Properties:**
-    *   `userId`: `string` - The ID of the user to view.
-*   **State:**
-    *   `user`: `User` - The user object.
-*   **Methods:**
-    *   `constructor(props: UserProfileViewProps)`
-        *   **Description:** Initializes a new UserProfileView instance.
-        *   **Parameters:**
-            *   `props`: `UserProfileViewProps` - The properties of the component.
-        *   **Return Type:** `void`
-    *   `useEffect(() => { ... }, [userId])`: `void`
-        *   **Description:** React hook that fetches the user profile when the component mounts or the userId changes.
-        *   **Parameters:** None
-        *   **Return Type:** `void`
-    *   `handleEditProfile(): void`
-        *   **Description:** Handles editing the user profile.
-        *   **Parameters:** None
-        *   **Return Type:** `void`
-
-#### f. Class: ActivityCenter
-
-*   **Description:** A React component that displays a list of active and completed background tasks.
-*   **Class Description:** This React component displays a list of active and completed background tasks, providing a way for users to monitor the progress of background processes.
-*   **Properties:**
-     * `tasks` : `BackgroundTask[]` - The list of background tasks to display
-     * `isMinimized` : `boolean` - A flag to determine if the activity center is minimized
-*   **State:**
-    *   `tasks`: `BackgroundTask[]` - An array of background tasks.
-    *   `isMinimized`: `boolean` - Whether the activity center is minimized.
-*   **Methods:**
-    *   `constructor(props: ActivityCenterProps)`
-        *   **Description:** Initializes a new ActivityCenter instance.
-        *   **Parameters:**
-            *   `props`: `ActivityCenterProps` - The properties of the component.
-        *   **Return Type:** `void`
-    *   `handleMinimize(): void`
-        *   **Description:** Minimizes/maximizes the activity center.
-        *   **Parameters:** None
-        *   **Return Type:** `void`
-    *   `handleClearAll(): void`
-        *   **Description:** Clears all completed tasks from the activity center.
-        *   **Parameters:** None
-        *   **Return Type:** `void`
- *   `componentDidMount(): void`
-     *   **Description:** React lifecycle method that is called after the component mounts.
-     *   **Parameters:** None
-     *   **Return Type:** `void`
- *   `componentWillUnmount(): void`
-     *   **Description:** React lifecycle method that is called when the component will unmount.
-     *   **Parameters:** None
-     *   **Return Type:** `void`
- *   `handleTaskUpdate(task: BackgroundTask): void`
-     *   **Description:** Handles task updates from the backend.
-     *   **Parameters:**
-         *   `task`: `BackgroundTask` - The updated background task.
-     *   **Return Type:** `void`
- *   `renderTask(task: BackgroundTask): React.ReactNode`
-     *   **Description:** Renders a single task item.
-     *   **Parameters:**
-         *   `task`: `BackgroundTask` - The background task to render.
-     *   **Return Type:** `React.ReactNode` - The rendered task item.
+*   **Class Description:** This repository manages user data in the database, providing methods to create, retrieve, update, and
