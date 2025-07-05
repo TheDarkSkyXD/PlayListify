@@ -1,24 +1,23 @@
-# Secondary Findings - Performance-Max Arc - Part 1
+# Secondary Findings (Arc 2, Part 1): Resilience, Error Handling, and Recovery
 
-This document contains the secondary findings from the research conducted for the Performance-Max arc.
+*This document contains targeted findings that refine or elaborate on the primary findings for Arc 2.*
 
-**Techniques for Optimizing Resource Consumption**
+## Finding 2.S1: Lifecycle Management of the Idempotency Key Store
 
-*   **Code Profiling:** Regularly use Chrome DevTools to identify performance bottlenecks, memory leaks, and inefficient code.
-*   **Asynchronous Operations:** Favor asynchronous operations over synchronous ones to prevent blocking the main thread and maintain responsiveness.
-*   **Lazy Loading:** Implement lazy loading for modules and components that are not immediately required, reducing startup time and initial memory footprint.
-*   **Data Compression:** Employ data compression techniques for large datasets to reduce memory usage and improve transfer speeds.
-*   **Caching Strategies:** Implement caching mechanisms to reduce network requests and improve response times.
-*   **WebAssembly:** Consider using WebAssembly for computationally intensive tasks to improve performance.
-*   **Memory Management:** Employ diligent memory management practices to prevent memory leaks and reduce memory footprint.
+While the "Idempotent Consumer" pattern (Finding 2.5) is a standard for preventing duplicate task processing, a critical knowledge gap exists regarding the long-term management of the `processed_task_ids` table.
 
-**Efficient Data Structures and Algorithms for Video Playback and Management**
+*   **The Core Pattern:** The pattern involves storing the unique IDs of successfully processed tasks in a dedicated table to detect and discard duplicates. This is a well-established practice.
+    *   **Source:** [Handling duplicate messages using the Idempotent consumer pattern](https://microservices.io/post/microservices/patterns/2020/10/16/idempotent-consumer.html) - Describes using a separate `PROCESSED_MESSAGES` table.
+    *   **Source:** [Building an Idempotent Event Consumer with Quarkus and Kafka](https://medium.com/event-driven-utopia/building-an-idempotent-event-consumer-with-quarkus-and-kafka-1b342088d8db) - Reinforces that consumers must record successfully processed messages.
 
-*   **Caching:** Implement caching mechanisms (e.g., LRU cache) to store frequently accessed video metadata and thumbnails, reducing database queries.
-*   **Virtualization:** Use list virtualization libraries (e.g., `@tanstack/react-virtual`) to efficiently render large lists of videos, minimizing the number of DOM elements and improving scrolling performance.
-*   **Efficient Algorithms:**
-    *   Utilize efficient sorting algorithms (e.g., merge sort, quicksort) for managing video playlists and libraries, especially when dealing with large datasets.
-    *   Implement efficient search algorithms (e.g., binary search) for quickly finding specific videos within large playlists.
-*   **Streaming Optimization:**
-    *   Use adaptive bitrate streaming to adjust video quality based on network conditions, minimizing buffering and maximizing playback quality.
-    *   Implement HTTP Live Streaming (HLS) or Dynamic Adaptive Streaming over HTTP (DASH) protocols for efficient video delivery.
+*   **The Knowledge Gap: Cleanup and Pruning:** Research does not reveal a single, standardized best practice for cleaning up this table. The table has the potential to grow indefinitely, which could become a performance and storage concern over time. Several potential strategies can be inferred, each with trade-offs:
+
+    1.  **No Cleanup:** For many applications, the storage overhead of a simple list of IDs is negligible, and the safest approach is to never delete from this table. This provides the strongest and simplest guarantee against reprocessing historical tasks.
+    2.  **Time-Based Cleanup (TTL):** A periodic background job could delete records older than a certain threshold (e.g., 30 days). This assumes that no message will ever be delayed or retried for longer than that threshold. This is a common strategy but introduces a small risk of reprocessing very old, delayed tasks.
+    3.  **Bounded-Size Cleanup:** The table could be managed like a circular buffer, keeping only the last N thousand processed IDs. This caps the storage size but significantly increases the risk of reprocessing if an older task is retried.
+
+*   **Conclusion:** There is no one-size-fits-all answer. The choice of a cleanup strategy depends on the specific requirements of the system:
+    *   **For maximum safety and simplicity:** Do not automatically prune the idempotency key store.
+    *   **For managing storage in a system with a defined message lifespan:** A time-based (TTL) cleanup is the most common and reasonable compromise.
+
+    Given the context of a desktop application where storage is a consideration and tasks are unlikely to be delayed for extremely long periods, a **time-based cleanup strategy** appears to be the most appropriate practical solution, though it must be implemented with care.

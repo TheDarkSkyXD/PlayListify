@@ -1,39 +1,24 @@
-# Detailed Findings - Arc 1: Robustness and Security - Part 2
+# Detailed Findings: Arc 2 - Resilience, Error Handling, and Recovery
 
-This document presents the detailed findings from the research on robust and secure dependency management solutions for yt-dlp and FFmpeg in an Electron application.
+*This section details the specific findings related to ensuring the system is robust and can recover from errors and application crashes.*
 
-## Securely Handling User Data and API Keys
+### Finding 2.1: The Checkpointing Pattern
+For long-running, divisible tasks (e.g., a large file download), checkpointing is a key resilience pattern. It involves periodically saving the task's progress to its record in the database (e.g., in the `details` JSON blob). If the task is interrupted, the recovery service can read this checkpoint and resume the task from the last saved state, rather than starting from the beginning. This saves time and resources.
 
-*   **node-keytar:** Use this library to securely store sensitive information in the operating system's credential store.
-*   **Electron's `safeStorage` API:** Use this API to encrypt and decrypt strings for storage on the local machine.
-*   **Storing API keys on a server:** Create a server-side proxy that handles API requests and keeps the API key secret.
-*   **Electron Vault:** Use this library to encrypt a key, which itself does not constitute a valuable secret.
-*   **OpenID Connect and OAuth 2.0:** Use these protocols to secure the application with authentication and authorization.
+### Finding 2.2: Task Journaling
+The act of creating a task record in the database before execution is a form of journaling. It logs the "intent" to do work. This ensures that if a crash occurs after a task is requested but before it starts, the task is not lost. The recovery process can identify this "journal entry" (a task with status `QUEUED`) and ensure it is processed.
 
-## Ensuring Integrity and Authenticity of yt-dlp and FFmpeg Binaries
+### Finding 2.3: Handling `SQLITE_BUSY` with a Busy Timeout
+The most effective way to handle temporary database locks (`SQLITE_BUSY` errors) is to use the database driver's built-in busy timeout mechanism. By setting a timeout on the connection (e.g., 5 seconds), the driver will automatically retry a locked operation for that duration before throwing an error. This is much simpler and more efficient than building custom retry logic in the application.
 
-*   **Use custom builds from trusted sources:** Obtain FFmpeg builds from the `yt-dlp/FFmpeg-Builds` GitHub repository.
-*   **Verify the installation:** Ensure that yt-dlp and FFmpeg are installed correctly and that yt-dlp can find FFmpeg.
-*   **Keep yt-dlp up to date:** Regularly update yt-dlp to ensure that you have the latest security patches and bug fixes.
+### Finding 2.4: Resuming Interrupted Tasks on Startup
+A core resilience feature is the ability to recover from an unexpected shutdown. The standard pattern is:
+1.  On application startup, the task service queries the database for all tasks left in a `RUNNING` state.
+2.  These tasks are considered interrupted. The safest action is to atomically update their status back to `QUEUED`.
+3.  This ensures they will be picked up by a worker and re-processed. This relies on the tasks being idempotent.
 
-## Minimizing the Risk of Supply Chain Attacks Related to Dependencies
+### Finding 2.5: Idempotent Task Execution
+To allow for safe retries, tasks must be idempotent (safe to run multiple times). The "Idempotent Consumer" pattern achieves this. Before a worker executes a task, it checks if the task's unique ID has already been logged in a separate `processed_task_ids` table. If it has, the task is a duplicate and is discarded. If not, the task is executed, and its ID is added to the table upon successful completion.
 
-*   **Minimize the number of third-party integrations:** Reduce the number of dependencies to minimize potential points of entry for attackers.
-*   **Implement a robust vendor risk management process:** Assess the security posture of third-party vendors, monitor their adherence to industry standards, and ensure they follow secure development practices.
-*   **Apply encryption, both in transit and at rest:** Protect data by encrypting it both during transmission and when stored.
-*   **Bake in secure coding practices to application development:** Follow secure coding practices to prevent vulnerabilities in the application code.
-*   **Implement strong malware detection technology:** Use malware detection technology with heuristic and behavioral-based detection capabilities.
-*   **Effectively use least-privilege access control:** Restrict access to sensitive resources to only those who need it.
-*   **Implement strong authentication:** Use strong authentication methods to verify the identity of users and systems.
-*   **Use network segmentation:** Segment the network to limit the impact of a successful attack.
-*   **Adopt browser isolation:** Isolate web browsing activity to prevent malicious code from reaching the system.
-
-## Best Practices for Securely Storing and Managing API Keys
-
-*   **Store API keys in environment variables:** This prevents the keys from being exposed in the source code.
-*   **Use a secrets management service:** This provides a secure way to store and manage API keys and other secrets.
-*   **Rotate API keys periodically:** This limits the exposure of compromised keys.
-*   **Delete unneeded API keys:** This minimizes the attack surface.
-*   **Restrict API key usage:** Limit the scope of each API key to the specific services and resources that it needs to access.
-*   **Do not store API keys in the source code:** This is a major security risk.
-*   **Use a server-side proxy:** This allows you to keep the API key secret and prevent it from being exposed to the client.
+### Finding 2.S1: Idempotency Key Store Lifecycle Management
+There is no universal standard for cleaning up the `processed_task_ids` table. The safest approach is to never delete from it. However, to manage storage, a practical compromise for a desktop application is a **time-based cleanup (TTL)**, where a background job periodically deletes records older than a safe threshold (e.g., 30 days).

@@ -68,15 +68,16 @@ export interface PlaylistVideo {
  */
 export interface BackgroundTask {
   id: number;
-  type: 'IMPORT_PLAYLIST' | 'DOWNLOAD_VIDEO' | 'REFRESH_PLAYLIST';
-  status: 'QUEUED' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  task_type: 'IMPORT_PLAYLIST' | 'DOWNLOAD_VIDEO' | 'REFRESH_PLAYLIST';
+  title: string;
+  status: 'QUEUED' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'COMPLETED_WITH_ERRORS';
   progress: number;
-  targetId: string;
-  parentId?: number;
+  target_id?: string;
+  parent_id?: number;
   details?: Record<string, any>;
-  createdAt: Date;
-  updatedAt: Date;
-  completedAt?: Date;
+  created_at: Date;
+  updated_at: Date;
+  completed_at?: Date;
 }
 
 //==============================================================================
@@ -96,7 +97,7 @@ export type VideoAvailabilityStatus = Video['availabilityStatus'];
 /**
  * Union type for all background task types
  */
-export type BackgroundTaskType = BackgroundTask['type'];
+export type BackgroundTaskType = BackgroundTask['task_type'];
 
 /**
  * Union type for all background task statuses

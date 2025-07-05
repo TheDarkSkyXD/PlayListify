@@ -1,17 +1,18 @@
-# Key Questions - Arc 2: User Experience Optimization
+# Key Research Questions: Arc 2 - Resilience, Error Handling, and Recovery
 
-This research arc focuses on UI/UX design and detailed functional requirements of the PlayListify project.
+This document outlines the central questions for Arc 2. This research arc focuses on ensuring the task management system is robust and can gracefully handle and recover from unexpected failures, such as application crashes or database issues.
 
-Key questions to be addressed:
+### Core Questions:
 
-*   What are the usability best practices for desktop applications, especially regarding accessibility?
-*   What specific UI elements should be avoided or adapted to better suit a desktop environment compared to YouTube's design?
-*   How can the UI be optimized for users with disabilities?
-*   How can high-level user stories be decomposed into smaller, more manageable tasks with specific acceptance criteria?
-*   What clear, measurable success criteria should accompany each functional requirement?
-*   How can Test-Driven Development (TDD) be effectively integrated into the development process to ensure that functional requirements are met?
-*   What are the key user flows within the application, and how can they be streamlined for optimal user experience?
-*   How can the application provide clear and intuitive feedback to the user during long-running tasks such as downloading and importing playlists?
-*   How does the use of Shadcn components impact the UI/UX design and accessibility of the application?
-*   What are the best practices for using Shadcn components in an Electron application to ensure a consistent and user-friendly experience?
-</content>
+1.  **Crash Resilience:** What are the standard industry patterns for making task execution resilient to application crashes or unexpected shutdowns in a desktop environment?
+    *   *Sub-question:* Explore the concepts of task journaling (logging intentions before acting) and checkpointing (periodically saving progress) as they apply to a local SQLite-based system. What are their implementation costs and benefits?
+
+2.  **Database Failure Handling:** How can the system gracefully handle database connection failures, deadlocks, or `SQLITE_BUSY` errors during a critical task update?
+    *   *Sub-question:* What are the recommended retry mechanisms (e.g., exponential backoff) for database operations within a task's lifecycle?
+
+3.  **Task Recovery on Startup:** What are the most effective strategies for identifying and resuming "unfinished," "stale," or "interrupted" tasks upon application startup?
+    *   *Sub-question:* How does the service reliably determine if a task was interrupted mid-execution versus being genuinely queued? (e.g., using a "running" status with a heartbeat or timeout mechanism).
+    *   *Sub-question:* What are the potential pitfalls of automatically resuming tasks, and how can they be mitigated?
+
+4.  **Idempotency:** What are the best practices for designing and implementing idempotent tasks to prevent duplicate processing if a task is unintentionally retried after a failure?
+    *   *Sub-question:* How can a unique task identifier be used to ensure that an operation (like a download) is only performed once, even if the "start download" command is received multiple times?

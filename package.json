@@ -1,17 +1,48 @@
 {
+  "name": "playlistify",
+  "version": "1.0.0",
+  "description": "A comprehensive playlist management application",
+  "main": "src/main.ts",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest tests/services",
+    "test:integration": "jest tests/integration",
+    "test:edge-cases": "jest tests/edge_cases",
+    "build": "tsc",
+    "dev": "ts-node src/main.ts"
+  },
   "devDependencies": {
     "@babel/core": "^7.28.0",
     "@babel/preset-env": "^7.28.0",
     "@babel/preset-typescript": "^7.27.1",
+    "@types/better-sqlite3": "^7.6.0",
     "@types/jest": "^30.0.0",
+    "@types/node": "^20.19.4",
     "babel-jest": "^30.0.4",
-    "jest": "^30.0.4"
+    "jest": "^30.0.4",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@electron-forge/cli": "^7.8.1",
+    "@electron-forge/maker-deb": "^7.8.1",
+    "@electron-forge/maker-rpm": "^7.8.1",
+    "@electron-forge/maker-squirrel": "^7.8.1",
+    "@electron-forge/maker-zip": "^7.8.1",
+    "@types/fs-extra": "^11.0.4",
     "@types/sqlite3": "^3.1.11",
-    "sqlite3": "^5.1.7"
-  },
-  "scripts": {
-    "test": "jest"
+    "better-sqlite3": "^12.2.0",
+    "electron": "^37.2.0",
+    "electron-squirrel-startup": "^1.0.1",
+    "electron-store": "^10.1.0",
+    "electron-updater": "^6.6.2",
+    "fs-extra": "^11.3.0",
+    "init": "^0.1.2",
+    "shadcn": "^2.7.0",
+    "sqlite3": "^5.1.7",
+    "zod": "^3.25.74"
   }
 }
