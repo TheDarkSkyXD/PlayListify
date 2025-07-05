@@ -20,15 +20,6 @@ As a user, I want a dashboard that serves as my central starting point, designed
     *   The structure is ready to receive and display real data as soon as the corresponding features are completed in later stories.
     *   The empty state messages are centered within their respective sections, using a font size of 16px.
 
-### Story 1.3: Import Public Playlist
-As a user, I want to use the "+ Add" menu to import a public YouTube playlist using its URL, so that the import process starts in the background and I can continue using the app.
-
-*   Acceptance Criteria:
-    *   The "+ Add" menu contains an option labeled "Add Playlist".
-    *   Clicking this option opens a dialog box for the user to paste a YouTube playlist URL.
-    *   After a valid URL is entered, the dialog automatically fetches and displays a preview of the playlist (including the playlist thumbnail (64x64 pixels), title, video count, channel name, and a short description) within 3 seconds.
-    *   When the user clicks the final "Import" button in the dialog, the dialog closes immediately, and the import task appears in the Activity Center within 1 second.
-    *   Once the background task is complete, the new playlist appears in the sidebar within 5 seconds, and a success notification is displayed for 3 seconds.
 
 ### Story 1.4: View Playlist Details
 As a user, I want to select an imported playlist and see the list of all its videos, including thumbnails and titles, so that I can browse its contents.
@@ -61,11 +52,13 @@ As a user, I want to select 'Add Playlist' from the main menu and then choose wh
 
 *   Acceptance Criteria:
     *   The "+ Add" dropdown menu contains a single option: "Add Playlist".
-    *   Clicking this opens a dialog titled "Add Playlist" with two tabs: "Custom Playlist" and "Add from YouTube".
-    *   The "Custom Playlist" tab has fields for Title (single-line text input) and Description (multi-line text input) and a "Create Playlist" button.
+    *   Clicking this opens a dialog titled "Add Playlist" with two tabs: "Create Custom Playlist" and "Import from YouTube URL".
+    *   The "Create Custom Playlist" tab has fields for Title (single-line text input) and Description (multi-line text input) and a "Create Playlist" button.
     *   The Title field enforces a 100-character limit and the Description field enforces a 512-character limit. Both should display a character counter (e.g., `25/100`).
     *   If a user tries to create a playlist with a title that already exists, an error message is displayed within 2 seconds, and the playlist will not be created.
-    *   The "Add from YouTube" tab contains the full preview-and-import flow defined in Epic 1.
+    *   The "Import from YouTube URL" tab contains an input field for a YouTube playlist URL.
+    *   After a valid URL is entered on the import tab, the dialog automatically fetches and displays a preview of the playlist (including the playlist thumbnail (64x64 pixels), title, video count, channel name, and a short description) within 3 seconds.
+    *   When the user clicks the final "Import" button in the dialog, the dialog closes immediately, and the import task appears in the Activity Center within 1 second.
 
 ### Story 2.2: Add Videos to a Custom Playlist
 As a user, I want to add a video from an existing playlist to one of my custom playlists so I can organize content according to my own themes.
@@ -112,10 +105,11 @@ As a developer, I need a backend service that can analyze a YouTube video or pla
     *   The service is exposed via an IPC handler that the frontend can call.
 
 ### Story 3.2: Download a Single Video via URL
-As a user, I want to download a single video from a YouTube URL, with options to select format, quality, subtitles, and save location.
+As a user, I want to download a single video from a YouTube URL that is not yet in my library, with options to select format, quality, subtitles, and save location.
 
 *   Acceptance Criteria:
-    *   The "+ Add" menu has a "Download Video" option that opens the "Download Video" dialog.
+    *   A global "Download Video" action is available (e.g., in the top navigation bar or a global menu), separate from playlist-specific actions.
+    *   This action opens a "Download Video" dialog where a user can paste a YouTube video URL.
     *   When a valid URL is pasted, the dialog automatically fetches and displays a video preview within 3 seconds.
     *   The dialog displays the default download path and provides a button for the user to change it.
     *   The dialog allows the user to select quality, format (MP4/MP3), and whether to "Include subtitles when available".
@@ -131,7 +125,7 @@ As a user, I want to download all videos from a playlist with a single action, c
     *   A "Download Playlist" button on the playlist details view opens the download dialog.
     *   The dialog displays the default download path and provides a button for the user to change it.
     *   The dialog dynamically populates quality options based on the highest quality found within the playlist.
-    *   The system uses smart quality fallback: if a video is unavailable in the chosen quality, it automatically downloads the next highest quality available for that specific video.
+    *   The download will follow a fail-fast principle. If a specific video is not available in the quality selected by the user, the download for that single video will fail, and no fallback to a lower quality will be attempted. The parent playlist download task will be marked as 'Completed with errors' in the Activity Center.
     *   All successfully downloaded videos have their thumbnails embedded.
 
 ### Story 3.4: View Downloads Page
@@ -198,8 +192,10 @@ As a user, I want to see a colored dot next to each video in an imported playlis
 
 *   Acceptance Criteria:
     *   In the video list item component, a colored dot is displayed based on the video's `availability_status` from the database.
-    *   The colors are: Green for 'Live', Yellow for 'Unlisted/Private', and Red for 'Deleted'.
-    *   A tooltip on the dot explains the status on hover (e.g., "Status: Live").
+    *   The color-coding and tooltips must strictly follow the mapping defined in `data_models.md`:
+        *   **Green Dot:** For `AVAILABLE` status. Tooltip: "Status: Available".
+        *   **Yellow Dot:** For `PRIVATE` status. Tooltip: "Status: Private or Unlisted".
+        *   **Red Dot:** For `UNAVAILABLE` status. Tooltip: "Status: Deleted or Unavailable".
     *   The playlist view header displays a "Status last checked: [timestamp]" (e.g., "3 hours ago") message.
 
 ### Story 5.3: Implement Auto-Sync Settings UI
@@ -216,7 +212,7 @@ As a developer, I need a scheduler that automatically and safely runs the Health
 
 *   Acceptance Criteria:
     *   The scheduler reads the user's sync frequency from settings to determine its interval.
-    *   The scheduler pauses if a user-initiated task (like a new import or download) is active, to prioritize the user's actions. It will resume after the user's tasks are complete.
+    *   **The scheduler will not initiate a new health check if the background task queue is actively processing tasks (i.e., `queue.size > 0` or `queue.pending > 0`). It will skip the current cycle and attempt to run again at its next scheduled interval.**
 
 ### Story 5.5: Manual Playlist Refresh
 As a user, I want a button to manually trigger a health check on a specific playlist so I can get its up-to-the-minute status on demand.

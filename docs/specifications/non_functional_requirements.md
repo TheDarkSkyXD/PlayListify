@@ -28,7 +28,7 @@ This document outlines the non-functional requirements for the Playlistify appli
 *   **NFR.S.3:** The application shall sanitize user inputs to prevent injection attacks.
     *   **Rationale:** To prevent malicious code from being injected into the application.
     *   **Measurement:** Automated testing with tools like OWASP ZAP.
-*   **NFR.S.4:** The application shall store sensitive data (e.g., API keys, user tokens) securely using encryption.
+*   **NFR.S.4:** The application shall store sensitive data (e.g., API keys) securely using encryption.
     *   **Rationale:** To protect sensitive data from unauthorized access in case of a data breach.
     *   Measurement:** Sensitive data is encrypted using AES-256 encryption, and code review confirms proper encryption implementation.
 *   **NFR.S.5:** Perform regular security audits and penetration testing to identify vulnerabilities.
@@ -52,15 +52,15 @@ This document outlines the non-functional requirements for the Playlistify appli
 
 ## Reliability
 
-*   **NFR.R.1:** The application shall be available 99% of the time.
-    *   **Rationale:** To ensure that users can access the application when they need it.
-    *   **Measurement:** Uptime monitoring.
+*   **NFR.R.1:** The application shall have a Mean Time Between Failures (MTBF) of at least 100 hours of active use.
+    *   **Rationale:** To ensure a stable and reliable user experience for a desktop application.
+    *   **Measurement:** Calculated based on crash reports and session data over a 30-day period.
 *   **NFR.R.2:** The application shall be able to recover from failures gracefully.
     *   **Rationale:** To minimize the impact of errors on the user experience.
     *   **Measurement:** Mean time to recovery (MTTR) from failures is less than 30 minutes, and the error rate is less than 0.1%.
-*   **NFR.R.3:** The application shall be able to handle a large number of concurrent users without performance degradation.
-    *   **Rationale:** To ensure that the application can scale to meet the needs of a growing user base.
-    *   **Measurement:** Load testing and stress testing.
+*   **NFR.R.3:** The application shall handle a local database of 10,000 videos without noticeable performance degradation in UI interactions.
+    *   **Rationale:** To ensure the application remains responsive as the user's local library grows.
+    *   **Measurement:** UI interaction response times (e.g., search, filter, load playlist) remain under 2 seconds with a 10,000-video database.
 
 ## Maintainability
 
@@ -79,15 +79,6 @@ This document outlines the non-functional requirements for the Playlistify appli
 *   **NFR.SC.1:** The application shall be able to handle a growing number of playlists and videos without significant performance degradation.
     *   **Rationale:** To accommodate a growing user base and larger video libraries.
     *   **Measurement:** Load testing with increasing data volumes.
-*   **NFR.SC.2:** The application shall be able to scale its infrastructure to handle increased traffic and data storage needs.
+*   **NFR.SC.2:** The application's backend services (if any) shall be able to scale to handle increased traffic.
     *   **Rationale:** To ensure the application can handle a growing user base.
-    *   **Measurement:** Infrastructure monitoring and capacity planning.
-
-## Localization
-
-*   **NFR.L.1:** The application shall support multiple languages.
-    *   **Rationale:** To reach a wider audience.
-    *   **Measurement:** Availability of translations for key UI elements.
-*   **NFR.L.2:** The application shall use appropriate date, time, and number formats for different locales.
-    *   **Rationale:** To provide a culturally appropriate user experience.
-    *   **Measurement:** Verification of correct formatting for different locales.
+    *   **Measurement:** Load testing of backend services.

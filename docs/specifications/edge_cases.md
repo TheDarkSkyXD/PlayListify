@@ -2,29 +2,7 @@
 
 This document defines the edge cases for the Playlistify application.
 
-## 1. User Registration and Login
-## 1. User Registration and Login
-
-*   **Invalid Input:**
-    *   Username already exists.
-        *   **Mitigation:** Display a real-time validation message during registration, suggesting alternative usernames.
-    *   Invalid email format.
-        *   **Mitigation:** Use client-side validation to ensure the email format is correct before submitting the form.
-    *   Password does not meet complexity requirements.
-        *   **Mitigation:** Display clear password complexity requirements during registration and provide feedback as the user types.
-    *   Username contains profanity.
-        *   **Mitigation:** Implement a profanity filter on username input.
-*   **Account Issues:**
-    *   Account is locked due to multiple failed login attempts.
-        *   **Mitigation:** Implement a CAPTCHA system after a certain number of failed attempts. Provide a password reset mechanism.
-    *   Account is suspended due to violation of terms of service.
-        *   **Mitigation:** Clearly communicate the reason for suspension and provide a process for appeal.
-*   **Connectivity Issues:**
-    *   User is offline during registration or login.
-        *   **Mitigation:** Store registration data locally and attempt to submit it when the user comes back online. Display a clear error message for login failures.
-    *   Server is unavailable.
-        *   **Mitigation:** Display a user-friendly message indicating the service is temporarily unavailable and suggest trying again later.
-## 2. Playlist Management
+## 1. Playlist Management
 
 *   **Invalid Input:**
     *   Playlist name is too long or contains invalid characters.
@@ -91,27 +69,7 @@ This document defines the edge cases for the Playlistify application.
     *   Device does not have the necessary codecs installed.
         *   **Mitigation:** Suggest the user install the necessary codecs or use a different video player.
 
-## 5. User Profile Management
-
-*   **Invalid Input:**
-    *   Username is too long or contains invalid characters.
-        *   **Mitigation:** Implement client-side validation to limit the username length and restrict invalid characters.
-    *   Invalid email format.
-        *   **Mitigation:** Use client-side validation to ensure the email format is correct before submitting the form.
-    *   Password does not meet complexity requirements.
-        *   **Mitigation:** Display clear password complexity requirements and provide real-time feedback.
-    *   Attempt to change email to an already existing email.
-        *   **Mitigation:** Check if the new email already exists in the database and display an error message.
-*   **Account Issues:**
-    *   Account is locked due to multiple failed login attempts.
-        *   **Mitigation:** Implement a CAPTCHA system after a certain number of failed attempts.
-    *   Account is suspended due to violation of terms of service.
-        *   **Mitigation:** Clearly communicate the reason for suspension and provide a process for appeal.
-*   **Connectivity Issues:**
-    *   User is offline during profile update.
-        *   **Mitigation:** Store changes locally and synchronize them when the user comes back online.
-
-## 6. Downloading
+## 5. Downloading
 
 *   **Download Issues:**
     *   Video is no longer available for download.
@@ -148,7 +106,7 @@ This document defines the edge cases for the Playlistify application.
         *   **Mitigation:** Stop the task gracefully and update the task status in the UI. Provide a confirmation dialog before cancelling.
 *   **UI Issues:**
     *   Activity center does not update in real-time.
-        *   **Mitigation:** Use WebSockets or Server-Sent Events to push updates to the UI in real-time. Implement a fallback mechanism using polling.
+        *   **Mitigation:** Use Inter-Process Communication (IPC) events between the main and renderer processes.
     *   Activity center displays incorrect information.
         *   **Mitigation:** Implement data validation and error handling to ensure that the activity center displays accurate information. Use consistent data formats.
     *   Activity Center widget disappears.

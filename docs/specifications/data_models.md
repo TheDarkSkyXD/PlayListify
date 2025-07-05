@@ -2,30 +2,11 @@
 
 This document defines the data models used in the Playlistify application. These models represent the structure of the data stored and manipulated by the application.
 
-## User
-
-*   **Description:** Represents a user account in the system.
-*   **Properties:**
-    *   `id`: `integer` - Unique identifier for the user.
-    *   `username`: `string` - User's username.
-        *   **Validation Rules:**
-            *   Must be between 3 and 50 characters.
-            *   Can only contain alphanumeric characters and underscores.
-    *   `email`: `string` - User's email address.
-        *   **Validation Rules:**
-            *   Must be a valid email address format (e.g., `user@example.com`).
-    *   `passwordHash`: `string` - Hashed password for secure authentication.
-        *   **Validation Rules:**
-            *   Must be at least 60 characters long (bcrypt hash).
-    *   `createdAt`: `timestamp` - Timestamp of when the user account was created.
-    *   `updatedAt`: `timestamp` - Timestamp of when the user account was last updated.
-
 ## Playlist
 
 *   **Description:** Represents a playlist of videos.
 *   **Properties:**
     *   `id`: `integer` - Unique identifier for the playlist.
-    *   `userId`: `integer` - Foreign key referencing the user who owns the playlist.
     *   `title`: `string` - Title of the playlist.
         *   **Validation Rules:**
             *   Must be between 1 and 255 characters.
@@ -58,9 +39,16 @@ This document defines the data models used in the Playlistify application. These
     *   `thumbnailURL`: `string` - URL of the video's thumbnail image.
         *   **Validation Rules:**
             *   Must be a valid URL format.
-    *   `availabilityStatus`: `string` - Status of the video's availability on YouTube (e.g., "LIVE", "DELETED", "PRIVATE").
+    *   `availabilityStatus`: `string` - Status of the video's availability on YouTube.
         *   **Validation Rules:**
-            *   Must be one of the allowed values: "LIVE", "PUBLIC", "PRIVATE", "DELETED".
+            *   Must be one of the allowed values: 'AVAILABLE', 'UNAVAILABLE', 'PRIVATE'.
+        **UI Status Mapping:**
+
+        | `availabilityStatus` Enum | UI Status Color | UI Tooltip                   |
+        | :------------------------ | :-------------- | :--------------------------- |
+        | `AVAILABLE`               | Green           | "Status: Available"          |
+        | `PRIVATE`                 | Yellow          | "Status: Private or Unlisted"  |
+        | `UNAVAILABLE`             | Red             | "Status: Deleted or Unavailable" |
     *   `downloadedQuality`: `string` - The actual video quality that was downloaded (e.g., "1080p", "720p").
     *   `downloadPath`: `string` - Path to the downloaded video file (if downloaded).
     *   `createdAt`: `timestamp` - Timestamp of when the video information was added to the database.
@@ -87,12 +75,12 @@ This document defines the data models used in the Playlistify application. These
     *   `status`: `string` - Status of the task (e.g., "QUEUED", "IN_PROGRESS", "COMPLETED", "FAILED").
         *   **Validation Rules:**
             *   Must be one of the allowed values: "QUEUED", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED".
-    *   `progress`: `integer` - Progress of the task (0-100).
+    *   `progress`: `REAL` - Progress of the task (0.0-100.0).
         *   **Validation Rules:**
-            *   Must be an integer between 0 and 100.
+            *   Must be a real number between 0.0 and 100.0.
     *   `targetId`: `string` - ID of the target entity (e.g., playlist ID, video ID).
     *   `parentId`: `integer` - ID of the parent task (if this is a subtask).
-    *   `details`: `JSON` - Additional details about the task (e.g., download options).
+    *   `details`: `JSON` - Additional details about the task. For a `DOWNLOAD_VIDEO` task, this will contain `{ quality: '1080p', format: 'mp4' }`.
     *   `createdAt`: `timestamp` - Timestamp of when the task was created.
     *   `updatedAt`: `timestamp` - Timestamp of when the task was last updated.
     *   `completedAt`: `timestamp` - Timestamp of when the task was completed.

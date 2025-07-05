@@ -20,26 +20,10 @@ The tests will be designed to verify the following aspects of the application:
 
 The following are the initial set of high-level acceptance test cases for the Playlistify project. Each test case includes a description, preconditions, steps, and AI-verifiable completion criteria.
 
-### Test Case 1: User Registration and Login
-
-*   **Description:** Verify that users can successfully register for an account and log in to the application.
-*   **Preconditions:** The application is running and accessible.
-*   **Steps:**
-    1.  Navigate to the registration page.
-    2.  Enter valid registration information (e.g., username, email, password).
-    3.  Submit the registration form.
-    4.  Verify that the user is redirected to the login page or a success message is displayed.
-    5.  Enter valid login credentials (e.g., username, password).
-    6.  Submit the login form.
-*   **AI-Verifiable Completion Criteria:**
-    *   A new user account is created in the database.
-    *   The user is successfully logged in to the application and redirected to the main page.
-    *   The user's session is active and maintained across multiple page requests.
-
-### Test Case 2: Playlist Creation and Management
+### Test Case 1: Playlist Creation and Management
 
 *   **Description:** Verify that users can create, edit, and delete playlists.
-*   **Preconditions:** The user is logged in to the application.
+*   **Preconditions:** The application is running.
 *   **Steps:**
     1.  Navigate to the playlist creation page.
     2.  Enter a valid playlist name and description.
@@ -52,15 +36,14 @@ The following are the initial set of high-level acceptance test cases for the Pl
     9.  Verify that the playlist is removed from the user's playlist list.
 *   **AI-Verifiable Completion Criteria:**
     *   A new playlist is created in the database with the specified name and description.
-    *   The playlist is associated with the user's account.
-    *   The playlist is displayed in the user's playlist list.
+    *   The playlist is displayed in the playlist list.
     *   The playlist can be edited and updated with new information.
-    *   The playlist can be deleted from the database and removed from the user's playlist list.
+    *   The playlist can be deleted from the database and removed from the playlist list.
 
-### Test Case 3: Song Search and Addition
+### Test Case 2: Song Search and Addition
 
 *   **Description:** Verify that users can search for songs and add them to playlists.
-*   **Preconditions:** The user is logged in to the application and has created a playlist.
+*   **Preconditions:** The application is running and a playlist has been created.
 *   **Steps:**
     1.  Navigate to the song search page.
     2.  Enter a search query (e.g., song title, artist name).
@@ -73,10 +56,10 @@ The following are the initial set of high-level acceptance test cases for the Pl
     *   The song is added to the playlist in the database.
     *   The song is displayed in the playlist's song list.
 
-### Test Case 4: Playback Functionality
+### Test Case 3: Playback Functionality
 
 *   **Description:** Verify that users can play songs in a playlist.
-*   **Preconditions:** The user is logged in to the application and has created a playlist with songs.
+*   **Preconditions:** The application is running and a playlist with songs exists.
 *   **Steps:**
     1.  Navigate to the playlist page.
     2.  Select a song to play.
@@ -86,19 +69,6 @@ The following are the initial set of high-level acceptance test cases for the Pl
     *   The selected song starts playing.
     *   The playback controls are functional and allow the user to control the playback of the song.
     *   The song playback progress is displayed.
-
-### Test Case 5: User Profile Management
-
-*   **Description:** Verify that users can manage their profile information.
-*   **Preconditions:** The user is logged in to the application.
-*   **Steps:**
-    1.  Navigate to the user profile page.
-    2.  Edit the user profile information (e.g., username, email, password).
-    3.  Save the changes.
-    4.  Verify that the user profile information is updated.
-*   **AI-Verifiable Completion Criteria:**
-    *   The user profile information is updated in the database.
-    *   The updated user profile information is displayed on the user profile page.
 
 ## Test Environment
 
@@ -115,12 +85,3 @@ The results of the acceptance tests will be reported in a test report. The test 
 ## AI Verifiability
 
 Each test case includes explicitly stated AI-verifiable completion criteria. This ensures that the tests can be automated and that the results can be verified by an AI system. The AI system will be able to analyze the test results and determine whether the application meets the acceptance criteria.
-
-## Future Test Cases
-
-Future test cases will include tests for:
-*   Sharing playlists with other users.
-*   Collaborating on playlists with other users.
-*   Importing playlists from other music services.
-*   Exporting playlists to other music services.
-*   Integration with social media platforms.

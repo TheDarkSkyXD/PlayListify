@@ -9,13 +9,13 @@ This document outlines the functional requirements for the Playlistify applicati
 *   **Description:** The application must present a consistent and intuitive layout with a sidebar and top navigation bar.
 *   **FR.1.1.1:** The application shall open to a primary window within 2 seconds.
     *   **Success Criteria:** The application window is fully rendered and interactive within 2 seconds of launch.
-    *   **TDD Anchor:** `tests/acceptance/test_user_registration.py::TestUserRegistration::test_user_registration_and_login` (check that the main window appears within 2 seconds after login)
+    *   **TDD Anchor:** `tests/acceptance/test_app_launch.py::TestAppLaunch::test_main_window_loads_quickly`
 *   **FR.1.1.2:** A persistent sidebar shall be visible on the left, taking up no more than 20% of the screen width.
     *   **Success Criteria:** The sidebar is present on all main application views and its width does not exceed 20% of the screen width.
-    *   **TDD Anchor:** `tests/acceptance/test_user_registration.py::TestUserRegistration::test_user_registration_and_login` (check for the presence and dimensions of the sidebar after login)
+    *   **TDD Anchor:** `tests/acceptance/test_app_layout.py::TestAppLayout::test_sidebar_presence_and_dimensions`
 *   **FR.1.1.3:** A persistent top navigation bar shall be visible at the top, with a height no more than 10% of the screen height.
     *   **Success Criteria:** The top navigation bar is present on all main application views and its height does not exceed 10% of the screen height.
-    *   **TDD Anchor:** `tests/acceptance/test_user_registration.py::TestUserRegistration::test_user_registration_and_login` (check for the presence and dimensions of the top navigation bar after login)
+    *   **TDD Anchor:** `tests/acceptance/test_app_layout.py::TestAppLayout::test_top_nav_bar_presence_and_dimensions`
 
 ### Story 1.2: Build Dashboard UI Structure
 
@@ -35,45 +35,45 @@ This document outlines the functional requirements for the Playlistify applicati
 *   **Description:** The application must allow users to import public YouTube playlists using a URL.
 *   **FR.1.3.1:** The "+ Add" menu shall contain an option labeled "Add Playlist".
      *   **Success Criteria:** The "+ Add" menu in the top navigation bar, identified by `id="add-menu"`, includes an item with the text "Add Playlist" and `id="add-playlist-item"`.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_add_playlist_menu_item`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_add_playlist_menu_item`
 *   **FR.1.3.2:** Clicking the "Add Playlist" menu item shall open a dialog box with `id="add-playlist-dialog"` for the user to paste a YouTube playlist URL.
      *   **Success Criteria:** Clicking the "Add Playlist" menu item opens a dialog with `id="add-playlist-dialog"` containing a visible input field with `id="playlist-url"` for a YouTube playlist URL.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_add_playlist_dialog`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_add_playlist_dialog`
 *   **FR.1.3.3:** After a valid URL is entered in the `playlist-url` input field, the dialog shall automatically fetch and display a preview of the playlist (Thumbnail with `id="playlist-thumbnail"`, Title with `id="playlist-title"`, Video Count with `id="playlist-video-count"`, etc.) within 3 seconds.
      *   **Success Criteria:** Upon entering a valid YouTube playlist URL, the dialog displays the playlist's thumbnail, title, and video count within 3 seconds.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_add_playlist_preview`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_add_playlist_preview`
 *   **FR.1.3.4:** When the user clicks the final "Import" button with `id="import-playlist-button"` in the dialog, the dialog shall close immediately, and the import task shall instantly appear in the Activity Center with status "Queued".
      *   **Success Criteria:** Clicking the "Import" button closes the dialog with `id="add-playlist-dialog"` and adds a new task to the Activity Center with the status "Queued". The task in the Activity Center should have `class="activity-item"` and a status element with `class="activity-status"` containing "Queued".
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_add_playlist_import`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_add_playlist_import`
 *   **FR.1.3.5:** Once the background task is complete, the new playlist shall appear in the sidebar, identified by `id="playlist-sidebar"`, within 5 seconds, and a success notification with `class="success-notification"` shall be displayed for 3 seconds.
      *   **Success Criteria:** After the import task completes, the playlist is added to the sidebar navigation within 5 seconds, and a success notification appears for 3 seconds.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_add_playlist_sidebar_update`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_add_playlist_sidebar_update`
 
 ### Story 1.4: View Playlist Details
 
 *   **Description:** The application must allow users to view the details of an imported playlist.
 *   **FR.1.4.1:** Clicking a playlist in the sidebar shall display its contents in the main view within 2 seconds.
     *   **Success Criteria:** Selecting a playlist from the sidebar displays the playlist's details in the main content area within 2 seconds.
-    *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_playlist_creation_and_management` (extend to check if playlist details load within 2 seconds)
+    *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_view_playlist_details`
 *   **FR.1.4.2:** The view shall show the playlist's header (title with `id="playlist-title"`, video count with `id="playlist-video-count"`, etc.) and a "Last checked" timestamp with `id="last-checked"`.
      *   **Success Criteria:** The playlist details view includes the playlist's title, total video count, and a "Last checked" timestamp indicating the last time the playlist's status was checked.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_playlist_header_info`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_playlist_header_info`
 *   **FR.1.4.3:** Each video in the list, with `class="video-item"`, shall display its Thumbnail with `id="video-thumbnail"`, Title with `id="video-title"`, Channel Name with `id="video-channel"`, Duration with `id="video-duration"`, View Count with `id="video-views"`, Upload Date with `id="video-upload-date"`, a colored status dot with `id="video-status"`, and its downloaded quality (if applicable) with `id="video-quality"`.
      *   **Success Criteria:** Each video item in the playlist details view displays all the required information.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_video_item_info`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_video_item_info`
 *   **FR.1.4.4:** A loading state with `id="playlist-loading"` shall be shown while data is being fetched, with a loading animation displaying for no more than 3 seconds.
      *   **Success Criteria:** A loading animation is displayed while the playlist details are being fetched, and the animation disappears once the data is loaded or an error occurs. The animation should not display for longer than 3 seconds.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_playlist_loading_state`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_playlist_loading_state`
 
 ### Story 1.5: Search within Playlist
 
 *   **Description:** The application must allow users to search for videos within a playlist.
 *   **FR.1.5.1:** A search input field shall be present on the playlist detail view.
     *   **Success Criteria:** The playlist details view includes a visible input field labeled "Search".
-    *   **TDD Anchor:** `tests/acceptance/test_song_search.py::TestSongSearch::test_song_search_and_addition` (extend to check for the presence of the search input)
+    *   **TDD Anchor:** `tests/acceptance/test_song_search.py::TestSongSearch::test_search_input_present`
 *   **FR.1.5.2:** As the user types in the search field, the visible list of videos shall filter in real-time (within 0.5 seconds) to show only videos whose titles match the search query.
     *   **Success Criteria:** The list of videos is filtered to display only those whose titles contain the search query (case-insensitive) within 0.5 seconds of typing.
-    *   **TDD Anchor:** `tests/acceptance/test_song_search.py::TestSongSearch::test_song_search_and_addition` (extend to verify real-time filtering)
+    *   **TDD Anchor:** `tests/acceptance/test_song_search.py::TestSongSearch::test_real_time_filtering`
 
 ### Story 1.6: Infinite Scroll for Video Lists
 
@@ -83,7 +83,7 @@ This document outlines the functional requirements for the Playlistify applicati
      *   **TDD Anchor:** `tests/performance/test_playlist_scrolling.py::TestPlaylistScrolling::test_playlist_scrolling_performance`
 *   **FR.1.6.2:** Only the currently visible video items with `class="video-item"` shall be rendered in the DOM.
      *   **Success Criteria:** The number of video items rendered in the DOM is limited to those currently visible on the screen, plus a small buffer (e.g., 10 items above and below the visible area). This can be verified by checking the number of elements with `class="video-item"` present in the DOM during scrolling.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_playlist_dom_rendering`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_playlist_dom_rendering`
 *   **FR.1.6.3:** Scrolling shall be smooth and performant.
     *   **Success Criteria:** Scrolling through the playlist should be smooth and without noticeable lag or stuttering.
     *   **TDD Anchor:** (Subjective visual test, but can be augmented with performance metrics)
@@ -95,58 +95,58 @@ This document outlines the functional requirements for the Playlistify applicati
 *   **Description:** The application must allow users to add videos to custom playlists.
 *   **FR.2.2.1:** A context menu on any video item with `class="video-item"` shall provide an "Add to Playlist" option with `id="add-to-playlist"`.
      *   **Success Criteria:** The context menu for each video item includes an item labeled "Add to Playlist".
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_video_context_menu_add`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_video_context_menu_add`
 *   **FR.2.2.2:** This option shall open a submenu or dialog with `id="playlist-list"` listing all the user's custom playlists.
      *   **Success Criteria:** Selecting "Add to Playlist" displays a list of all the user's custom playlists within a submenu or dialog with `id="playlist-list"`. Each playlist item should have `class="playlist-item"`.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_add_to_playlist_list`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_add_to_playlist_list`
 *   **FR.2.2.3:** If a user attempts to add a video to a custom playlist that already contains that video, no duplicate entry shall be created. A brief, non-blocking notification with `class="notification"` (e.g., "Video is already in this playlist") shall be shown for 3 seconds.
      *   **Success Criteria:** Attempting to add a duplicate video to a playlist results in a non-blocking notification displaying for 3 seconds, and no duplicate entry is created in the playlist.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_add_duplicate_video`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_add_duplicate_video`
 *   **FR.2.2.4:** Selecting a playlist shall correctly add the video to it and provide a success notification with `class="notification"` (e.g., "Video added to 'My Favorites'") for 3 seconds.
      *   **Success Criteria:** Selecting a playlist from the list adds the video to the selected playlist, and a success notification with `class="notification"` displays for 3 seconds.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_add_video_success`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_add_video_success`
 
 ### Story 2.3: Remove Videos from a Custom Playlist
 
 *   **Description:** The application must allow users to remove videos from custom playlists.
 *   **FR.2.3.1:** A context menu on any video item with `class="video-item"` *within a custom playlist* shall provide a "Remove from Playlist" option with `id="remove-from-playlist"`.
      *   **Success Criteria:** The context menu for each video item in a custom playlist includes an item labeled "Remove from Playlist".
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_video_context_menu_remove`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_video_context_menu_remove`
 *   **FR.2.3.2:** A confirmation dialog with `id="remove-confirmation-dialog"` shall be displayed before removing the video.
      *   **Success Criteria:** Selecting "Remove from Playlist" displays a confirmation dialog with `id="remove-confirmation-dialog"` before removing the video.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_remove_confirmation_dialog`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_remove_confirmation_dialog`
 *   **FR.2.3.3:** The confirmation dialog with `id="remove-confirmation-dialog"` shall clearly state that the action only removes the video from the current playlist and does not delete the video from the library or from other playlists (e.g., "This will only remove the video from the '[Playlist Name]' playlist. It will not be deleted from your library."). The message should be displayed in an element with `id="confirmation-message"`.
      *   **Success Criteria:** The confirmation dialog displays the specified warning message.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_remove_confirmation_message`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_remove_confirmation_message`
 *   **FR.2.3.4:** After confirming removal, the video with `class="video-item"` shall be removed from the list within 1 second.
      *   **Success Criteria:** After confirming the removal, the video is removed from the list within 1 second.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_remove_video_speed`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_remove_video_speed`
 
 ### Story 2.4: Edit Custom Playlist Details
 
 *   **Description:** The application must allow users to edit the title and description of custom playlists.
 *   **FR.2.4.1:** A context menu on any custom playlist with `class="playlist-item"` shall provide an "Edit Details" option with `id="edit-details"`.
      *   **Success Criteria:** The context menu for each custom playlist includes an item labeled "Edit Details".
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_playlist_context_menu_edit`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_playlist_context_menu_edit`
 *   **FR.2.4.2:** This shall open a dialog with `id="edit-playlist-dialog"` pre-filled with the current title in input field with `id="playlist-title"` and description in textarea with `id="playlist-description"`.
      *   **Success Criteria:** Selecting "Edit Details" opens a dialog with the current playlist title and description pre-filled in the appropriate input fields.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_playlist_edit_dialog`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_playlist_edit_dialog`
 *   **FR.2.4.3:** The system must prevent renaming a playlist to a title that already exists, showing an error message with `id="duplicate-title-error"` if attempted within 2 seconds.
      *   **Success Criteria:** Attempting to rename a playlist to a title that already exists results in an error message with `id="duplicate-title-error"` being displayed within 2 seconds, and the playlist title is not updated.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_playlist_duplicate_title`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_playlist_duplicate_title`
 
 ### Story 2.5: Delete a Custom Playlist
 
 *   **Description:** The application must allow users to delete custom playlists.
 *   **FR.2.5.1:** A context menu on any custom playlist with `class="playlist-item"` shall provide a "Delete Playlist" option with `id="delete-playlist"`.
      *   **Success Criteria:** The context menu for each custom playlist includes an item labeled "Delete Playlist".
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_playlist_context_menu_delete`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_playlist_context_menu_delete`
 *   **FR.2.5.2:** A confirmation dialog with `id="delete-confirmation-dialog"` shall be displayed, clearly stating that the action is permanent (e.g., "Are you sure? This will permanently delete the playlist 'My Awesome Mix'. This cannot be undone."). The message should be displayed in an element with `id="confirmation-message"`.
      *   **Success Criteria:** Selecting "Delete Playlist" opens a confirmation dialog with the specified warning message.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_playlist_delete_confirmation`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_playlist_delete_confirmation`
 *   **FR.2.5.3:** If a video from the playlist is currently playing, confirming the deletion shall stop the video playback within 1 second before deleting the playlist.
      *   **Success Criteria:** If a video from the playlist being deleted is currently playing, playback is stopped within 1 second before the playlist is deleted. The playback should be stopped by calling the `stopPlayback()` function.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_playlist_delete_stop_playback`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_playlist_delete_stop_playback`
 
 ## Epic 3: Core Downloading & Offline Playback
 
@@ -155,20 +155,20 @@ This document outlines the functional requirements for the Playlistify applicati
 *   **Description:** The application must determine the available quality options for a YouTube video or playlist.
 *   **FR.3.1.1:** The service shall use `yt-dlp` to fetch a list of all available formats for a given URL.
     *   **Success Criteria:** The service successfully retrieves a list of available formats from YouTube using `yt-dlp`.
-    *   **TDD Anchor:** (Backend unit test required to verify `yt-dlp` interaction)
+    *   **TDD Anchor:** `tests/backend/test_download_service.py::TestDownloadService::test_yt_dlp_format_fetching`
 *   **FR.3.1.2:** The service shall parse this list and return a clean, ordered set of available qualities (e.g., '720p', '1080p', '4K', '8K') within 5 seconds.
     *   **Success Criteria:** The service returns a sorted array of available qualities within 5 seconds.
-    *   **TDD Anchor:** (Backend unit test required to verify parsing and sorting logic)
+    *   **TDD Anchor:** `tests/backend/test_download_service.py::TestDownloadService::test_quality_parsing_and_sorting`
 *   **FR.3.1.3:** The service shall be exposed via an IPC handler that the frontend can call.
     *   **Success Criteria:** The `download:get-quality-options` IPC handler is accessible from the frontend and returns the array of qualities.
-    *   **TDD Anchor:** (Integration test required to verify IPC handler)
+    *   **TDD Anchor:** `tests/integration/test_download_integration.py::TestDownloadIntegration::test_get_quality_ipc`
 
 ### Story 3.2: Download a Single Video via URL
 
 *   **Description:** The application must allow users to download a single video from a YouTube URL, with options to select format, quality, subtitles, and save location.
-*   **FR.3.2.1:** The "+ Add" menu with `id="add-menu"` shall have a "Download Video" option with `id="download-video"` that opens the "Download Video" dialog with `id="download-video-dialog"`.
-     *   **Success Criteria:** The "+ Add" menu contains a "Download Video" option that opens the download video dialog.
-     *   **TDD Anchor:** `tests/acceptance/test_download_management.py::TestDownloadManagement::test_download_video_menu`
+*   **FR.3.2.1:** A "Download Video" option shall open the "Download Video" dialog with `id="download-video-dialog"`.
+     *   **Success Criteria:** The "Download Video" dialog can be opened.
+     *   **TDD Anchor:** `tests/acceptance/test_download_management.py::TestDownloadManagement::test_download_video_dialog_opens`
 *   **FR.3.2.2:** When a valid URL is pasted into the input field with `id="video-url"`, the dialog shall automatically fetch and display a video preview with title with `id="video-title"`, thumbnail with `id="video-thumbnail"`, etc., within 3 seconds.
      *   **Success Criteria:** Pasting a valid YouTube URL displays a video preview with title, thumbnail, etc., within 3 seconds.
      *   **TDD Anchor:** `tests/acceptance/test_download_management.py::TestDownloadManagement::test_download_video_preview`
@@ -180,10 +180,10 @@ This document outlines the functional requirements for the Playlistify applicati
      *   **TDD Anchor:** `tests/acceptance/test_download_management.py::TestDownloadManagement::test_download_video_options`
 *   **FR.3.2.5:** All downloads shall be sanitized to have valid filenames and converted to a compatible format (MP4 H.264/AAC).
     *   **Success Criteria:** Downloaded files have sanitized filenames and correct format.
-    *   **TDD Anchor:** (Backend test case required to verify filename sanitization and format conversion)
+    *   **TDD Anchor:** `tests/backend/test_download_service.py::TestDownloadService::test_filename_sanitization_and_format`
 *   **FR.3.2.6:** The downloaded video file shall have its YouTube thumbnail embedded.
     *   **Success Criteria:** The downloaded MP4 video has the YouTube thumbnail embedded as metadata.
-    *   **TDD Anchor:** (Backend test case required to verify thumbnail embedding)
+    *   **TDD Anchor:** `tests/backend/test_download_service.py::TestDownloadService::test_thumbnail_embedding`
 *   **FR.3.2.7:** Before starting, the system shall check for sufficient disk space and show an error message with `id="disk-space-error"` if there is not enough space within 2 seconds.
      *   **Success Criteria:** An error message with `id="disk-space-error"` is displayed within 2 seconds if there is not enough disk space.
      *   **TDD Anchor:** `tests/backend/test_download_service.py::TestDownloadService::test_download_disk_space`
@@ -203,12 +203,12 @@ This document outlines the functional requirements for the Playlistify applicati
 *   **FR.3.3.3:** The dialog shall dynamically populate quality options in dropdown with `id="quality-select"` based on the highest quality found within the playlist.
      *   **Success Criteria:** The quality options in the download dialog are populated based on the highest available quality in the playlist.
      *   **TDD Anchor:** `tests/acceptance/test_download_management.py::TestDownloadManagement::test_download_playlist_quality`
-*   **FR.3.3.4:** The system shall use smart quality fallback: if a video is unavailable in the chosen quality, it shall automatically download the next highest quality available for that specific video.
-    *   **Success Criteria:** If the chosen quality is unavailable, the system downloads the next highest available quality.
-    *   **TDD Anchor:** (Backend test case required to verify smart quality fallback)
+*   **FR.3.3.4:** If a video is unavailable in the chosen quality, the download for that specific video shall fail, and the parent playlist download task will be marked as 'Completed with errors'.
+    *   **Success Criteria:** If the chosen quality is unavailable for a video, the individual video download fails and the parent task status is updated correctly.
+    *   **TDD Anchor:** `tests/backend/test_download_service.py::TestDownloadService::test_download_failure_and_parent_task_status_update`
 *   **FR.3.3.5:** All successfully downloaded videos shall have their thumbnails embedded.
     *   **Success Criteria:** Downloaded videos have thumbnails embedded.
-    *   **TDD Anchor:** (Backend test case required)
+    *   **TDD Anchor:** `tests/backend/test_download_service.py::TestDownloadService::test_playlist_thumbnail_embedding`
 
 ### Story 3.4: View Downloads Page
 
@@ -242,7 +242,7 @@ This document outlines the functional requirements for the Playlistify applicati
 
 *   **Description:** The application must provide a persistent task management service.
 *   **FR.4.1.1:** A `background_tasks` table shall be created in the SQLite database to store task information.
-     *   **Success Criteria:** The `background_tasks` table exists in the SQLite database with the following schema: `id INTEGER PRIMARY KEY, task_type TEXT, title TEXT, status TEXT, progress REAL, created_at DATETIME, updated_at DATETIME`.
+     *   **Success Criteria:** The `background_tasks` table exists in the SQLite database with the following schema: `id INTEGER PRIMARY KEY, type TEXT, status TEXT, progress REAL, targetId TEXT, parentId INTEGER, details JSON, createdAt DATETIME, updatedAt DATETIME, completedAt DATETIME`.
      *   **TDD Anchor:** `tests/backend/test_task_management.py::TestTaskManagement::test_background_tasks_table`
 *   **FR.4.1.2:** All new tasks (imports, downloads) shall be saved as a record in the `background_tasks` table.
      *   **Success Criteria:** Each new import or download task results in a new record in the `background_tasks` table with the correct `task_type`, `title`, and `status`.
@@ -309,7 +309,7 @@ This document outlines the functional requirements for the Playlistify applicati
 *   **FR.5.1.2:** For each video, it shall use a lightweight `yt-dlp` command to verify its current status on YouTube.
      *   **Success Criteria:** The service uses `yt-dlp` to check the video's status by calling the `yt-dlp` command with the video URL and parsing the output for availability information.
      *   **TDD Anchor:** `tests/backend/test_health_check.py::TestHealthCheck::test_health_check_uses_yt_dlp`
-*   **FR.5.1.3:** It shall update the `availability_status` (e.g., 'Live', 'Deleted', 'Private') for the video in the local database within 1 second.
+*   **FR.5.1.3:** It shall update the `availability_status` (e.g., 'AVAILABLE', 'UNAVAILABLE', 'PRIVATE') for the video in the local database within 1 second.
      *   **Success Criteria:** The service updates the `availability_status` field in the `videos` table in the local database within 1 second.
      *   **TDD Anchor:** `tests/backend/test_health_check.py::TestHealthCheck::test_health_check_updates_status`
 *   **FR.5.1.4:** The service shall process videos in a low-concurrency queue (e.g., one or two at a time) to avoid sending a burst of requests that could lead to IP rate-limiting.
@@ -321,32 +321,32 @@ This document outlines the functional requirements for the Playlistify applicati
 *   **Description:** The UI must display the health status of each video.
 *   **FR.5.2.1:** In the video list item component with `class="video-item"`, a colored dot with `id="video-status"` shall be displayed based on the video's `availability_status` from the database.
      *   **Success Criteria:** A colored dot is displayed based on the video's status.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_video_status_dot`
-*   **FR.5.2.2:** The colors of the dot with `id="video-status"` shall be: Green for 'Live', Yellow for 'Unlisted/Private', and Red for 'Deleted'.
-     *   **Success Criteria:** The dot's color matches the status: Green for 'Live', Yellow for 'Unlisted/Private', and Red for 'Deleted'.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_video_status_dot_color`
-*   **FR.5.2.3:** A tooltip with `id="status-tooltip"` on the dot with `id="video-status"` shall explain the status on hover (e.g., "Status: Live").
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_video_status_dot`
+*   **FR.5.2.2:** The colors of the dot with `id="video-status"` shall be: Green for 'AVAILABLE', Yellow for 'PRIVATE', and Red for 'UNAVAILABLE'.
+     *   **Success Criteria:** The dot's color matches the status: Green for 'AVAILABLE', Yellow for 'PRIVATE', and Red for 'UNAVAILABLE'.
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_video_status_dot_color`
+*   **FR.5.2.3:** A tooltip with `id="status-tooltip"` on the dot with `id="video-status"` shall explain the status on hover (e.g., "Status: Available").
      *   **Success Criteria:** Hovering over the dot displays a tooltip explaining the status.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_video_status_dot_tooltip`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_video_status_dot_tooltip`
 *   **FR.5.2.4:** The playlist view header shall display a "Status last checked: [timestamp]" (e.g., "3 hours ago") message with `id="last-checked"`.
      *   **Success Criteria:** The header displays a "Status last checked" message with a timestamp.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_playlist_last_checked`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_playlist_last_checked`
 
 ### Story 5.3: Implement Auto-Sync Settings UI
 
 *   **Description:** The application must allow users to configure auto-sync settings.
 *   **FR.5.3.1:** A dedicated "Auto-Sync Settings" section with `id="auto-sync-settings"` shall be created on the Settings page.
      *   **Success Criteria:** A section labeled "Auto-Sync Settings" exists on the Settings page.
-     *   **TDD Anchor:** `tests/acceptance/test_user_profile_management.py::TestUserProfileManagement::test_auto_sync_settings_section`
+     *   **TDD Anchor:** `tests/acceptance/test_settings.py::TestSettings::test_auto_sync_settings_section`
 *   **FR.5.3.2:** The UI shall provide controls (e.g., radio buttons with `class="sync-frequency"`) to select the frequency (e.g., Hourly, Daily, Weekly, Never).
      *   **Success Criteria:** Radio buttons exist for selecting the sync frequency.
-     *   **TDD Anchor:** `tests/acceptance/test_user_profile_management.py::TestUserProfileManagement::test_auto_sync_settings_frequency`
+     *   **TDD Anchor:** `tests/acceptance/test_settings.py::TestSettings::test_auto_sync_settings_frequency`
 *   **FR.5.3.3:** The "Daily" option with `id="sync-frequency-daily"` shall be selected by default.
      *   **Success Criteria:** The "Daily" option is selected by default.
-     *   **TDD Anchor:** `tests/acceptance/test_user_profile_management.py::TestUserProfileManagement::test_auto_sync_settings_default`
+     *   **TDD Anchor:** `tests/acceptance/test_settings.py::TestSettings::test_auto_sync_settings_default`
 *   **FR.5.3.4:** A note with `id="sync-frequency-note"` explaining the resource usage trade-off shall be present (e.g., "More frequent syncing provides the most up-to-date status but uses more system resources.").
      *   **Success Criteria:** A note explaining the resource usage is present.
-     *   **TDD Anchor:** `tests/acceptance/test_user_profile_management.py::TestUserProfileManagement::test_auto_sync_settings_note`
+     *   **TDD Anchor:** `tests/acceptance/test_settings.py::TestSettings::test_auto_sync_settings_note`
 
 ### Story 5.4: Scheduled Background Sync
 
@@ -354,8 +354,8 @@ This document outlines the functional requirements for the Playlistify applicati
 *   **FR.5.4.1:** The scheduler shall read the user's sync frequency from settings to determine its interval.
      *   **Success Criteria:** The scheduler reads the auto-sync frequency from settings by calling the `getSyncFrequency()` method.
      *   **TDD Anchor:** `tests/backend/test_health_check.py::TestHealthCheck::test_health_check_reads_settings`
-*   **FR.5.4.2:** The scheduler shall pause if a user-initiated task (like a new import or download) is active, to prioritize the user's actions. It will resume after the user's tasks are complete.
-     *   **Success Criteria:** The scheduler pauses during user-initiated tasks and resumes after completion. This can be verified by checking if the `HealthCheckService` is not running when a user-initiated task is in progress and resumes running when the task is complete.
+*   **FR.5.4.2:** **The scheduler will not initiate a new health check if the background task queue is actively processing tasks (i.e., `queue.size > 0` or `queue.pending > 0`). It will skip the current cycle and attempt to run again at its next scheduled interval.**
+    *   **Success Criteria:** When the scheduler's interval triggers, it first checks the background task queue. If `queue.size > 0` or `queue.pending > 0`, the health check is skipped. This can be verified by instrumenting the scheduler to log skipped cycles.
      *   **TDD Anchor:** `tests/integration/test_health_check.py::TestHealthCheck::test_health_check_pauses_on_user_task`
 
 ### Story 5.5: Manual Playlist Refresh
@@ -363,12 +363,12 @@ This document outlines the functional requirements for the Playlistify applicati
 *   **Description:** The application must allow users to manually refresh a playlist's status.
 *   **FR.5.5.1:** The context menu for any imported YouTube playlist with `class="playlist-item"` shall have a "Refresh Status Now" button with `id="refresh-status"`.
      *   **Success Criteria:** A "Refresh Status Now" button exists in the context menu.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_playlist_refresh_button`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_playlist_refresh_button`
 *   **FR.5.5.2:** Clicking the button with `id="refresh-status"` shall trigger the `HealthCheckService` for that single playlist.
      *   **Success Criteria:** Clicking the button triggers the `HealthCheckService` for that playlist. The `HealthCheckService` should be called with the playlist ID as a parameter.
      *   **TDD Anchor:** `tests/integration/test_health_check.py::TestHealthCheck::test_playlist_refresh_triggers_health_check`
 *   **FR.5.5.3:** The UI shall provide immediate feedback that a check is in progress for that specific playlist (e.g., a spinning icon with `id="refreshing-icon"` next to the "Last checked" timestamp with `id="last-checked"`).
      *   **Success Criteria:** A spinning icon is displayed while the health check is in progress.
-     *   **TDD Anchor:** `tests/acceptance/test_playlist_management.py::TestPlaylistManagement::test_playlist_refresh_feedback`
+     *   **TDD Anchor:** `tests/acceptance/test_playlist_flows.py::TestPlaylistFlows::test_playlist_refresh_feedback`
 
 (The rest of the specification documents will be created in subsequent steps.)

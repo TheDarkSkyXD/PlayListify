@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-This document outlines a comprehensive high-level testing strategy for the Playlistify application. The goal of this strategy is to ensure that the application meets the needs of its users, functions correctly, and is reliable and secure. The tests described in this report are designed to be AI-verifiable, meaning that they can be automated and their results can be checked by an AI agent.
+This document outlines a comprehensive high-level testing strategy for the Playlistify application. The goal of this strategy is to ensure that the application meets the needs of its users, functions correctly, and is reliable and secure. The tests described in this report are designed to be verifiable through automation, meaning that they can be executed automatically and their results can be checked by an automated test runner.
 
 ## 2. Scope
 
@@ -20,7 +20,7 @@ The following principles will guide the testing process:
 
 *   **User-centricity:** Tests will be based on user stories and acceptance criteria.
 *   **Automation:** Tests will be automated to the greatest extent possible.
-*   **AI-verifiability:** Tests will be designed to be easily verified by an AI agent.
+*   **Automated Verification:** Tests will be designed to be easily verified by an automated test runner.
 *   **Comprehensive Coverage:** Tests will cover all key features and functionalities.
 *   **Continuous Integration:** Tests will be integrated into the continuous integration pipeline to ensure that they are run automatically with each build.
 
@@ -52,7 +52,7 @@ E2E tests will be used to verify the most important user workflows. These tests 
     9.  Wait for the download to complete.
     10. Click the downloaded video to play it.
     11. Verify that the video plays correctly.
-*   **AI-Verifiability:** An AI agent can verify each step by inspecting the application's UI, checking for the presence of specific elements (e.g., the "+ Add" button, the "Import" button), and verifying that the video plays correctly.
+*   **Automated Verification:** An automated test runner can verify each step by inspecting the application's UI, checking for the presence of specific elements (e.g., the "+ Add" button, the "Import" button), and verifying that the video plays correctly.
 
 ### 4.2 Acceptance Tests
 
@@ -70,7 +70,7 @@ Acceptance tests will be used to verify that the application meets the acceptanc
     2.  Verify that the application window opens within 2 seconds.
     3.  Verify that a sidebar is visible on the left and that its width is no more than 20% of the screen width.
     4.  Verify that a top navigation bar is visible at the top and that its height is no more than 10% of the screen height.
-*   **AI-Verifiability:** An AI agent can verify each step by inspecting the application's UI and measuring the dimensions of the sidebar and top navigation bar.
+*   **Automated Verification:** An automated test runner can verify each step by inspecting the application's UI and measuring the dimensions of the sidebar and top navigation bar.
 
 ### 4.3 Integration Tests
 
@@ -83,7 +83,7 @@ Integration tests will be used to verify that different parts of the application
     1.  Call the Playlist Import Service to import a playlist from YouTube.
     2.  Verify that the playlist is added to the database.
     3.  Verify that the videos in the playlist are added to the database.
-*   **AI-Verifiability:** An AI agent can verify each step by inspecting the database and checking for the presence of the playlist and videos.
+*   **Automated Verification:** An automated test runner can verify each step by inspecting the database and checking for the presence of the playlist and videos.
 
 ### 4.4 Component Tests
 
@@ -98,26 +98,26 @@ Component tests will be used to verify that individual components of the applica
     3.  Verify that the play button works correctly.
     4.  Verify that the pause button works correctly.
     5.  Verify that the volume slider works correctly.
-*   **AI-Verifiability:** An AI agent can verify each step by inspecting the component's UI and checking that the video plays correctly and that the controls function as expected.
+*   **Automated Verification:** An automated test runner can verify each step by inspecting the component's UI and checking that the video plays correctly and that the controls function as expected.
 
 ## 5. AI Verification Strategy
 
-To ensure that the tests are AI-verifiable, the following strategies will be used:
+To ensure that the tests are verifiable through automation, the following strategies will be used:
 
-*   **UI Inspection:** The AI agent will inspect the application's UI to check for the presence of specific elements, their properties, and their states.
-*   **API Monitoring:** The AI agent will monitor the API calls made by the application to verify that they are correct and that the responses are as expected.
-*   **Database Inspection:** The AI agent will inspect the database to verify that data is being stored and retrieved correctly.
-*   **Log Analysis:** The AI agent will analyze the application's logs to identify any errors or warnings.
+*   **UI Inspection:** The automated test runner will inspect the application's UI to check for the presence of specific elements, their properties, and their states.
+*   **IPC Monitoring:** The automated test runner will monitor the Inter-Process Communication (IPC) messages between the main and renderer processes to verify that they are correct and that the responses are as expected.
+*   **Database Inspection:** The automated test runner will inspect the database to verify that data is being stored and retrieved correctly.
+*   **Log Analysis:** The automated test runner will analyze the application's logs to identify any errors or warnings.
 
 ## 6. Test Automation Framework
 
 The following tools and technologies will be used to automate the tests:
 
 *   **Test Runner:** Jest
-*   **UI Testing:** Selenium or Cypress
+*   **UI Testing:** Playwright, as it is well-suited for Electron applications.
 *   **Component Testing:** React Testing Library
-*   **AI Verification:** A custom AI agent or a third-party AI testing tool
+*   **Automated Verification:** A custom test runner or a third-party testing tool.
 
 ## 7. Conclusion
 
-This high-level testing strategy provides a comprehensive approach to ensuring the quality of the Playlistify application. By following these guidelines, the development team can create a reliable, secure, and user-friendly application that meets the needs of its users. The focus on AI-verifiability will enable the team to automate the testing process and ensure that the application is continuously tested and improved.
+This high-level testing strategy provides a comprehensive approach to ensuring the quality of the Playlistify application. By following these guidelines, the development team can create a reliable, secure, and user-friendly application that meets the needs of its users. The focus on automated verification will enable the team to automate the testing process and ensure that the application is continuously tested and improved.

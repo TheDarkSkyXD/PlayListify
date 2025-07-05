@@ -32,7 +32,6 @@ The constructor initializes a new `SQLiteAdapter` instance, connects to the data
 *   `schemaPath` (string, optional): The path to the database schema file. Defaults to "schema/database_schema.sql".
 *   `maxRetries` (integer, optional): The maximum number of retries for database connection. Defaults to 5.
 *   `retryIntervalMs` (integer, optional): The retry interval in milliseconds. Defaults to 1000.
-*   `connectionCheckIntervalMs` (integer, optional): The interval in milliseconds for checking the database connection. Defaults to 5000.
 
 #### Throws
 *   `ArgumentException`: If `dbPath` is null or empty or if `dbPath` is not a valid path.
@@ -273,9 +272,9 @@ Aborts the currently executing query. This function provides a mechanism for can
 *   `void`
 #### b. Class: PlaylistRepository
 *   **Description:** Provides methods for accessing and manipulating playlist data in the database. This class is responsible for creating, retrieving, updating, and deleting playlists.
-*   **Data Models:** `Playlist`, `User`
+*   **Data Models:** `Playlist`
 *   **Class Description:** This repository handles all database interactions related to playlists. It provides methods to create, read, update, and delete playlist records, ensuring data consistency and integrity.
-*   **Data Models:** `Playlist`, `User`
+*   **Data Models:** `Playlist`
 *   **Properties:**
     *   `db`: `SQLiteAdapter` - An instance of the SQLiteAdapter for database interaction.
 *   **Methods:**
@@ -289,15 +288,14 @@ Aborts the currently executing query. This function provides a mechanism for can
         *   **Parameters:**
             *   `id`: `integer` - The ID of the playlist to retrieve.
         *   **Return Type:** `Promise<Playlist>` - A promise that resolves to a Playlist object, or null if not found.
-    *   `createPlaylist(userId: integer, title: string, description: string, type: string): Promise<Playlist>`
+    *   `createPlaylist(title: string, description: string, type: string): Promise<Playlist>`
     *   **Description:** Creates a new playlist in the database.
     *   **Parameters:**
-        *   `userId`: `integer` - The ID of the user who owns the playlist.
         *   `title`: `string` - The title of the playlist.
         *   `description`: `string` - The description of the playlist.
         *   `type`: `string` - The type of playlist (e.g., "YOUTUBE", "CUSTOM").
     *   **Return Type:** `Promise<Playlist>` - A promise that resolves to the newly created Playlist object.
-    *   **Data Models:** `Playlist`, `User`
+    *   **Data Models:** `Playlist`
     *   `updatePlaylist(id: integer, title: string, description: string): Promise<Playlist>`
         *   **Description:** Updates an existing playlist in the database.
         *   **Parameters:**
@@ -312,13 +310,11 @@ Aborts the currently executing query. This function provides a mechanism for can
             *   `id`: `integer` - The ID of the playlist to delete.
         *   **Return Type:** `Promise<void>` - A promise that resolves when the playlist is deleted.
         *   **Data Models:** `Playlist`
-    *   `getPlaylistsForUser(userId: integer): Promise<Playlist[]>`
-        *   **Description:** Retrieves all playlists for a given user from the database.
-        *   **Parameters:**
-            *   `userId`: `integer` - The ID of the user.
+    *   `getAllPlaylists(): Promise<Playlist[]>`
+        *   **Description:** Retrieves all playlists from the database.
+        *   **Parameters:** None
         *   **Return Type:** `Promise<Playlist[]>` - A promise that resolves to an array of Playlist objects.
         *   **Data Models:** `Playlist`
-
 #### c. Class: VideoRepository
 
 *   **Description:** Provides methods for accessing and manipulating video data in the database. This class is responsible for creating, retrieving, updating, and deleting videos.
@@ -447,46 +443,10 @@ Aborts the currently executing query. This function provides a mechanism for can
 ### 2. Business Logic Layer
 
 #### a. Class: UserManager
+### 2. Business Logic Layer
+### 2. Business Logic Layer
 
-*   **Description:** Manages user authentication, registration, and profile management.
-*   **Data Models:** `User`
-*   **Class Description:** This class centralizes user management functionalities, including registration, login, and profile updates. It leverages the UserRepository for data access and the AuthenticationService for secure password handling.
-*   **Properties:**
-    *   `userRepository`: `UserRepository` - An instance of the UserRepository for database interaction.
-    *   `authenticationService`: `AuthenticationService` - An instance of the AuthenticationService for handling authentication logic.
-*   **Methods:**
-    *   `constructor(userRepository: UserRepository, authenticationService: AuthenticationService)`
-        *   **Description:** Initializes a new UserManager instance.
-        *   **Parameters:**
-            *   `userRepository`: `UserRepository` - An instance of the UserRepository.
-            *   `authenticationService`: `AuthenticationService` - An instance of the AuthenticationService.
-        *   **Return Type:** `void`
-    *   `registerUser(username: string, password: string, email: string): Promise<User>`
-        *   **Description:** Registers a new user.
-        *   **Parameters:**
-            *   `username`: `string` - The username of the new user.
-            *   `password`: `string` - The password of the new user.
-            *   `email`: `string` - The email address of the new user.
-        *   **Return Type:** `Promise<User>` - A promise that resolves to the newly created User object.
-        *   **Data Models:** `User`
-    *   `loginUser(username: string, password: string): Promise<User>`
-        *   **Description:** Logs in an existing user.
-        *   **Parameters:**
-            *   `username`: `string` - The username of the user.
-            *   `password`: `string` - The password of the user.
-        *   **Return Type:** `Promise<User>` - A promise that resolves to the User object if login is successful, or null otherwise.
-        *   **Data Models:** `User`
-    *   `updateUserProfile(userId: integer, newUsername: string, newEmail: string): Promise<User>`
-        *   **Description:** Updates the profile of an existing user.
-        *   **Parameters:**
-            *   `userId`: `integer` - The ID of the user to update.
-            *   `newUsername`: `string` - The new username for the user.
-            *   `newEmail`: `string` - The new email address of the user.
-        *   **Return Type:** `Promise<User>` - A promise that resolves to the updated User object.
-        *   **Data Models:** `User`
-
-#### b. Class: PlaylistManager
-
+#### a. Class: PlaylistManager
 *   **Description:** Manages playlist creation, modification, and deletion. This class is responsible for orchestrating actions related to playlists, such as adding and removing videos, and updating playlist metadata.
 *   **Data Models:** `Playlist`, `Video`
 *   **Class Description:** This class orchestrates playlist management, providing methods to create, update, delete playlists, and manage the videos within them. It ensures data consistency and handles interactions between the PlaylistRepository and VideoRepository.
@@ -500,19 +460,14 @@ Aborts the currently executing query. This function provides a mechanism for can
             *   `playlistRepository`: `PlaylistRepository` - An instance of the PlaylistRepository.
             *   `videoRepository`: `VideoRepository` - An instance of the VideoRepository.
         *   **Return Type:** `void`
-    *   `createPlaylist(userId: integer, title: string, description: string, type: string): Promise<Playlist>`
+    *   `createPlaylist(title: string, description: string, type: string): Promise<Playlist>`
         *   **Description:** Creates a new playlist.
         *   **Parameters:**
-            *   `userId`: `integer` - The ID of the user who owns the playlist.
             *   `title`: `string` - The title of the playlist.
             *   `description`: `string` - The description of the playlist.
             *   `type`: `string` - The type of playlist (e.g., "YOUTUBE", "CUSTOM").
         *   **Return Type:** `Promise<Playlist>` - A promise that resolves to the newly created Playlist object.
-        *   **Data Models:** `Playlist`, `User`
-    *   `addVideoToPlaylist(playlistId: integer, videoId: string): Promise<void>`
-        *   **Description:** Adds a video to a playlist.
-        *   **Parameters:**
-            *   `playlistId`: `integer` - The ID of the playlist.
+        *   **Data Models:** `Playlist`
             *   `videoId`: `string` - The ID of the video to add.
         *   **Return Type:** `Promise<void>` - A promise that resolves when the video is added to the playlist.
         *   **Data Models:** `Playlist`, `Video`
@@ -569,6 +524,7 @@ Aborts the currently executing query. This function provides a mechanism for can
 #### d. Class: YoutubeService
 
 *   **Description:** Handles communication with the YouTube API. This class is responsible for retrieving video and playlist metadata from YouTube.
+*   **Note:** This service acts as a wrapper for the `yt-dlp-wrap` library, providing a structured interface for fetching video and playlist metadata. It does not use the official YouTube Data API.
 *   **Data Models:** `VideoMetadata`, `PlaylistMetadata`, `PlaylistItem`
 *   **Class Description:** This service class handles communication with the YouTube API, providing methods to retrieve video and playlist metadata. It encapsulates the API key and handles the complexities of interacting with the YouTube API.
 *   **Properties:**
@@ -597,9 +553,28 @@ Aborts the currently executing query. This function provides a mechanism for can
             *   `playlistId`: `string` - The ID of the playlist.
         *   **Return Type:** `Promise<PlaylistItem[]>` - A promise that resolves to an array of PlaylistItem objects.
         *   **Data Models:** `PlaylistItem`
+    
+    #### e. Class: HealthCheckService
+    *   **Description:** Periodically checks the availability of videos in the user's playlists.
+    *   **Data Models:** `Video`
+    *   **Class Description:** This service is responsible for running health checks on videos to ensure they are still available on YouTube. It updates the `availabilityStatus` of each video in the database.
+    *   **Properties:**
+        *   `videoRepository`: `VideoRepository` - An instance of the VideoRepository for database interaction.
+        *   `youtubeService`: `YoutubeService` - An instance of the YoutubeService for checking video status.
+    *   **Methods:**
+        *   `constructor(videoRepository: VideoRepository, youtubeService: YoutubeService)`
+            *   **Description:** Initializes a new HealthCheckService instance.
+            *   **Parameters:**
+                *   `videoRepository`: `VideoRepository` - An instance of the VideoRepository.
+                *   `youtubeService`: `YoutubeService` - An instance of the YoutubeService.
+            *   **Return Type:** `void`
+        *   `checkPlaylistHealth(playlistId: integer): Promise<void>`
+            *   **Description:** Checks the health of all videos in a given playlist.
+            *   **Parameters:**
+                *   `playlistId`: `integer` - The ID of the playlist to check.
+            *   **Return Type:** `Promise<void>` - A promise that resolves when the health check is complete.
+    
+    #### f. Class: SchedulerService
+    *   **Description:** Manages scheduled tasks, such as running the `HealthCheckService` at regular intervals.
+    *   **Class Description:** This service is responsible for scheduling and running background tasks based on user settings or application logic. It will be used to trigger the `HealthCheckService`.
 
-#### e. Class: UserRepository
-
-*   **Description:** Provides methods for accessing and manipulating user data in the database. This class is responsible for creating, retrieving, updating, and deleting users.
-*   **Data Models:** `User`
-*   **Class Description:** This repository manages user data in the database, providing methods to create, retrieve, update, and
