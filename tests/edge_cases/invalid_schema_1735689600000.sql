@@ -1,0 +1,1 @@
+CREATE TABLE background_tasks (id INTEGER PRIMARY KEY, name TEXT,);

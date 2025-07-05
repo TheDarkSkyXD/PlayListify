@@ -20,7 +20,7 @@ export class SQLiteAdapter {
     }
 
     public initializeSchema(callback: (error?: Error) => void): void {
-        const schemaPath = (this as any).schemaPath || './schema/database_schema.sql';
+        const schemaPath = './schema/database_schema.sql';
         try {
             if (fs.existsSync(schemaPath)) {
                 const schema = fs.readFileSync(schemaPath, 'utf8');
@@ -55,13 +55,13 @@ export class SQLiteAdapter {
         });
     }
 
-    public run(sql: string, params: any[] = []): Promise<{ changes: number }> {
+    public run(sql: string, params: any[] = []): Promise<{ changes: number, lastID: number }> {
         return new Promise((resolve, reject) => {
             this.db.run(sql, params, function (err) {
                 if (err) {
                     reject(new DatabaseError(`Execution failed: ${err.message}`));
                 } else {
-                    resolve({ changes: this.changes });
+                    resolve({ changes: this.changes, lastID: this.lastID });
                 }
             });
         });

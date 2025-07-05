@@ -1,82 +1,70 @@
-# Component Diagram
+# C4 Component Diagram for Playlistify
 
-This C4-style component diagram illustrates the layered architecture of the Playlistify application.
+This document contains a C4-style component diagram that visualizes the major components of the Playlistify application, their relationships, and their interactions with external systems.
 
 ```mermaid
-graph TD
-    subgraph "Playlistify Application"
-        direction TB
+C4Component
+    Person(User, "Application User")
 
-        subgraph "Frontend (Renderer Process)"
-            direction LR
-            style Frontend fill:#D6EAF8,stroke:#3498DB
-            
-            UI_Pages["Pages & Components<br/>(React, TanStack Router)"]
-            State_Management["State Management<br/>(Zustand, TanStack Query)"]
-            
-            UI_Pages --> State_Management
-            State_Management -- "Calls API via Preload" --> IPC_Contract
-        end
+    System_Ext(YouTube, "YouTube", "Provides video and playlist content")
 
-        subgraph "Backend (Main Process)"
-            direction TB
-            style Backend fill:#D5F5E3,stroke:#2ECC71
+    System_Boundary(PlaylistifyApp, "Playlistify Desktop Application") {
+        Container(Frontend, "Frontend (React UI)", "Provides the user interface for managing playlists and downloads.")
+        Container(Backend, "Backend (Node.js/Electron)", "Handles business logic, data persistence, and external service communication.")
+    }
 
-            IPC_Contract["Typed IPC Contract<br/>(src/shared/ipc-contract.ts)"]
-            
-            subgraph "Service Layer"
-                direction TB
-                PS[PlaylistService]
-                DS[DownloadService]
-                HS[HealthCheckService]
-            end
-            
-            subgraph "Repository Layer (DAL)"
-                direction TB
-                PR[PlaylistRepository]
-                VR[VideoRepository]
-                BTR[BackgroundTaskRepository]
-                SA[SQLiteAdapter]
-                
-                PR --> SA
-                VR --> SA
-                BTR --> SA
-            end
-            
-            IPC_Contract --> PS
-            IPC_Contract --> DS
-            IPC_Contract --> HS
-            
-            PS --> PR
-            PS --> VR
-            DS --> BTR
-            HS --> VR
-        end
+    System_Boundary(BackendBoundary, "Backend Components") {
+        Component(Main, "Main Process", "main.ts", "Initializes the application and handles IPC communication.")
+        Component(PlaylistManager, "Playlist Manager", "services/PlaylistManager.ts", "Orchestrates playlist and video operations.")
+        Component(VideoDownloader, "Video Downloader", "services/VideoDownloader.ts", "Manages the video download queue and process.")
+        Component(HealthChecker, "Health Check Service", "services/HealthCheckService.ts", "Verifies the availability of downloaded videos.")
 
-        subgraph "Data Store"
-            style Data_Store fill:#FDEDEC,stroke:#E74C3C
-            DB[(SQLite Database<br/>database.sqlite)]
-            SA -- "SQL Queries" --> DB
-        end
-        
-        subgraph "External Tool Wrappers (in Service Layer)"
-            style External_Tool_Wrappers fill:#FCF3CF,stroke:#F1C40F
-            YTDLP_Service[ytDlpService]
-            FFMPEG_Service[ffmpegService]
-            
-            DS --> YTDLP_Service
-            DS --> FFMPEG_Service
-            HS --> YTDLP_Service
-        end
-    end
+        Component(YoutubeSvc, "YouTube Service", "services/YoutubeService.ts", "Wrapper for fetching YouTube metadata.")
+        Component(YtdlpAdapter, "yt-dlp Adapter", "adapters/YtdlpWrapAdapter.ts", "Low-level wrapper for the yt-dlp CLI tool.")
 
-    subgraph "External Systems"
-        style External_Systems fill:#EAECEE,stroke:#7F8C8D
-        YTDLP[yt-dlp binary]
-        FFMPEG[ffmpeg binary]
-        YouTube_API[YouTube Data API]
-        
-        YTDLP_Service -- "Spawns Process" --> YTDLP
-        FFMPEG_Service -- "Spawns Process" --> FFMPEG
-        PS -- "HTTP Requests" --> YouTube_API
-    end
+        Component(PlaylistRepo, "Playlist Repository", "repositories/PlaylistRepository.ts", "Handles data access for playlists.")
+        Component(VideoRepo, "Video Repository", "repositories/VideoRepository.ts", "Handles data access for videos.")
+        Component(TaskRepo, "Background Task Repository", "repositories/BackgroundTaskRepository.ts", "Handles data access for background tasks.")
+        Component(SqliteAdapter, "SQLite Adapter", "adapters/SQLiteAdapter.ts", "Manages the connection and execution of SQL queries.")
+        ComponentDb(Database, "SQLite Database", "sqlite3", "Stores all application data (playlists, videos, tasks).")
+    }
+
+    ' Relationships
+    Rel(User, Frontend, "Uses")
+
+    Rel(Frontend, Main, "Sends IPC requests to", "Electron IPC")
+    Rel(Main, Frontend, "Sends IPC events to", "Electron IPC")
+
+    Rel(Main, PlaylistManager, "Delegates to")
+    Rel(Main, VideoDownloader, "Delegates to")
+    Rel(Main, HealthChecker, "Delegates to")
+
+    Rel(PlaylistManager, PlaylistRepo, "Uses")
+    Rel(PlaylistManager, VideoRepo, "Uses")
+    Rel(PlaylistManager, YoutubeSvc, "Uses")
+
+    Rel(VideoDownloader, TaskRepo, "Uses")
+    Rel(VideoDownloader, YtdlpAdapter, "Uses")
+    Rel(HealthChecker, VideoRepo, "Uses")
+    Rel(HealthChecker, YoutubeSvc, "Uses")
+
+    Rel(YoutubeSvc, YtdlpAdapter, "Uses")
+    Rel(YtdlpAdapter, YouTube, "Makes API calls to", "HTTPS")
+
+    Rel(PlaylistRepo, SqliteAdapter, "Uses")
+    Rel(VideoRepo, SqliteAdapter, "Uses")
+    Rel(TaskRepo, SqliteAdapter, "Uses")
+    Rel(SqliteAdapter, Database, "Reads/Writes to")
+
+    UpdateLayoutConfig($c4ShapeInRow="2", $c4BoundaryInRow="2")
+```
+
+## Diagram Legend
+
+*   **Person:** A user of the system.
+*   **System_Ext:** An external system that Playlistify depends on (YouTube).
+*   **System_Boundary:** A container for a group of related components.
+*   **Container:** A deployable unit, like the frontend or backend.
+*   **Component:** A logical grouping of code that represents a major functional area of the system (e.g., a service or repository).
+*   **ComponentDb:** A database component.
+*   **Rel:** Shows the relationship and data flow between two components.

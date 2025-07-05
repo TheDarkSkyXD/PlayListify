@@ -1,176 +1,109 @@
-# Test Plan-- Persistent Backend Task Management Service
+# Test Plan: Persistent Backend Task Management Service
 
-**Document Version--** 1.0
-**Date--** 2025-07-04
-**Author--** Spec-To-TestPlan Converter
+This document outlines the comprehensive testing strategy for the **Persistent Backend Task Management Service**. It details the unit, integration, and specialized tests required to ensure the service is robust, reliable, and correct according to the specified requirements.
 
 ---
 
-## 1.0 Introduction
+## 1. Introduction
 
-This document outlines the comprehensive test plan for the **Persistent Backend Task Management Service**. The purpose of this service is to create, manage, and persist the state of long-running background tasks within the application, ensuring resilience against application restarts and providing a clear structure for complex, multi-step operations.
+### 1.1. Purpose
 
-This plan details the testing strategy across multiple levels, including unit, integration, and API contract tests. It also defines strategies for handling edge cases, failures, and long-term regression.
+The purpose of this test plan is to verify the functionality of the `BackgroundTaskService` and its components. The plan ensures that all functional requirements, success criteria, and edge cases are thoroughly tested before implementation and deployment.
 
-## 2.0 Test Scope
+### 1.2. Scope
 
-This test plan directly targets the AI-verifiable success criteria defined in the functional requirements for the Persistent Backend Task Management Service.
+This test plan covers the following functional requirements (FR):
 
-The scope of this plan covers the following requirements--
+-   **FR.4.1.1: Database Table Creation** -- The `background_tasks` table is created correctly.
+-   **FR.4.1.2: Task Persistence** -- New background tasks are correctly saved to the database.
+-   **FR.4.1.3: Parent/Child Task Relationships** -- Parent/child task logic is handled correctly, including status and progress aggregation.
+-   **FR.4.1.4: State Resumption on Startup** -- The service can resume unfinished tasks when the application starts.
 
--   **FR.4.1.1--** A `background_tasks` table shall be created in the SQLite database.
--   **FR.4.1.2--** All new tasks shall be saved as a record in the `background_tasks` table.
--   **FR.4.1.3--** The service shall support parent/child task relationships.
--   **FR.4.1.4--** The service shall resume the state of unfinished tasks on application startup.
+### 1.3. Test Philosophy
 
-## 3.0 Test Methodology
-
-### 3.1 London School TDD
-
-The testing approach will adhere to the principles of the **London School of Test-Driven Development (TDD)**. The focus is on testing the behavior and interactions of components, not their internal implementation.
-
--   **Collaborator Mocking--** In unit tests, direct collaborators of the service under test (e.g., `BackgroundTaskRepository`) will be mocked. This isolates the service's logic and allows us to verify that it sends the correct commands to its dependencies.
--   **Observable Outcomes--** Tests will verify observable outcomes-- either a state change (verified by checking the arguments passed to a mocked collaborator) or a return value.
-
-### 3.2 AI-Verifiable Completion Criteria
-
-Each test case defined in this document represents an AI-verifiable task. The completion of this test plan is achieved when all test cases are implemented, are passing, and are integrated into the project's continuous integration (CI) pipeline.
-
--   **Criterion--** A pull request containing the implementation of a test case is merged.
--   **Verification--** The CI build, including the execution of the test suite, passes successfully.
+The testing approach adheres to the principles of **London School Test-Driven Development (TDD)**. The focus is on testing the behavior of objects and their interactions. Collaborators (dependencies) will be mocked in unit tests to isolate the component under test. Integration tests will then verify the interaction between live components, such as the service and the actual database.
 
 ---
 
-## 4.0 Test Levels & Cases
+## 2. Unit Tests (`BackgroundTaskService`)
 
-### 4.1 Unit Tests (`BackgroundTaskService`)
+These tests focus on the business logic within the `BackgroundTaskService`. The `BackgroundTaskRepository` will be mocked to isolate the service and verify its orchestration logic.
 
-**Objective--** To test the business logic of the `BackgroundTaskService` in complete isolation from its dependencies.
+**Test Case ID -- Description -- Verifiable Outcome**
 
-**Setup--** The `BackgroundTaskRepository` will be fully mocked for all unit tests.
-
-**Test Cases--**
-
--   **UTC-01-- Create a Single Task**
-    -   **Description--** Verify that calling `createTask` on the service results in a single call to the repository's `create` method with correctly formatted task data.
-    -   **AI-Verifiable Outcome--** The mock `repository.create` method is called exactly once with an object containing `task_type`, `title`, and `status-- 'queued'`.
-
--   **UTC-02-- Create a Parent and Child Task**
-    -   **Description--** Verify that creating a child task correctly associates it with its parent via the `parent_id`.
-    -   **AI-Verifiable Outcome--** The mock `repository.create` method is called for the child task with a `parent_id` matching the ID of the previously created parent task.
-
--   **UTC-03-- Update Task Status**
-    -   **Description--** Verify that the service correctly handles valid state transitions (e.g., `queued` -> `in_progress`).
-    -   **AI-Verifiable Outcome--** The mock `repository.update` method is called with the correct `id` and the new `status`.
-
--   **UTC-04-- Update Task Progress**
-    -   **Description--** Verify that progress updates are correctly passed to the repository.
-    -   **AI-Verifiable Outcome--** The mock `repository.update` method is called with the correct `id` and a `progress` value between 0.0 and 1.0.
-
--   **UTC-05-- Parent Progress Aggregation**
-    -   **Description--** When a child task's progress is updated, the parent task's progress should be recalculated as the average of all its children.
-    -   **AI-Verifiable Outcome--** After a child task update, the mock `repository.update` method is called for the parent task with the correctly calculated aggregate progress.
-
--   **UTC-06-- Parent Status Aggregation (All Children Success)**
-    -   **Description--** When the last child task completes successfully, the parent task's status should transition to `completed`.
-    -   **AI-Verifiable Outcome--** Upon the final child's completion, the mock `repository.update` is called for the parent with `status-- 'completed'`.
-
--   **UTC-07-- Parent Status Aggregation (One Child Fails)**
-    -   **Description--** If any child task transitions to a `failed` state, the parent task's status should become `completed_with_errors`.
-    -   **AI-Verifiable Outcome--** When a child fails, the mock `repository.update` is called for the parent with `status-- 'completed_with_errors'`.
-
-### 4.2 Integration Tests (`BackgroundTaskService` <-> `BackgroundTaskRepository`)
-
-**Objective--** To verify the correct interaction between the service and the data persistence layer.
-
-**Setup--** These tests will use a real `BackgroundTaskRepository` connected to an in-memory `better-sqlite3` database instance to ensure speed and isolation.
-
-**Test Cases--**
-
--   **ITC-01-- Database Schema Creation**
-    -   **Description--** Verify that the `background_tasks` table is created with the correct schema on application initialization.
-    -   **AI-Verifiable Outcome--** A `PRAGMA table_info('background_tasks')` query returns the columns defined in `FR.4.1.1` with the correct types and constraints.
-
--   **ITC-02-- Create and Retrieve Task**
-    -   **Description--** Verify that a task created via the service is correctly persisted in the database and can be retrieved.
-    -   **AI-Verifiable Outcome--** A task object created by `service.createTask` can be retrieved from the database via a direct `SELECT` query, and its properties match the input.
-
--   **ITC-03-- Update and Retrieve Task**
-    -   **Description--** Verify that updating a task's status or progress via the service correctly modifies the record in the database.
-    -   **AI-Verifiable Outcome--** After calling `service.updateTaskStatus`, a `SELECT` query for that task ID returns a record with the updated status.
-
--   **ITC-04-- Resume Unfinished Tasks on Startup**
-    -   **Description--** Verify that tasks with a non-terminal status are loaded by the service upon initialization.
-    -   **Setup--** 1. Manually insert records for one `queued` and one `in_progress` task into the database. 2. Instantiate the service.
-    -   **AI-Verifiable Outcome--** The service's internal state (e.g., accessible via a `getTask` method) contains the two unfinished tasks loaded from the database.
-
-### 4.3 API/Contract Tests (`BackgroundTaskService` Public Interface)
-
-**Objective--** To ensure the service's public methods are stable and provide consistent data shapes for other consuming services.
-
-**Test Cases--**
-
--   **CTC-01-- `createTask` Contract**
-    -   **Description--** Verify the signature and return value of the `createTask` method.
-    -   **AI-Verifiable Outcome--** The method accepts an object with `task_type` and `title` and returns a full task object including a database `id` and default values (`status-- 'queued'`, `progress-- 0.0`).
-
--   **CTC-02-- `updateTaskStatus` Contract**
-    -   **Description--** Verify the method signature and its effect.
-    -   **AI-Verifiable Outcome--** The method accepts a `taskId` and a `status` string. It returns a boolean indicating success or throws a defined error on failure.
-
--   **CTC-03-- `getTask` Contract**
-    -   **Description--** Verify the data shape of the task object returned by the service.
-    -   **AI-Verifiable Outcome--** The `getTask(taskId)` method returns a task object matching the full schema, including `id`, `parent_id`, `status`, `progress`, etc.
+-   **UNIT-BGS-001** -- `createTask` with valid data -- The service calls the repository's `createTask` method with the correct parameters and returns the repository's result.
+-   **UNIT-BGS-002** -- `createTask` with invalid `type` (null/empty) -- The service rejects the request, does not call the repository, and throws a validation error.
+-   **UNIT-BGS-003** -- `getTask` with a valid ID -- The service calls the repository's `getTask` method with the correct ID.
+-   **UNIT-BGS-004** -- `updateTaskStatus` for a valid, non-terminal task -- The service calls the repository's `updateTaskStatus` method with the correct ID and new status.
+-   **UNIT-BGS-005** -- `updateTaskStatus` for a task in a terminal state (e.g., `COMPLETED`) -- The service rejects the update, does not call the repository, and throws an error indicating the task cannot be modified.
+-   **UNIT-BGS-006** -- `updateTaskProgress` with a valid progress value (e.g., 50) -- The service calls the repository's `updateTaskProgress` method with the correct ID and progress value.
+-   **UNIT-BGS-007** -- `updateTaskProgress` with an invalid value (<0 or >100) -- The service rejects the update, does not call the repository, and throws a validation error.
+-   **UNIT-BGS-008** -- `cancelTask` for a running task -- The service calls the in-memory queue to cancel the task and then calls the repository's `updateTaskStatus` method with the status `CANCELLED`.
+-   **UNIT-BGS-009** -- `cancelTask` for a non-running or non-existent task -- The service handles the request gracefully without error and does not call the repository.
+-   **UNIT-BGS-010** -- `createTask` with a `parentId` that points to a completed parent task -- The service rejects the request and throws an error.
+-   **UNIT-BGS-011** -- `createTask` attempts to create a circular parent-child dependency -- The service detects the circular dependency, rejects the request, and throws an error.
 
 ---
 
-## 5.0 Advanced Testing Strategies
+## 3. Integration Tests (`BackgroundTaskRepository`)
 
-### 5.1 Edge Case & Failure Condition Testing
+These tests verify the interaction between the `BackgroundTaskRepository` and a real SQLite database (which can be an in-memory instance for testing).
 
--   **ECT-01-- Database Unavailable on Create/Update**
-    -   **Scenario--** The database connection is lost when the service attempts a write operation.
-    -   **Hypothesis--** The service should not crash. It should catch the error from the repository and throw a specific, catchable exception (e.g., `DatabaseError`).
-    -   **AI-Verifiable Outcome--** The test asserts that the specific exception is thrown when the mocked repository's method is configured to throw an error.
+**Test Case ID -- Description -- Verifiable Outcome**
 
--   **ECT-02-- Update Non-Existent Task**
-    -   **Scenario--** `updateTaskStatus` is called with a `taskId` that does not exist.
-    -   **Hypothesis--** The service should handle this gracefully, returning `false` or throwing a `TaskNotFoundError`.
-    -   **AI-Verifiable Outcome--** The test asserts that the expected error is thrown or `false` is returned.
+-   **INT-BGR-001** -- Repository initialization -- The `background_tasks` table is created in the database with the correct schema as defined in **FR.4.1.1**.
+-   **INT-BGR-002** -- `createTask` successfully persists a new task -- A new record corresponding to the task data exists in the `background_tasks` table. The returned object matches the created data.
+-   **INT-BGR-003** -- `getTask` retrieves an existing task by ID -- The method returns the correct task object from the database.
+-   **INT-BGR-004** -- `getTask` with a non-existent ID -- The method returns `null`.
+-   **INT-BGR-005** -- `updateTaskStatus` correctly changes a task's status -- The `status` field for the specified task ID is updated in the database. A `completedAt` timestamp is added for terminal statuses.
+-   **INT-BGR-006** -- `updateTaskProgress` correctly changes a task's progress -- The `progress` field for the specified task ID is updated in the database.
+-   **INT-BGR-007** -- `handleChildTaskCompletion` correctly updates parent progress -- When a child task completes, the parent's `progress` is recalculated and updated correctly (e.g., 1 of 2 children done --> 50% progress).
+-   **INT-BGR-008** -- `handleChildTaskCompletion` sets parent to `COMPLETED` when all children succeed -- When the last child task completes successfully, the parent task's status is updated to `COMPLETED`.
+-   **INT-BGR-009** -- `handleChildTaskCompletion` sets parent to `COMPLETED_WITH_ERRORS` -- If at least one child fails and the rest complete, the parent task's status is updated to `COMPLETED_WITH_ERRORS`.
+-   **INT-BGR-010** -- `createTask` with a non-existent `parentId` -- The database's foreign key constraint rejects the insert, and the repository throws a `SQLITE_CONSTRAINT` error.
+-   **INT-BGR-011** -- `cancelTask` updates status to `CANCELLED` -- The `status` field for the task is updated to `CANCELLED` in the database.
+-   **INT-BGR-012** -- State resumption on startup -- Unfinished tasks (`QUEUED`, `IN_PROGRESS`) are correctly loaded from the database when the service initializes.
 
--   **ECT-03-- Invalid Status Transition**
-    -   **Scenario--** An attempt is made to transition a task from `completed` back to `in_progress`.
-    -   **Hypothesis--** The service's business logic should prevent this invalid transition and throw an `InvalidStateTransitionError`.
-    -   **AI-Verifiable Outcome--** The test asserts that the specific error is thrown.
+---
 
--   **ECT-04-- Resume from Corrupted Data**
-    -   **Scenario--** The database contains a task record with a `null` status or other malformed data.
-    -   **Hypothesis--** The service should either ignore the corrupted record or assign it a default `error` state upon startup, logging the issue. It must not crash.
-    -   **AI-Verifiable Outcome--** The test verifies that the service starts successfully and that the corrupted task is either ignored or handled gracefully.
+## 4. API / Contract Tests
 
--   **ECT-05-- High-Volume Child Tasks**
-    -   **Scenario--** A parent task is created with 10,000 child tasks, and their progress is updated rapidly.
-    -   **Hypothesis--** The parent's progress and status aggregation logic should perform within an acceptable time threshold and not block other operations.
-    -   **AI-Verifiable Outcome--** A performance test measures the time taken for the parent task update and asserts it is below a defined threshold (e.g., 50ms).
+These tests ensure that events emitted by the service adhere to a defined structure, which is critical for decoupling the backend from the frontend.
 
-### 5.2 Recursive Regression Testing
+**Test Case ID -- Description -- Verifiable Outcome**
 
-A suite of regression tests will be established and maintained.
+-   **API-BGS-001** -- `emitTaskUpdate` sends the correct payload structure -- An event with the name `task-update` is emitted. The payload is an array of task objects, and each object contains all fields from the `background_tasks` table.
+-   **API-BGS-002** -- `emitTaskUpdate` payload contains only active tasks -- The emitted task list only includes tasks with status `QUEUED` or `IN_PROGRESS`. Completed, failed, or cancelled tasks are not included.
+-   **API-BGS-003** -- `emitTaskUpdate` is triggered after `createTask` -- A `task-update` event is emitted immediately after a new task is created.
+-   **API-BGS-004** -- `emitTaskUpdate` is triggered after `updateTaskStatus` -- A `task-update` event is emitted immediately after a task's status changes.
+-   **API-BGS-005** -- `emitTaskUpdate` is triggered after `updateTaskProgress` -- A `task-update` event is emitted immediately after a task's progress changes.
 
--   **Core Suite--** A fast-running subset of unit and integration tests (e.g., UTC-01, UTC-03, ITC-02) will be executed on every single commit to the codebase.
--   **Full Suite--** The entire test suite, including edge cases, will be run before any new release is deployed.
--   **Bug-Driven Growth--** Whenever a bug is discovered in the service, a new test case that specifically replicates the bug will be written first. The test will initially fail. The bug will then be fixed, causing the new test to pass. This test is then permanently added to the regression suite, ensuring the bug never reappears.
+---
 
-### 5.3 Chaos Testing
+## 5. Edge Case & Failure Condition Testing
 
-Once the service is deployed in a staging environment, chaos engineering principles will be applied to test for systemic resilience.
+These tests explicitly target the failure conditions identified during the specification phase.
 
--   **Chaos Experiment #1-- Kill the DB Connection**
-    -   **Action--** Randomly terminate the connection to the SQLite database while tasks are actively being created and updated.
-    -   **Hypothesis--** The application will remain stable. In-flight operations will fail gracefully with logged errors. Upon reconnection, the startup-resume logic will ensure data consistency.
-    -   **AI-Verifiable Outcome--** The system logs the expected errors, and a post-experiment data integrity check shows no corrupted task records.
+**Test Case ID -- Description -- Verifiable Outcome**
 
--   **Chaos Experiment #2-- Simulate Disk Full**
-    -   **Action--** Intercept database write calls and simulate a "disk full" I/O error.
-    -   **Hypothesis--** The service will fail the specific task it was trying to write, update its status to `failed`, and log a descriptive error. The rest of the application will continue to function.
-    -   **AI-Verifiable Outcome--** The target task's status becomes `failed` in the database, and application monitoring shows no service crashes.
+-   **EDGE-DB-001** -- Abrupt closure during a write transaction -- A test will simulate an application crash during a multi-statement update (e.g., `handleChildTaskCompletion`). The database state is verified to have rolled back to its pre-transaction state. **AI-Verifiable Outcome:** A post-crash query confirms that partial data was not committed.
+-   **EDGE-DB-002** -- Database file is locked (`SQLITE_BUSY`) -- A test will simulate a locked database file. The service should catch the `SQLITE_BUSY` error and retry the operation according to its defined retry logic.
+-   **EDGE-DB-003** -- Database is read-only -- A write operation is attempted on a read-only database file. The service should catch the I/O error and fail gracefully without crashing.
+-   **EDGE-DB-004** -- Disk space exhaustion (`SQLITE_FULL`) -- A write operation is attempted when no disk space is available. The service should catch the `SQLITE_FULL` error and fail gracefully.
+-   **EDGE-DATA-001** -- Resuming a task with inconsistent data -- On startup, a task with `status: "COMPLETED"` but `progress: 0.5` is read from the DB. The service should mark this task's status as `FAILED` and log an error.
+-   **EDGE-STATE-001** -- Race condition on concurrent updates -- Two concurrent requests attempt to update the same task. The database transaction should serialize the updates, preventing a race condition. The final state of the task should reflect the last-committed update.
+
+---
+
+## 6. Specialized Testing Strategies
+
+### 6.1. Regression Testing Strategy
+
+A full suite of all unit and integration tests will be run automatically via a CI/CD pipeline upon every commit to the main branch. This ensures that new changes do not break existing functionality. A snapshot of the database schema will be maintained, and any changes to it must be part of a deliberate, versioned migration, which will also be tested.
+
+### 6.2. Chaos Testing Strategy
+
+Chaos testing will be performed to ensure system resilience under unpredictable conditions.
+
+-   **Chaos-001: Random Task Cancellation:** A background process will randomly select and cancel `IN_PROGRESS` tasks. The system is expected to handle this gracefully, updating the task status to `CANCELLED` and, if applicable, updating the parent task's status correctly.
+-   **Chaos-002: Database Connection Flapping:** A test harness will intermittently interrupt the connection to the SQLite database. The `BackgroundTaskService` is expected to handle these connection errors, attempt to reconnect, and queue any intervening operations until the connection is restored, without data loss.

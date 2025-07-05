@@ -1,77 +1,102 @@
-﻿// tests/services/background_task_service.test.ts
-
-import { BackgroundTaskService } from '../../src/services/background-task-service';
+﻿import { BackgroundTaskService } from '../../src/services/background_task_service';
 import { BackgroundTaskRepository } from '../../src/repositories/background-task-repository';
-import { BackgroundTask, BackgroundTaskType, BackgroundTaskStatus } from '../../src/shared/data-models';
-import { SQLiteAdapter } from '../../src/adapters/sqlite-adapter';
-import { ParentTaskNotFoundError, InvalidStateTransitionError, TaskNotFoundError } from '../../src/shared/errors';
+import { BackgroundTaskStatus, BackgroundTaskType, BackgroundTask } from '../../src/shared/data-models';
+import { InvalidInputError, ParentTaskNotFoundError, TaskNotFoundError, InvalidStateTransitionError, CircularDependencyError } from '../../src/shared/errors';
 
+// Mock the repository
 jest.mock('../../src/repositories/background-task-repository');
-jest.mock('../../src/adapters/sqlite-adapter');
 
-describe('BackgroundTaskService', () => {
+const mockRepository = new BackgroundTaskRepository(jest.fn() as any) as jest.Mocked<BackgroundTaskRepository>;
+
+describe('BackgroundTaskService - Unit Tests', () => {
   let service: BackgroundTaskService;
-  let mockRepository: jest.Mocked<BackgroundTaskRepository>;
-  
+
   beforeEach(() => {
-    const mockAdapter = new SQLiteAdapter(':memory:') as jest.Mocked<SQLiteAdapter>;
-    mockRepository = new BackgroundTaskRepository(mockAdapter) as jest.Mocked<BackgroundTaskRepository>;
-
-    // Provide mock implementations for all repository methods
-    mockRepository.create = jest.fn().mockImplementation(async (task) => {
-        return { id: 1, ...task, status: 'QUEUED', progress: 0.0, created_at: new Date(), updated_at: new Date() } as BackgroundTask;
-    });
-    mockRepository.getById = jest.fn();
-    mockRepository.update = jest.fn();
-    mockRepository.getChildTasks = jest.fn();
-    mockRepository.getUnfinishedTasks = jest.fn();
-
-    service = new BackgroundTaskService(mockRepository);
-  });
-
-  afterEach(() => {
     jest.clearAllMocks();
-  });
-
-  describe('Task Creation', () => {
-    it('should call repository.create with correctly formatted task data', async () => {
-      const taskInput = {
-        task_type: 'IMPORT_PLAYLIST' as BackgroundTaskType,
-        title: 'Test Playlist Import',
-      };
-      
-      await service.createTask(taskInput);
-
-      expect(mockRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-          ...taskInput,
-          status: 'QUEUED',
-          progress: 0.0,
-      }));
-    });
-
-    it('should reject child task creation if parent does not exist', async () => {
-      const childTaskInput = {
-        task_type: 'DOWNLOAD_VIDEO' as BackgroundTaskType,
-        title: 'Orphaned Child Task',
-        parent_id: 999,
-      };
-      mockRepository.getById.mockResolvedValue(null);
-
-      await expect(service.createTask(childTaskInput))
-        .rejects
-        .toThrow(ParentTaskNotFoundError);
+    service = new BackgroundTaskService(mockRepository);
+    mockRepository.getById.mockImplementation(async (id: number) => {
+        if (id === 1) {
+            return { id: 1, title: 'Parent Task', task_type: 'IMPORT_PLAYLIST', status: 'IN_PROGRESS', progress: 0.1, created_at: new Date(), updated_at: new Date() };
+        }
+        if (id === 2) {
+            return { id: 2, parent_id: 1, title: 'Child Task', task_type: 'DOWNLOAD_VIDEO', status: 'QUEUED', progress: 0, created_at: new Date(), updated_at: new Date() };
+        }
+        return null;
     });
   });
 
-  describe('State Transitions', () => {
-    it('should reject invalid state transitions (completed -> in_progress)', async () => {
-      const taskId = 1;
-      const existingTask = { id: taskId, status: 'COMPLETED' } as BackgroundTask;
-      mockRepository.getById.mockResolvedValue(existingTask);
+  it('UNIT-BGS-001: should create a new standalone task with valid inputs', async () => {
+    const taskDetails = { title: 'Test Task', task_type: 'DOWNLOAD_VIDEO' as BackgroundTaskType, details: { url: 'http://example.com' } };
+    const createdTask: BackgroundTask = { id: 3, ...taskDetails, status: 'QUEUED' as BackgroundTaskStatus, progress: 0, created_at: new Date(), updated_at: new Date() };
+    mockRepository.create.mockResolvedValueOnce(createdTask);
+    
+    const task = await service.createTask(taskDetails);
+    
+    expect(task).toBeDefined();
+    expect(task.id).toBe(3);
+    expect(mockRepository.create).toHaveBeenCalledWith(expect.objectContaining(taskDetails));
+  });
 
-      await expect(service.updateTaskStatus(taskId, 'IN_PROGRESS'))
-        .rejects
-        .toThrow(InvalidStateTransitionError);
+  it('UNIT-BGS-002: should create a new child task linked to a parent', async () => {
+    const taskDetails = { title: 'Child Task', task_type: 'DOWNLOAD_VIDEO' as BackgroundTaskType, details: {}, parent_id: 1 };
+    const createdTask: BackgroundTask = { id: 4, ...taskDetails, status: 'QUEUED' as BackgroundTaskStatus, progress: 0, created_at: new Date(), updated_at: new Date()};
+    mockRepository.create.mockResolvedValueOnce(createdTask);
+
+    const task = await service.createTask(taskDetails);
+    
+    expect(task.parent_id).toBe(1);
+    expect(mockRepository.create).toHaveBeenCalledWith(expect.objectContaining({ parent_id: 1 }));
+  });
+
+  it('UNIT-BGS-003: should reject creation with invalid input (e.g., empty title)', async () => {
+    await expect(service.createTask({ title: '', task_type: 'DOWNLOAD_VIDEO' })).rejects.toThrow(InvalidInputError);
+  });
+
+  it('UNIT-BGS-004: should reject creation of a child task for a non-existent parent', async () => {
+    await expect(service.createTask({ title: 'Child', task_type: 'DOWNLOAD_VIDEO', parent_id: 999 })).rejects.toThrow(ParentTaskNotFoundError);
+  });
+
+  it('UNIT-BGS-005: should reject creation of a task that creates a circular dependency', async () => {
+    mockRepository.getById.mockImplementation(async (id: number) => {
+        if (id === 1) return { id: 1, title: 'Task 1', task_type: 'IMPORT_PLAYLIST', status: 'IN_PROGRESS', progress: 0.1, created_at: new Date(), updated_at: new Date(), parent_id: 2 };
+        if (id === 2) return { id: 2, parent_id: 1, title: 'Task 2', task_type: 'DOWNLOAD_VIDEO', status: 'QUEUED', progress: 0, created_at: new Date(), updated_at: new Date() };
+        return null;
     });
+    await expect(service.updateTaskParent(1, 2)).rejects.toThrow(CircularDependencyError);
+  });
+
+  it('UNIT-BGS-006: should update the status of an existing task', async () => {
+    const taskId = 1;
+    mockRepository.update.mockResolvedValueOnce(true);
+    await service.updateTaskStatus(taskId, 'COMPLETED');
+    expect(mockRepository.update).toHaveBeenCalledWith(taskId, { status: 'COMPLETED' });
+  });
+
+  it('UNIT-BGS-007: should reject status update for a non-existent task', async () => {
+    await expect(service.updateTaskStatus(999, 'IN_PROGRESS')).rejects.toThrow(TaskNotFoundError);
+  });
+
+  it('UNIT-BGS-008: should reject invalid state transitions (e.g., updating a completed task)', async () => {
+    const completedTask: BackgroundTask = { id: 5, title: 'Completed', task_type: 'DOWNLOAD_VIDEO', status: 'COMPLETED', progress: 1, created_at: new Date(), updated_at: new Date() };
+    mockRepository.getById.mockResolvedValueOnce(completedTask);
+    await expect(service.updateTaskStatus(5, 'IN_PROGRESS')).rejects.toThrow(InvalidStateTransitionError);
+  });
+    
+  it('UNIT-BGS-009: should update the progress of an existing task', async () => {
+    const taskId = 1;
+    mockRepository.update.mockResolvedValueOnce(true);
+    await service.updateTaskProgress(taskId, 0.5);
+    expect(mockRepository.update).toHaveBeenCalledWith(taskId, { progress: 0.5 });
+  });
+
+  it('UNIT-BGS-010: should cancel a pending or running task', async () => {
+    const taskId = 1;
+    await service.updateTaskStatus(taskId, 'CANCELLED');
+    expect(mockRepository.update).toHaveBeenCalledWith(taskId, { status: 'CANCELLED' });
+  });
+
+  it('UNIT-BGS-011: should handle repository errors gracefully', async () => {
+    mockRepository.create.mockRejectedValueOnce(new Error('Database connection failed'));
+    await expect(service.createTask({title: 'Fail Task', task_type: 'DOWNLOAD_VIDEO'})).rejects.toThrow('Database connection failed');
   });
 });

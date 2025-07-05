@@ -1,5 +1,6 @@
-// src/services/background-task-service.ts
+// src/services/background_task-service.ts
 
+import { EventEmitter } from 'events';
 import { BackgroundTaskRepository } from '../repositories/background-task-repository';
 import { BackgroundTask, BackgroundTaskStatus, BackgroundTaskType } from '../shared/data-models';
 import {
@@ -12,16 +13,18 @@ import {
 
 const VALID_TASK_TYPES: BackgroundTaskType[] = ['IMPORT_PLAYLIST', 'DOWNLOAD_VIDEO', 'REFRESH_PLAYLIST'];
 
-export class BackgroundTaskService {
+export class BackgroundTaskService extends EventEmitter {
     private unfinishedTasks: Map<number, BackgroundTask> = new Map();
 
-    constructor(private repository: BackgroundTaskRepository) { }
+    constructor(private repository: BackgroundTaskRepository) {
+        super();
+    }
 
     private async validateTaskInput(taskInput: Partial<BackgroundTask>) {
         if (!taskInput.title || taskInput.title.trim().length === 0) {
             throw new InvalidInputError('Task title cannot be null or empty.');
         }
-        if (!VALID_TASK_TYPES.includes(taskInput.task_type!)) {
+        if (!taskInput.task_type || !VALID_TASK_TYPES.includes(taskInput.task_type)) {
             throw new InvalidInputError(`Invalid task type: ${taskInput.task_type}`);
         }
         if (taskInput.parent_id) {
@@ -32,34 +35,23 @@ export class BackgroundTaskService {
         }
     }
 
-    private async updateParentProgress(parentId: number) {
+    private async handleParentTask(parentId: number | undefined) {
+        if (parentId === undefined) return;
+
         const childTasks = await this.repository.getChildTasks(parentId);
         if (childTasks.length === 0) return;
 
-        const totalProgress = childTasks.reduce((sum, task) => sum + task.progress, 0);
-        const averageProgress = totalProgress / childTasks.length;
+        const totalChildren = childTasks.length;
+        const finishedChildren = childTasks.filter(t => ['COMPLETED', 'FAILED', 'CANCELLED', 'COMPLETED_WITH_ERRORS'].includes(t.status));
+        
+        const progress = finishedChildren.length / totalChildren;
+        await this.updateTaskProgress(parentId, progress);
 
-        await this.repository.update(parentId, { progress: averageProgress });
-    }
-
-    private async updateParentStatus(parentId: number) {
-        const childTasks = await this.repository.getChildTasks(parentId);
-        if (childTasks.length === 0) return;
-
-        const allChildrenDone = childTasks.every(t => t.status === 'COMPLETED' || t.status === 'FAILED' || t.status === 'CANCELLED' || t.status === 'COMPLETED_WITH_ERRORS');
-        if (!allChildrenDone) return;
-
-        let newParentStatus: BackgroundTaskStatus = 'COMPLETED';
-        if (childTasks.some(t => t.status === 'FAILED' || t.status === 'CANCELLED' || t.status === 'COMPLETED_WITH_ERRORS')) {
-            newParentStatus = 'COMPLETED_WITH_ERRORS';
+        if (finishedChildren.length === totalChildren) {
+            const hasFailures = childTasks.some(t => t.status === 'FAILED' || t.status === 'CANCELLED' || t.status === 'COMPLETED_WITH_ERRORS');
+            const newStatus = hasFailures ? 'COMPLETED_WITH_ERRORS' : 'COMPLETED';
+            await this.updateTaskStatus(parentId, newStatus);
         }
-
-        const updates: Partial<BackgroundTask> = { status: newParentStatus };
-        if (newParentStatus === 'COMPLETED') {
-            updates.progress = 1.0;
-        }
-
-        await this.repository.update(parentId, updates);
     }
 
     async createTask(taskInput: Partial<BackgroundTask>): Promise<BackgroundTask> {
@@ -70,6 +62,7 @@ export class BackgroundTaskService {
             progress: 0.0,
         });
         this.unfinishedTasks.set(createdTask.id, createdTask);
+        this.emit('task-update', createdTask);
         return createdTask;
     }
 
@@ -82,6 +75,10 @@ export class BackgroundTaskService {
         const validTransitions: { [key in BackgroundTaskStatus]?: BackgroundTaskStatus[] } = {
             QUEUED: ['IN_PROGRESS', 'CANCELLED', 'FAILED', 'COMPLETED'],
             IN_PROGRESS: ['COMPLETED', 'FAILED', 'CANCELLED', 'COMPLETED_WITH_ERRORS'],
+            COMPLETED: [],
+            FAILED: [],
+            CANCELLED: [],
+            COMPLETED_WITH_ERRORS: []
         };
 
         const allowedNextStates = validTransitions[task.status];
@@ -98,39 +95,38 @@ export class BackgroundTaskService {
                 } else {
                     this.unfinishedTasks.set(taskId, updatedTask);
                 }
-                if (updatedTask.parent_id) {
-                    await this.updateParentStatus(updatedTask.parent_id);
-                }
+                this.emit('task-update', updatedTask);
+                await this.handleParentTask(updatedTask.parent_id);
             }
         }
         return updated;
     }
 
     async updateTaskProgress(taskId: number, progress: number): Promise<boolean> {
-        if (isNaN(progress)) {
-            throw new InvalidInputError('Progress must be a number.');
+        if (isNaN(progress) || progress < 0 || progress > 1) {
+            throw new InvalidInputError('Progress must be a number between 0 and 1.');
         }
-        progress = Math.max(0.0, Math.min(1.0, progress));
 
         const task = await this.getTask(taskId);
         if (!task) {
             throw new TaskNotFoundError(`Task with id ${taskId} not found.`);
         }
 
-        if (task.status !== 'IN_PROGRESS' && task.status !== 'QUEUED') {
+        if (task.status !== 'IN_PROGRESS' && task.status !== 'QUEUED' && progress < 1) {
             throw new InvalidStateTransitionError(`Cannot update progress for task with status ${task.status}.`);
         }
         
-        if (task.status === 'QUEUED') {
+        if (task.status === 'QUEUED' && progress > 0 && progress < 1) {
             await this.updateTaskStatus(taskId, 'IN_PROGRESS');
         }
 
         const updated = await this.repository.update(taskId, { progress });
         if (updated) {
             const updatedTask = await this.repository.getById(taskId);
-            if (updatedTask) this.unfinishedTasks.set(taskId, updatedTask);
-            if (task.parent_id) {
-                await this.updateParentProgress(task.parent_id);
+            if (updatedTask) {
+                this.unfinishedTasks.set(taskId, updatedTask);
+                this.emit('task-update', updatedTask);
+                await this.handleParentTask(updatedTask.parent_id);
             }
         }
         return updated;

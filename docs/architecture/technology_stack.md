@@ -1,69 +1,52 @@
 # Technology Stack
 
-This document outlines the key technologies, libraries, and frameworks chosen for the Playlistify application.
+This document outlines the key technologies, libraries, and frameworks chosen for the Playlistify application, along with the justification for each choice.
 
-## 1. Core Framework & Build System
+## Core Framework
 
--   **Electron & Electron Forge:** The core framework for building the cross-platform desktop app.
-    -   `electron`: Main dependency for creating the application shell.
-    -   `@electron-forge/cli`: The command-line interface for developing, building, and packaging the application.
-    -   `@electron-forge/maker-*`: Packaging tools (`-squirrel`, `-zip`, `-deb`, `-rpm`) to create installers for Windows, macOS, and various Linux distributions.
-    -   `@electron-forge/plugin-webpack`: Integrates Webpack into the build process to bundle and optimize frontend code.
-    -   `@electron-forge/plugin-auto-unpack-natives`: Handles native Node.js modules during packaging.
-    -   `electron-updater`: Manages automatic application updates.
+*   **Technology:** **Electron.js**
+*   **Justification:** Electron is the premier framework for building cross-platform desktop applications using web technologies (JavaScript, HTML, CSS). It allows us to deliver a native-like experience on Windows, macOS, and Linux from a single codebase, which is a primary requirement for Playlistify. Its maturity, large community, and rich feature set (e.g., native OS integrations, IPC) make it the ideal choice.
 
-## 2. Language & Environment
+## Backend
 
--   **TypeScript:** The primary programming language for both the main and renderer processes, providing static typing to improve code quality and maintainability.
--   **Node.js:** The runtime environment for the backend (main process), enabling server-side logic and file system access.
+*   **Technology:** **Node.js**
+*   **Justification:** Node.js is the runtime environment for the Electron main process. Its event-driven, non-blocking I/O model is well-suited for handling concurrent operations like file downloads and IPC communication without freezing the application.
 
-## 3. Frontend (Renderer Process)
+*   **Technology:** **TypeScript**
+*   **Justification:** TypeScript is used for both the backend and frontend. Its static typing system is invaluable for building a large, complex application. It helps catch errors at compile time, improves code quality and maintainability, and enables features like autocompletion and refactoring in IDEs. The use of shared types across the IPC boundary is a key benefit for ensuring robust communication between the frontend and backend.
 
--   **UI Framework:**
-    -   `react` & `react-dom`: The core library for building the component-based user interface.
--   **Routing:**
-    -   `@tanstack/react-router`: A fully type-safe router for managing navigation and application views.
--   **State Management:**
-    -   `@tanstack/react-query`: Manages server state, including caching, background refetching, and synchronization of data from the backend.
-    -   `zustand`: A lightweight global state management solution for client-side UI state.
--   **UI Components & Styling:**
-    -   `tailwindcss`: A utility-first CSS framework for rapid UI development.
-    -   `@shadcn/ui`: A collection of beautifully designed, reusable UI components built on top of Radix UI and Tailwind CSS.
-    -   `postcss` & `autoprefixer`: Used to process and add vendor prefixes to CSS.
--   **Media:**
-    -   `react-player`: A versatile component for playing a variety of media URLs, including file paths.
+## Frontend
 
-## 4. Backend (Main Process)
+*   **Technology:** **React**
+*   **Justification:** React is a declarative, component-based library for building user interfaces. Its popularity, performance (thanks to the virtual DOM), and vast ecosystem of tools and libraries make it a productive choice. The component model fits well with the modular UI requirements of Playlistify, allowing us to create reusable UI elements for playlists, video items, and progress indicators.
 
--   **Database:**
-    -   `better-sqlite3`: A synchronous driver for SQLite. Chosen for its simplicity and performance in scenarios where database operations are managed within dedicated, controlled workflows.
--   **Configuration & Storage:**
-    -   `electron-store`: Simple data persistence for user settings and application configuration.
--   **External API & Services:**
-    -   `googleapis`: Node.js client library for accessing Google APIs, specifically for YouTube Data API v3.
-    -   `axios`: A promise-based HTTP client for making requests to external services.
--   **Media Handling:**
-    -   `yt-dlp-wrap`: A Node.js wrapper for the `yt-dlp` command-line tool to download video/audio content.
-    -   `@rse/ffmpeg`: A wrapper for the `ffmpeg` tool for media processing and conversion.
--   **Utilities:**
-    -   `winston`: A versatile logging library for capturing application events and errors.
-    -   `p-queue`: A promise-based queue for managing concurrent tasks like downloads and API calls.
-    -   `fs-extra`: Provides enhanced file system methods, including promises.
+## Database
 
-## 5. Testing
+*   **Technology:** **SQLite (via `better-sqlite3`)**
+*   **Justification:** SQLite is a perfect fit for a local-first, offline-capable desktop application.
+    *   **Serverless:** It runs within the application process, requiring no separate server installation or configuration, which simplifies the user experience.
+    *   **File-based:** The entire database is a single file, making it portable and easy to back up.
+    *   **Transactional:** It supports ACID-compliant transactions, which is critical for ensuring data integrity during complex operations like importing a playlist.
+    *   **`better-sqlite3`:** This specific library is chosen for its performance and direct, synchronous API. While the synchronous nature can be a risk, we mitigate this by offloading all database operations to a separate worker thread.
+*   **Performance Risk Mitigation:** The synchronous, blocking nature of `better-sqlite3` poses a risk of freezing the main UI thread if a query is slow. To mitigate this, the `SQLiteAdapter` will not execute queries directly on the main thread. Instead, it will manage a dedicated worker thread (using Node.js `worker_threads`). All database calls from the main process are passed to this worker, which executes the synchronous `better-sqlite3` operation and returns the result asynchronously. This strategy isolates the blocking I/O from the event loop, ensuring the application UI remains fully responsive at all times, thereby upholding `NFR-1` and `NFR-2`.
 
--   **Jest:** The primary testing framework for running unit and integration tests.
--   `ts-jest`: A TypeScript preprocessor for Jest.
--   `@testing-library/react`: Provides utilities for testing React components in a way that resembles how users interact with them.
+## Task & Concurrency Management
 
-## 6. Development & Build Tools
+*   **Technology:** **`p-queue`**
+*   **Justification:** Resource-intensive operations like downloading videos must be managed carefully to avoid overwhelming the user's system and network. `p-queue` is a lightweight, promise-based task queue that allows us to easily limit concurrency. We can configure it to only allow a small number of downloads (e.g., 2-3) to run simultaneously, ensuring the application remains responsive.
 
--   **Webpack Toolchain:**
-    -   `@vercel/webpack-asset-relocator-loader`, `css-loader`, `node-loader`, `style-loader`: Essential loaders for Webpack to handle various asset types.
--   **Code Quality:**
-    -   `eslint`: For static code analysis and enforcing code style.
-    -   `prettier`: An opinionated code formatter to ensure consistent style across the codebase.
-    -   `prettier-plugin-sort-imports` & `prettier-plugin-tailwindcss`: Prettier plugins for organizing imports and class names.
--   **Utilities:**
-    -   `cross-env`: Ensures environment variables work across different platforms.
-    -   `electron-rebuild`: For rebuilding native Node modules against the Electron version.
+## External Dependencies
+
+*   **Technology:** **`yt-dlp-wrap`**
+*   **Justification:** `yt-dlp` is a powerful command-line tool for downloading videos and fetching metadata from YouTube and other sites. `yt-dlp-wrap` provides a convenient Node.js wrapper around this tool. This approach is chosen because:
+    *   **No API Key Required:** It does not require a formal YouTube Data API key, which has strict quotas and requires a complex setup process. This aligns with the goal of making the application easy for users to set up and run.
+    *   **Rich Metadata:** It can extract detailed metadata, including video quality options, which is a core requirement.
+    *   **Actively Maintained:** `yt-dlp` is actively maintained and frequently updated to keep pace with changes on YouTube.
+
+## Testing
+
+*   **Technology:** **Jest**
+*   **Justification:** Jest is a popular, all-in-one testing framework. It provides a test runner, assertion library, and mocking capabilities out of the box. Its "zero-config" philosophy and powerful features like snapshot testing make it an excellent choice for both **unit** and **integration** testing of our backend services and repositories.
+
+*   **Technology:** **Playwright**
+*   **Justification:** Playwright is a modern, powerful framework for end-to-end (E2E) testing. It can drive a real instance of our packaged Electron application, simulating user interactions like clicking buttons and entering text. This allows us to write tests that verify complete user workflows from the UI down to the database, ensuring all parts of the system are correctly integrated. Its ability to auto-wait and its rich debugging tools make E2E testing more reliable and less flaky.

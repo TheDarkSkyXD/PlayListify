@@ -5,6 +5,7 @@ import { SQLiteAdapter } from '../adapters/sqlite-adapter';
 import { DatabaseError } from '../shared/errors';
 
 export class BackgroundTaskRepository {
+
     constructor(private adapter: SQLiteAdapter) { }
 
     private toTaskObject(row: any): BackgroundTask {
@@ -40,10 +41,16 @@ export class BackgroundTaskRepository {
         const sql = `INSERT INTO background_tasks (${columns.join(', ')}) VALUES (${placeholders});`;
         
         try {
-            await this.adapter.run(sql, values);
-            // Since sqlite3 doesn't support RETURNING, we have to do a separate select
-            const result = await this.adapter.query('SELECT * FROM background_tasks WHERE rowid = last_insert_rowid();');
-            return this.toTaskObject(result[0]);
+            const result = await this.adapter.run(sql, values);
+            const newTaskId = result.lastID;
+            if (!newTaskId) {
+                throw new DatabaseError('Failed to create task, no ID returned.');
+            }
+            const newTask = await this.getById(newTaskId);
+            if (!newTask) {
+                throw new DatabaseError(`Failed to retrieve newly created task with id ${newTaskId}`);
+            }
+            return newTask;
         } catch (e) {
             const message = e instanceof Error ? e.message : String(e);
             throw new DatabaseError(`Failed to create task: ${message}`);
@@ -77,11 +84,11 @@ export class BackgroundTaskRepository {
 
     async update(id: number, updates: Partial<BackgroundTask>): Promise<boolean> {
         updates.updated_at = new Date();
-        if (updates.status === 'COMPLETED' || updates.status === 'FAILED' || updates.status === 'COMPLETED_WITH_ERRORS') {
+        if (updates.status === 'COMPLETED' || updates.status === 'FAILED' || updates.status === 'CANCELLED' || updates.status === 'COMPLETED_WITH_ERRORS') {
             updates.completed_at = new Date();
         }
 
-        const columns = Object.keys(updates);
+        const columns = Object.keys(updates).filter(k => k !== 'id');
         const setClauses = columns.map(c => `${c} = ?`).join(', ');
         const values = columns.map(c => {
             const val = (updates as any)[c];

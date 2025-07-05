@@ -1,84 +1,120 @@
-# High-Level Design
+# High-Level Design for Playlistify
 
-This document provides a high-level overview of the Playlistify application's architecture, its core components, and how they interact.
+This document outlines the high-level architecture for the Playlistify application, a desktop-first, offline-capable tool for managing and downloading YouTube playlists.
 
-## 1. Architectural Pattern
+## Architectural Pattern: Layered Architecture
 
-The Playlistify application employs a hybrid architectural pattern based on Electron's two-process model:
+The backend of Playlistify adopts a classic **Layered Architecture** (also known as N-Tier architecture). This pattern promotes separation of concerns, making the system more maintainable, testable, and scalable.
 
-*   **Backend (Main Process):** A **Layered Architecture** is used to separate concerns. This promotes modularity and testability.
-    *   **IPC Layer:** The outermost layer, responsible for receiving requests from the frontend and sending events.
-    *   **Service Layer:** Contains the core business logic of the application (e.g., `PlaylistService`, `DownloadService`). It orchestrates operations by coordinating repositories and other services.
-    *   **Repository Layer (DAL):** The Data Access Layer, responsible for all database interactions via the `SQLiteAdapter`. It abstracts SQL queries from the business logic.
-*   **Frontend (Renderer Process):** A **Component-Based Architecture** is used, built with React. The UI is composed of modular, reusable components.
+The layers are organized as follows:
 
-## 2. Core Components
+1.  **Services Layer:** The topmost layer, responsible for orchestrating business logic and workflows. It does not directly interact with the database or external libraries.
+2.  **Repositories Layer:** This layer provides a clean, object-oriented API for accessing and manipulating data models. It abstracts away the underlying database implementation.
+3.  **Adapters Layer:** The lowest layer, responsible for wrapping and isolating external dependencies, such as the database driver (`better-sqlite3`) and the YouTube downloader (`yt-dlp-wrap`).
 
-### Backend (Main Process)
+This strict, one-way dependency flow (Services -> Repositories -> Adapters) ensures that changes in a lower layer (e.g., swapping the database) have minimal impact on the layers above.
 
-This is the entry point of the application running in a Node.js environment.
+## Core Components and Responsibilities
 
-**Responsibilities:**
--   **Window Management:** Creating and managing the application's renderer windows.
--   **IPC Handling:** Exposing backend functionality to the frontend securely via the **Typed IPC Contract**.
--   **Business Logic:** Executing core application logic within the **Service Layer**.
--   **Data Persistence:** Managing the SQLite database through the **Repository Layer**.
--   **Task Coordination:** Managing long-running background tasks (downloads, imports) using `p-queue`.
--   **Native OS Interaction:** Handling file system access, dialogs, and other OS-level interactions.
--   **Logging:** Capturing application-wide logs using `winston`.
+### Backend Components
 
-### Frontend (Renderer Process)
+*   **`main.ts` (Backend Entry Point):**
+    *   Initializes all services, repositories, and adapters.
+    *   Sets up Electron IPC listeners to handle requests from the frontend.
+    *   Manages the application's lifecycle.
 
-This is the UI running in a sandboxed Chromium environment.
+*   **`SQLiteAdapter`:**
+    *   A robust wrapper around the `better-sqlite3` library, designed to prevent UI blocking.
+    *   **Traceability:** Fulfills `NFR-1` (Performance) and `NFR-2` (Responsiveness).
+    *   Manages the database connection lifecycle.
+    *   Executes raw SQL queries and applies schema migrations by delegating them to a dedicated worker thread. This ensures that synchronous, potentially long-running database operations do not block the main Electron event loop.
+    *   Manages a pool of worker threads for executing queries, ensuring the main event loop remains free.
+    *   Implements retry logic for transient connection errors.
+    *   Ensures all state-modifying operations are transactional.
 
-**Responsibilities:**
--   **UI Rendering:** Rendering the UI using React and styling with Tailwind CSS.
--   **State Management:**
-    -   **Server Cache:** Using `@tanstack/react-query` to manage the state of data fetched from the backend.
-    -   **Global UI State:** Using `zustand` for shared, client-side state (e.g., player status, modal visibility).
--   **Routing:** Managing navigation with `@tanstack/react-router`.
--   **User Interaction:** Handling all user input and invoking backend services via the IPC contract.
+*   **`PlaylistRepository`:**
+    *   Handles all CRUD (Create, Read, Update, Delete) operations for the `Playlist` data model.
+    *   Provides methods like `createPlaylist`, `getPlaylist`, and `getAllPlaylists`.
+    *   Interacts exclusively with the `SQLiteAdapter`.
 
-## 3. Component Interactions & Data Flow
+*   **`VideoRepository`:**
+    *   Handles all CRUD operations for the `Video` data model.
+    *   Provides methods to manage videos within playlists.
+    *   Interacts exclusively with the `SQLiteAdapter`.
 
-### The Typed IPC Contract
+*   **`BackgroundTaskRepository`:**
+    *   Manages the persistence of background tasks (e.g., video downloads, health checks).
+    *   Handles CRUD operations for the `BackgroundTask` model.
+    *   Works in concert with the `BackgroundTaskService` to track task status, progress, and logs.
 
-All communication between the Frontend and Backend is governed by a strict, shared TypeScript interface defined in [`src/shared/ipc-contract.ts`](src/shared/ipc-contract.ts). This is a critical architectural choice that provides:
-- **Type Safety:** Prevents entire classes of bugs related to mismatched channel names or data payloads.
-- **Discoverability:** Acts as a single source of truth for all available backend APIs.
-- **Testability:** Allows for easy mocking of the backend API during frontend testing and vice-versa.
+*   **`PlaylistManager`:**
+    *   Contains the core business logic for playlist management.
+    *   **Traceability:** Fulfills `US-1` (Import Playlist), `US-3` (Manage Playlist).
+    *   Orchestrates operations by using `PlaylistRepository` and `VideoRepository`.
+    *   Handles complex workflows like importing a full playlist from YouTube, which involves fetching metadata via the `VideoSource` interface and creating multiple video entries.
 
-**Example Data Flow: Importing a Playlist**
-1.  **UI Interaction:** User pastes a URL into the `AddNewPlaylistDialog` component.
-2.  **Frontend IPC Call:** The component calls `window.api.playlists.importFromUrl(url)`. This is a type-safe function exposed via the preload script.
-3.  **Backend IPC Handler:** The `playlist:import` handler in the `ipc/playlistHandlers.ts` file receives the request.
-4.  **Service Layer:** The handler calls the `playlistImportService.ts`.
-5.  **Task Management:** The service creates a new task in the `BackgroundTaskService` and adds a job to the `p-queue`.
-6.  **External Tool:** The job in the queue calls the `ytDlpService` which spawns `yt-dlp` to fetch metadata.
-7.  **Repository Layer:** The service uses the `PlaylistRepository` and `VideoRepository` to save the new data to the database.
-8.  **Backend Event:** The `BackgroundTaskService` emits progress updates via the `task:update` IPC channel.
-9.  **Frontend Update:** The `ActivityCenter` component listens for `task:update` events and updates the UI in real-time.
+*   **`VideoSource` (Interface):**
+    *   An abstraction that defines a strict contract for fetching metadata from a video source. This decouples the application from any single dependency. See `ADR-003-yt-dlp-risk-mitigation.md`.
+    *   **Traceability:** Fulfills `FR-1` (Fetch Metadata) and `NFR-5` (Extensibility).
+    *   Defines methods for fetching playlist and video metadata, including batch operations.
 
-## 4. Resilience and Chaos Engineering
+*   **`YoutubeService` (Implementation of `VideoSource`):**
+    *   A concrete implementation of the `VideoSource` interface that wraps the `yt-dlp-wrap` library.
+    *   Provides a clean API for fetching metadata for YouTube playlists and videos.
+    *   Abstracts away the command-line interface of `yt-dlp`.
+    *   Implements efficient batch operations for fetching data for all videos in a playlist at once.
 
-### Resilience Patterns
+*   **`VideoDownloader`:**
+    *   Manages the entire video download process.
+    *   **Traceability:** Fulfills `US-2` (Download Video), `FR-2` (Manage Downloads).
+    *   When a download is requested, it creates a `BackgroundTask` via the `BackgroundTaskRepository`.
+    *   Uses `p-queue` to manage a low-concurrency queue for the actual download operations, preventing resource exhaustion.
+    *   Handles quality selection, fallbacks, and post-processing.
 
--   **Circuit Breaker:** For all external API calls (e.g., fetching YouTube metadata), a simple circuit breaker will be implemented. If an API fails repeatedly, the circuit will "open" for a short period, and subsequent calls will fail immediately without hitting the network, preventing the application from getting stuck on a failing resource.
--   **Stateful Retries:** Network-related failures during downloads will trigger a limited number of automatic retries with **exponential backoff**.
--   **Concurrent Task Queuing:** The `p-queue` library limits concurrent downloads, preventing resource exhaustion.
--   **Graceful Degradation:** If a video in a playlist fails to process, it will be marked as "failed" in the UI, but the rest of the playlist will remain functional.
--   **Disk Full Handling:** The `DownloadService` will check for sufficient disk space before starting a download and will gracefully pause the task with a user notification if the disk becomes full.
--   **Process Timeouts:** All child processes (`yt-dlp`, `ffmpeg`) will be spawned with a strict timeout. If a process hangs, it will be terminated, and the task will be marked as failed.
+*   **`HealthCheckService`:**
+    *   Performs periodic checks to verify that downloaded videos are still available and not private/deleted on YouTube.
+    *   **Traceability:** Fulfills `US-4` (Check Video Health), `NFR-3` (Data Integrity).
+    *   Creates background tasks to perform these checks without blocking the UI, using the `VideoSource` interface to re-fetch metadata.
 
-### Chaos Engineering Plan
+### Frontend Components
 
--   **Hypothesis 1 (Hanging Process):** If `yt-dlp` hangs, the `DownloadService`'s timeout mechanism should trigger, kill the orphaned process, and mark the task as failed without crashing the main process.
-    -   **Experiment:** Use a wrapper script for `yt-dlp` that enters an infinite loop. Attempt a download and verify the task fails gracefully after the timeout.
--   **Hypothesis 2 (Database Corruption):** If the SQLite database file becomes corrupted or is unreadable, the application should start up in a degraded mode, notify the user, and offer to restore from a backup or create a new database.
-    -   **Experiment:** Replace the `database.sqlite` file with a zero-byte or garbage file. On startup, verify the application doesn't crash and presents the user with recovery options.
--   **Hypothesis 3 (Network Interruption):** If network connectivity is lost during a download, the retry mechanism should engage.
-    -   **Experiment:** Use a tool to block network access for the application mid-download. Verify that the task pauses and retries according to the backoff strategy once connectivity is restored.
+*   **`index.ts` (Frontend Entry Point):**
+    *   Renders the main React application.
+    *   Initializes frontend services.
 
-## 5. Dependency Management
+*   **UI Components:**
+    *   A set of React components for displaying playlists, video lists, download progress, and settings.
 
-To create a stable and predictable environment, critical external binary dependencies (`yt-dlp`, `ffmpeg`) will not be reliant on the user's system. Instead, specific, tested versions of these tools will be packaged and shipped directly with the application. The application will be configured to use these bundled binaries exclusively. See `ADR-002-packaged-dependencies.md` for details.
+*   **Frontend Services (`ipcService`):**
+    *   A service that abstracts the Electron IPC communication. It provides strongly-typed methods for sending requests to the backend (e.g., `downloadVideo(videoId)`) and subscribing to events from the backend (e.g., `onTaskProgressUpdate`).
+
+### Shared Components
+
+*   **Data Models (`shared/`):**
+    *   TypeScript interfaces (`Playlist`, `Video`, `BackgroundTask`) that define the shape of data used throughout the application. Sharing these between the frontend and backend ensures type safety across the IPC boundary.
+*   **IPC Contract (`shared/`):**
+    *   Defines the channel names and payload types for all IPC communication, creating a strict contract that prevents integration errors.
+
+## Data Flows
+
+### Flow 1: Importing a YouTube Playlist
+
+1.  **User** pastes a YouTube playlist URL into the frontend UI. (`US-1`)
+2.  **Frontend** sends an `import-playlist` IPC message with the URL to the backend.
+3.  **`PlaylistManager`** receives the request.
+4.  It calls the **`VideoSource`** implementation (currently `YoutubeService`) to fetch the playlist metadata and the metadata for *all videos in the playlist* in a single, efficient batch operation. This minimizes network requests and API calls. (`FR-1`, `NFR-1`)
+5.  The **`YoutubeService`** uses the **`yt-dlp-wrap`** adapter to get the complete data from YouTube.
+6.  **`PlaylistManager`** uses **`PlaylistRepository`** and **`VideoRepository`** to create the new playlist and all associated video records in the SQLite database within a single transaction. (`NFR-3`)
+7.  The backend notifies the **Frontend** of completion, and the UI updates to show the new playlist.
+
+### Flow 2: Downloading a Video
+
+1.  **User** clicks the "Download" button for a video in the UI.
+2.  **Frontend** sends a `download-video` IPC message with the `videoId`.
+3.  **`VideoDownloader`** service receives the request.
+4.  It creates a new `BackgroundTask` record in the database via **`BackgroundTaskRepository`** with a `pending` status.
+5.  The **`BackgroundTaskService`** (driven by `p-queue`) picks up the task from its queue.
+6.  It executes the download logic using **`yt-dlp-wrap`**, providing progress updates.
+7.  As the download progresses, the service calls **`BackgroundTaskRepository.updateTaskProgress()`**, which emits an IPC event to the frontend.
+8.  **Frontend** receives the progress update and visually updates the UI (e.g., a progress bar).
+9.  Upon completion, the task status is updated to `completed` or `failed`, and the **`VideoRepository`** is updated with the local file path of the downloaded video.
