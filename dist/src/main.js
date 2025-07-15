@@ -5,6 +5,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
+const dependency_handlers_1 = require("./backend/handlers/dependency-handlers");
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
     electron_1.app.quit();
@@ -39,8 +40,13 @@ const initializeApp = async () => {
         if (APP_CONFIG.development.debugLogging) {
             console.log('App initialization started');
         }
-        // Basic initialization - services will be implemented in later tasks
-        // For now, just log that we're ready
+        // Initialize dependency management system
+        if (process.env.NODE_ENV !== 'test') {
+            (0, dependency_handlers_1.initializeDependencyHandlers)();
+            if (APP_CONFIG.development.debugLogging) {
+                console.log('Dependency management system initialized');
+            }
+        }
         if (APP_CONFIG.development.debugLogging) {
             console.log('App services initialized successfully');
         }
@@ -249,6 +255,10 @@ const handleWillQuit = (event) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.removeAllListeners();
     }
+    // Cleanup dependency handlers
+    if (process.env.NODE_ENV !== 'test') {
+        (0, dependency_handlers_1.cleanupDependencyHandlers)();
+    }
 };
 // Set up application event listeners
 electron_1.app.on('ready', handleAppReady);
@@ -292,12 +302,13 @@ process.on('unhandledRejection', (reason, promise) => {
     }
 });
 // Security: Prevent new window creation from renderer
-electron_1.app.on('web-contents-created', (event, contents) => {
-    contents.on('new-window', (navigationEvent, navigationUrl) => {
-        navigationEvent.preventDefault();
+electron_1.app.on('web-contents-created', (_event, contents) => {
+    // Handle external link attempts
+    contents.setWindowOpenHandler(({ url }) => {
         if (APP_CONFIG.development.debugLogging) {
-            console.warn('Blocked new window creation to:', navigationUrl);
+            console.warn('Blocked new window creation to:', url);
         }
+        return { action: 'deny' };
     });
     contents.on('will-navigate', (navigationEvent, navigationUrl) => {
         const parsedUrl = new URL(navigationUrl);

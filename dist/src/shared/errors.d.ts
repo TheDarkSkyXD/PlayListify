@@ -28,4 +28,16 @@ export declare class DatabaseConnectionError extends Error {
 export declare class SchemaExecutionError extends Error {
     constructor(message: string);
 }
+export declare class DependencyError extends Error {
+    constructor(message: string);
+}
+export declare class DependencyInstallationError extends Error {
+    constructor(message: string);
+}
+export declare class DependencyValidationError extends Error {
+    constructor(message: string);
+}
+export declare class DependencyDownloadError extends Error {
+    constructor(message: string);
+}
 //# sourceMappingURL=errors.d.ts.map

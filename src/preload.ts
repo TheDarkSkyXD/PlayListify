@@ -96,6 +96,54 @@ const electronAPI: ElectronAPI = {
     },
   },
 
+  // Dependency management
+  dependency: {
+    checkStatus: () => ipcRenderer.invoke('dependency:checkStatus'),
+    getStatus: () => ipcRenderer.invoke('dependency:getStatus'),
+    install: (dependencyName: 'ytdlp' | 'ffmpeg') => ipcRenderer.invoke('dependency:install', dependencyName),
+    validate: (dependencyName: 'ytdlp' | 'ffmpeg') => ipcRenderer.invoke('dependency:validate', dependencyName),
+    getVersion: (dependencyName: 'ytdlp' | 'ffmpeg') => ipcRenderer.invoke('dependency:getVersion', dependencyName),
+    getPath: (dependencyName: 'ytdlp' | 'ffmpeg') => ipcRenderer.invoke('dependency:getPath', dependencyName),
+    cleanup: () => ipcRenderer.invoke('dependency:cleanup'),
+    areAllReady: () => ipcRenderer.invoke('dependency:areAllReady'),
+    isInitialized: () => ipcRenderer.invoke('dependency:isInitialized'),
+    onStatusUpdated: (callback: (event: any, status: any) => void) => {
+      const wrappedCallback = (_event: Electron.IpcRendererEvent, status: any) => callback(_event, status);
+      ipcRenderer.on('dependency:statusUpdated', wrappedCallback);
+      
+      // Return cleanup function
+      return () => ipcRenderer.removeListener('dependency:statusUpdated', wrappedCallback);
+    },
+    onDownloadProgress: (callback: (event: any, progress: any) => void) => {
+      const wrappedCallback = (_event: Electron.IpcRendererEvent, progress: any) => callback(_event, progress);
+      ipcRenderer.on('dependency:downloadProgress', wrappedCallback);
+      
+      // Return cleanup function
+      return () => ipcRenderer.removeListener('dependency:downloadProgress', wrappedCallback);
+    },
+    onInstallStarted: (callback: (event: any, dependency: string) => void) => {
+      const wrappedCallback = (_event: Electron.IpcRendererEvent, dependency: string) => callback(_event, dependency);
+      ipcRenderer.on('dependency:installStarted', wrappedCallback);
+      
+      // Return cleanup function
+      return () => ipcRenderer.removeListener('dependency:installStarted', wrappedCallback);
+    },
+    onInstallCompleted: (callback: (event: any, dependency: string) => void) => {
+      const wrappedCallback = (_event: Electron.IpcRendererEvent, dependency: string) => callback(_event, dependency);
+      ipcRenderer.on('dependency:installCompleted', wrappedCallback);
+      
+      // Return cleanup function
+      return () => ipcRenderer.removeListener('dependency:installCompleted', wrappedCallback);
+    },
+    onInstallFailed: (callback: (event: any, data: any) => void) => {
+      const wrappedCallback = (_event: Electron.IpcRendererEvent, data: any) => callback(_event, data);
+      ipcRenderer.on('dependency:installFailed', wrappedCallback);
+      
+      // Return cleanup function
+      return () => ipcRenderer.removeListener('dependency:installFailed', wrappedCallback);
+    },
+  },
+
   // Legacy methods for backward compatibility
   getPlaylistMetadata: (url: string) => ipcRenderer.invoke('playlist:getMetadata', url),
   startImport: (url: string) => ipcRenderer.invoke('import:start', url),

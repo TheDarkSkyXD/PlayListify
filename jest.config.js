@@ -23,7 +23,7 @@ module.exports = {
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/',
+    '^@/(.*)$': '<rootDir>/src/$1',
   },
   testTimeout: 10000,
   verbose: true,

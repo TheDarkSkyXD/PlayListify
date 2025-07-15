@@ -77,6 +77,24 @@ export interface YouTubeAPI {
   onImportProgress(callback: (event: any, data: any) => void): void;
 }
 
+// Dependency management interface
+export interface DependencyAPI {
+  checkStatus(): Promise<any>;
+  getStatus(): Promise<any>;
+  install(dependencyName: 'ytdlp' | 'ffmpeg'): Promise<any>;
+  validate(dependencyName: 'ytdlp' | 'ffmpeg'): Promise<boolean>;
+  getVersion(dependencyName: 'ytdlp' | 'ffmpeg'): Promise<string | null>;
+  getPath(dependencyName: 'ytdlp' | 'ffmpeg'): Promise<string>;
+  cleanup(): Promise<any>;
+  areAllReady(): Promise<boolean>;
+  isInitialized(): Promise<boolean>;
+  onStatusUpdated(callback: (event: any, status: any) => void): void;
+  onDownloadProgress(callback: (event: any, progress: any) => void): void;
+  onInstallStarted(callback: (event: any, dependency: string) => void): void;
+  onInstallCompleted(callback: (event: any, dependency: string) => void): void;
+  onInstallFailed(callback: (event: any, data: any) => void): void;
+}
+
 // Main Electron API interface exposed to renderer
 export interface ElectronAPI {
   app: AppAPI;
@@ -84,6 +102,7 @@ export interface ElectronAPI {
   settings: SettingsAPI;
   playlist: PlaylistAPI;
   youtube: YouTubeAPI;
+  dependency: DependencyAPI;
   
   // Legacy methods for backward compatibility
   getPlaylistMetadata: (url: string) => Promise<any>;
@@ -187,6 +206,22 @@ export const IPC_CHANNELS = {
   SETTINGS_EXPORT: 'settings:export',
   SETTINGS_IMPORT: 'settings:import',
   SETTINGS_INITIALIZE_DOWNLOAD_LOCATION: 'settings:initializeDownloadLocation',
+  
+  // Dependency channels
+  DEPENDENCY_CHECK_STATUS: 'dependency:checkStatus',
+  DEPENDENCY_GET_STATUS: 'dependency:getStatus',
+  DEPENDENCY_INSTALL: 'dependency:install',
+  DEPENDENCY_VALIDATE: 'dependency:validate',
+  DEPENDENCY_GET_VERSION: 'dependency:getVersion',
+  DEPENDENCY_GET_PATH: 'dependency:getPath',
+  DEPENDENCY_CLEANUP: 'dependency:cleanup',
+  DEPENDENCY_ARE_ALL_READY: 'dependency:areAllReady',
+  DEPENDENCY_IS_INITIALIZED: 'dependency:isInitialized',
+  DEPENDENCY_STATUS_UPDATED: 'dependency:statusUpdated',
+  DEPENDENCY_DOWNLOAD_PROGRESS: 'dependency:downloadProgress',
+  DEPENDENCY_INSTALL_STARTED: 'dependency:installStarted',
+  DEPENDENCY_INSTALL_COMPLETED: 'dependency:installCompleted',
+  DEPENDENCY_INSTALL_FAILED: 'dependency:installFailed',
   
   // Legacy channels (for backward compatibility)
   GET_PLAYLIST_METADATA: 'playlist:getMetadata',

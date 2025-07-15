@@ -69,3 +69,32 @@ export class SchemaExecutionError extends Error {
         this.name = 'SchemaExecutionError';
     }
 }
+
+// Dependency Management Errors
+export class DependencyError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'DependencyError';
+    }
+}
+
+export class DependencyInstallationError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'DependencyInstallationError';
+    }
+}
+
+export class DependencyValidationError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'DependencyValidationError';
+    }
+}
+
+export class DependencyDownloadError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'DependencyDownloadError';
+    }
+}

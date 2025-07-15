@@ -66,12 +66,29 @@ export interface YouTubeAPI {
     validateUrl(url: string): Promise<any>;
     onImportProgress(callback: (event: any, data: any) => void): void;
 }
+export interface DependencyAPI {
+    checkStatus(): Promise<any>;
+    getStatus(): Promise<any>;
+    install(dependencyName: 'ytdlp' | 'ffmpeg'): Promise<any>;
+    validate(dependencyName: 'ytdlp' | 'ffmpeg'): Promise<boolean>;
+    getVersion(dependencyName: 'ytdlp' | 'ffmpeg'): Promise<string | null>;
+    getPath(dependencyName: 'ytdlp' | 'ffmpeg'): Promise<string>;
+    cleanup(): Promise<any>;
+    areAllReady(): Promise<boolean>;
+    isInitialized(): Promise<boolean>;
+    onStatusUpdated(callback: (event: any, status: any) => void): void;
+    onDownloadProgress(callback: (event: any, progress: any) => void): void;
+    onInstallStarted(callback: (event: any, dependency: string) => void): void;
+    onInstallCompleted(callback: (event: any, dependency: string) => void): void;
+    onInstallFailed(callback: (event: any, data: any) => void): void;
+}
 export interface ElectronAPI {
     app: AppAPI;
     fs: FileSystemAPI;
     settings: SettingsAPI;
     playlist: PlaylistAPI;
     youtube: YouTubeAPI;
+    dependency: DependencyAPI;
     getPlaylistMetadata: (url: string) => Promise<any>;
     startImport: (url: string) => Promise<any>;
     onTaskUpdate: (callback: (event: any, data: any) => void) => void;
@@ -158,6 +175,20 @@ export declare const IPC_CHANNELS: {
     readonly SETTINGS_EXPORT: "settings:export";
     readonly SETTINGS_IMPORT: "settings:import";
     readonly SETTINGS_INITIALIZE_DOWNLOAD_LOCATION: "settings:initializeDownloadLocation";
+    readonly DEPENDENCY_CHECK_STATUS: "dependency:checkStatus";
+    readonly DEPENDENCY_GET_STATUS: "dependency:getStatus";
+    readonly DEPENDENCY_INSTALL: "dependency:install";
+    readonly DEPENDENCY_VALIDATE: "dependency:validate";
+    readonly DEPENDENCY_GET_VERSION: "dependency:getVersion";
+    readonly DEPENDENCY_GET_PATH: "dependency:getPath";
+    readonly DEPENDENCY_CLEANUP: "dependency:cleanup";
+    readonly DEPENDENCY_ARE_ALL_READY: "dependency:areAllReady";
+    readonly DEPENDENCY_IS_INITIALIZED: "dependency:isInitialized";
+    readonly DEPENDENCY_STATUS_UPDATED: "dependency:statusUpdated";
+    readonly DEPENDENCY_DOWNLOAD_PROGRESS: "dependency:downloadProgress";
+    readonly DEPENDENCY_INSTALL_STARTED: "dependency:installStarted";
+    readonly DEPENDENCY_INSTALL_COMPLETED: "dependency:installCompleted";
+    readonly DEPENDENCY_INSTALL_FAILED: "dependency:installFailed";
     readonly GET_PLAYLIST_METADATA: "playlist:getMetadata";
     readonly START_IMPORT: "import:start";
     readonly TASK_UPDATE: "task:update";

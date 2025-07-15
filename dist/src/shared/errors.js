@@ -1,7 +1,7 @@
 "use strict";
 // src/shared/errors.ts
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SchemaExecutionError = exports.DatabaseConnectionError = exports.DiskFullError = exports.FileSystemReadOnlyError = exports.DatabaseError = exports.CircularDependencyError = exports.TaskNotFoundError = exports.InvalidStateTransitionError = exports.ParentTaskNotFoundError = exports.InvalidInputError = void 0;
+exports.DependencyDownloadError = exports.DependencyValidationError = exports.DependencyInstallationError = exports.DependencyError = exports.SchemaExecutionError = exports.DatabaseConnectionError = exports.DiskFullError = exports.FileSystemReadOnlyError = exports.DatabaseError = exports.CircularDependencyError = exports.TaskNotFoundError = exports.InvalidStateTransitionError = exports.ParentTaskNotFoundError = exports.InvalidInputError = void 0;
 class InvalidInputError extends Error {
     constructor(message) {
         super(message);
@@ -72,4 +72,33 @@ class SchemaExecutionError extends Error {
     }
 }
 exports.SchemaExecutionError = SchemaExecutionError;
+// Dependency Management Errors
+class DependencyError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'DependencyError';
+    }
+}
+exports.DependencyError = DependencyError;
+class DependencyInstallationError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'DependencyInstallationError';
+    }
+}
+exports.DependencyInstallationError = DependencyInstallationError;
+class DependencyValidationError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'DependencyValidationError';
+    }
+}
+exports.DependencyValidationError = DependencyValidationError;
+class DependencyDownloadError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'DependencyDownloadError';
+    }
+}
+exports.DependencyDownloadError = DependencyDownloadError;
 //# sourceMappingURL=errors.js.map

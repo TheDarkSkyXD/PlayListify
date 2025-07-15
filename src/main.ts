@@ -6,6 +6,7 @@
 import { app, BrowserWindow, screen, dialog, ipcMain } from 'electron';
 import * as path from 'path';
 import type { AppConfig } from '@/shared/types';
+import { initializeDependencyHandlers, cleanupDependencyHandlers } from './backend/handlers/dependency-handlers';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -45,8 +46,13 @@ const initializeApp = async (): Promise<void> => {
       console.log('App initialization started');
     }
     
-    // Basic initialization - services will be implemented in later tasks
-    // For now, just log that we're ready
+    // Initialize dependency management system
+    if (process.env.NODE_ENV !== 'test') {
+      initializeDependencyHandlers();
+      if (APP_CONFIG.development.debugLogging) {
+        console.log('Dependency management system initialized');
+      }
+    }
     
     if (APP_CONFIG.development.debugLogging) {
       console.log('App services initialized successfully');
@@ -293,6 +299,11 @@ const handleWillQuit = (event: Electron.Event): void => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.removeAllListeners();
   }
+  
+  // Cleanup dependency handlers
+  if (process.env.NODE_ENV !== 'test') {
+    cleanupDependencyHandlers();
+  }
 };
 
 // Set up application event listeners
@@ -345,13 +356,13 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Security: Prevent new window creation from renderer
-app.on('web-contents-created', (event, contents) => {
-  contents.on('new-window', (navigationEvent, navigationUrl) => {
-    navigationEvent.preventDefault();
-    
+app.on('web-contents-created', (_event, contents) => {
+  // Handle external link attempts
+  contents.setWindowOpenHandler(({ url }) => {
     if (APP_CONFIG.development.debugLogging) {
-      console.warn('Blocked new window creation to:', navigationUrl);
+      console.warn('Blocked new window creation to:', url);
     }
+    return { action: 'deny' };
   });
   
   contents.on('will-navigate', (navigationEvent, navigationUrl) => {
