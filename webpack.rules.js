@@ -16,7 +16,7 @@ module.exports = [
       },
     },
   },
-  // TypeScript and TSX files
+  // TypeScript and TSX files (primary loader)
   {
     test: /\.tsx?$/,
     exclude: /(node_modules|\.webpack)/,
@@ -26,11 +26,13 @@ module.exports = [
         transpileOnly: true,
         compilerOptions: {
           noEmit: false,
+          sourceMap: true,
         },
+        configFile: 'tsconfig.json',
       },
     },
   },
-  // JavaScript and JSX files (fallback)
+  // JavaScript and JSX files (fallback for any JS files)
   {
     test: /\.jsx?$/,
     exclude: /node_modules/,
@@ -42,6 +44,8 @@ module.exports = [
             targets: {
               electron: '37.2.0',
             },
+            useBuiltIns: 'usage',
+            corejs: 3,
           }],
           ['@babel/preset-react', {
             runtime: 'automatic',
@@ -51,7 +55,9 @@ module.exports = [
         plugins: [
           '@babel/plugin-proposal-class-properties',
           '@babel/plugin-proposal-object-rest-spread',
+          '@babel/plugin-syntax-dynamic-import',
         ],
+        cacheDirectory: true,
       },
     },
   },
@@ -60,7 +66,12 @@ module.exports = [
     test: /\.(png|jpe?g|gif|svg|ico)$/i,
     type: 'asset/resource',
     generator: {
-      filename: 'assets/images/[name][ext]',
+      filename: 'assets/images/[name].[hash:8][ext]',
+    },
+    parser: {
+      dataUrlCondition: {
+        maxSize: 8 * 1024, // 8kb
+      },
     },
   },
   // Fonts
@@ -68,12 +79,17 @@ module.exports = [
     test: /\.(woff|woff2|eot|ttf|otf)$/i,
     type: 'asset/resource',
     generator: {
-      filename: 'assets/fonts/[name][ext]',
+      filename: 'assets/fonts/[name].[hash:8][ext]',
     },
   },
   // JSON files
   {
     test: /\.json$/,
     type: 'json',
+  },
+  // Raw text files
+  {
+    test: /\.(txt|md)$/i,
+    type: 'asset/source',
   },
 ];

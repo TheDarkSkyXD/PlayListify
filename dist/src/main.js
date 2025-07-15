@@ -1,30 +1,24 @@
 "use strict";
+/**
+ * Main process entry point for Playlistify Electron application
+ * Handles application lifecycle, window management, and IPC communication
+ */
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 const electron_1 = require("electron");
-const path = tslib_1.__importStar(require("path"));
-const settings_handlers_1 = require("./handlers/settings-handlers");
-const file_handlers_1 = require("./handlers/file-handlers");
-const playlist_handlers_1 = require("./handlers/playlist-handlers");
-const settingsService_1 = require("./services/settingsService");
-const fileUtils_1 = require("./utils/fileUtils");
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+// Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
     electron_1.app.quit();
 }
 // Keep a global reference of the window object
 let mainWindow = null;
-// Mock data for testing
-const mockPlaylists = [
-    { id: '1', title: 'My Test Playlist' }
-];
-// Application configuration
+// Application configuration following the design specification
 const APP_CONFIG = {
     window: {
         width: 800,
         height: 600,
         minWidth: 600,
         minHeight: 400,
+        center: true,
     },
     security: {
         nodeIntegration: false,
@@ -35,17 +29,18 @@ const APP_CONFIG = {
     },
     development: {
         devTools: process.env.NODE_ENV === 'development',
+        hotReload: process.env.NODE_ENV === 'development',
         debugLogging: process.env.NODE_ENV === 'development',
     },
 };
-// Initialize app services
+// Basic initialization for Phase 1 (services will be implemented in later tasks)
 const initializeApp = async () => {
     try {
-        // Initialize directories
-        await fileUtils_1.FileUtils.initializeDirectories();
-        // Initialize settings
-        await settingsService_1.settingsService.initializeDownloadLocation();
-        settingsService_1.settingsService.validateSettings();
+        if (APP_CONFIG.development.debugLogging) {
+            console.log('App initialization started');
+        }
+        // Basic initialization - services will be implemented in later tasks
+        // For now, just log that we're ready
         if (APP_CONFIG.development.debugLogging) {
             console.log('App services initialized successfully');
         }
@@ -55,27 +50,50 @@ const initializeApp = async () => {
         throw error;
     }
 };
-// IPC handlers (conditionally registered to avoid conflicts with tests)
+// Basic IPC handlers for Phase 1 (will be expanded in later tasks)
 if (process.env.NODE_ENV !== 'test') {
-    // Register all IPC handlers
-    (0, settings_handlers_1.registerSettingsHandlers)();
-    (0, file_handlers_1.registerFileHandlers)();
-    (0, playlist_handlers_1.registerPlaylistHandlers)();
-    // Legacy handlers for backward compatibility
+    // Basic app handlers
+    electron_1.ipcMain.handle('app:getVersion', () => {
+        return electron_1.app.getVersion();
+    });
+    electron_1.ipcMain.handle('app:quit', () => {
+        electron_1.app.quit();
+    });
+    electron_1.ipcMain.handle('app:minimize', () => {
+        if (mainWindow) {
+            mainWindow.minimize();
+        }
+    });
+    electron_1.ipcMain.handle('app:maximize', () => {
+        if (mainWindow) {
+            if (mainWindow.isMaximized()) {
+                mainWindow.unmaximize();
+            }
+            else {
+                mainWindow.maximize();
+            }
+        }
+    });
+    electron_1.ipcMain.handle('app:isMaximized', () => {
+        return mainWindow ? mainWindow.isMaximized() : false;
+    });
+    electron_1.ipcMain.handle('app:close', () => {
+        if (mainWindow) {
+            mainWindow.close();
+        }
+    });
+    // Legacy handlers for backward compatibility (will be implemented in later tasks)
     electron_1.ipcMain.handle('getPlaylists', () => {
-        return mockPlaylists;
+        return [{ id: '1', title: 'Sample Playlist' }];
     });
-    electron_1.ipcMain.handle('getPlaylistDetails', (event, playlistId) => {
-        // This will be overridden by tests
-        return { error: 'Not implemented' };
+    electron_1.ipcMain.handle('getPlaylistDetails', (_event, playlistId) => {
+        return { error: 'Not implemented yet - will be added in later tasks' };
     });
-    electron_1.ipcMain.handle('playlist:getMetadata', (event, url) => {
-        // This will be implemented later
-        return { error: 'Not implemented' };
+    electron_1.ipcMain.handle('playlist:getMetadata', (_event, url) => {
+        return { error: 'Not implemented yet - will be added in later tasks' };
     });
-    electron_1.ipcMain.handle('import:start', (event, url) => {
-        // This will be implemented later
-        return { error: 'Not implemented' };
+    electron_1.ipcMain.handle('import:start', (_event, url) => {
+        return { error: 'Not implemented yet - will be added in later tasks' };
     });
 }
 const createWindow = async () => {
@@ -84,12 +102,12 @@ const createWindow = async () => {
     // Get primary display dimensions
     const primaryDisplay = electron_1.screen.getPrimaryDisplay();
     const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-    // Get saved window settings or use defaults
-    const windowSize = settingsService_1.settingsService.get('windowSize') || {
+    // Use default window settings for Phase 1 (settings service will be implemented in later tasks)
+    const windowSize = {
         width: APP_CONFIG.window.width,
         height: APP_CONFIG.window.height,
     };
-    const windowPosition = settingsService_1.settingsService.get('windowPosition') || {
+    const windowPosition = {
         x: Math.floor((screenWidth - windowSize.width) / 2),
         y: Math.floor((screenHeight - windowSize.height) / 2),
     };
@@ -108,7 +126,6 @@ const createWindow = async () => {
         minHeight: APP_CONFIG.window.minHeight,
         show: false, // Don't show until ready
         title: 'Playlistify',
-        icon: path.join(__dirname, '../assets/icon.png'), // Will be created later
         webPreferences: {
             nodeIntegration: APP_CONFIG.security.nodeIntegration,
             contextIsolation: APP_CONFIG.security.contextIsolation,
@@ -131,23 +148,18 @@ const createWindow = async () => {
             }
         }
     });
-    // Save window size and position when changed (debounced)
-    let saveTimeout = null;
-    const saveWindowState = () => {
-        if (saveTimeout) {
-            clearTimeout(saveTimeout);
+    // Basic window state management for Phase 1
+    // (Advanced state persistence will be implemented in later tasks)
+    mainWindow.on('resize', () => {
+        if (APP_CONFIG.development.debugLogging) {
+            console.log('Window resized');
         }
-        saveTimeout = setTimeout(() => {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-                const [width, height] = mainWindow.getSize();
-                const [x, y] = mainWindow.getPosition();
-                settingsService_1.settingsService.set('windowSize', { width, height });
-                settingsService_1.settingsService.set('windowPosition', { x, y });
-            }
-        }, 500); // Debounce by 500ms
-    };
-    mainWindow.on('resize', saveWindowState);
-    mainWindow.on('move', saveWindowState);
+    });
+    mainWindow.on('move', () => {
+        if (APP_CONFIG.development.debugLogging) {
+            console.log('Window moved');
+        }
+    });
     // Handle window closed
     mainWindow.on('closed', () => {
         mainWindow = null;

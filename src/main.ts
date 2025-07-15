@@ -1,12 +1,13 @@
-import { app, BrowserWindow, ipcMain, screen } from 'electron';
-import * as path from 'path';
-import { registerSettingsHandlers } from './handlers/settings-handlers';
-import { registerFileHandlers } from './handlers/file-handlers';
-import { registerPlaylistHandlers } from './handlers/playlist-handlers';
-import { settingsService } from './services/settingsService';
-import { FileUtils } from './utils/fileUtils';
+/**
+ * Main process entry point for Playlistify Electron application
+ * Handles application lifecycle, window management, and IPC communication
+ */
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+import { app, BrowserWindow, screen, dialog, ipcMain } from 'electron';
+import * as path from 'path';
+import type { AppConfig } from '@/shared/types';
+
+// Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
   app.quit();
 }
@@ -14,18 +15,14 @@ if (require('electron-squirrel-startup')) {
 // Keep a global reference of the window object
 let mainWindow: BrowserWindow | null = null;
 
-// Mock data for testing
-const mockPlaylists = [
-  { id: '1', title: 'My Test Playlist' }
-];
-
-// Application configuration
-const APP_CONFIG = {
+// Application configuration following the design specification
+const APP_CONFIG: AppConfig = {
   window: {
     width: 800,
     height: 600,
     minWidth: 600,
     minHeight: 400,
+    center: true,
   },
   security: {
     nodeIntegration: false,
@@ -36,19 +33,20 @@ const APP_CONFIG = {
   },
   development: {
     devTools: process.env.NODE_ENV === 'development',
+    hotReload: process.env.NODE_ENV === 'development',
     debugLogging: process.env.NODE_ENV === 'development',
   },
 };
 
-// Initialize app services
+// Basic initialization for Phase 1 (services will be implemented in later tasks)
 const initializeApp = async (): Promise<void> => {
   try {
-    // Initialize directories
-    await FileUtils.initializeDirectories();
+    if (APP_CONFIG.development.debugLogging) {
+      console.log('App initialization started');
+    }
     
-    // Initialize settings
-    await settingsService.initializeDownloadLocation();
-    settingsService.validateSettings();
+    // Basic initialization - services will be implemented in later tasks
+    // For now, just log that we're ready
     
     if (APP_CONFIG.development.debugLogging) {
       console.log('App services initialized successfully');
@@ -59,31 +57,58 @@ const initializeApp = async (): Promise<void> => {
   }
 };
 
-// IPC handlers (conditionally registered to avoid conflicts with tests)
+// Basic IPC handlers for Phase 1 (will be expanded in later tasks)
 if (process.env.NODE_ENV !== 'test') {
-  // Register all IPC handlers
-  registerSettingsHandlers();
-  registerFileHandlers();
-  registerPlaylistHandlers();
-  
-  // Legacy handlers for backward compatibility
+  // Basic app handlers
+  ipcMain.handle('app:getVersion', () => {
+    return app.getVersion();
+  });
+
+  ipcMain.handle('app:quit', () => {
+    app.quit();
+  });
+
+  ipcMain.handle('app:minimize', () => {
+    if (mainWindow) {
+      mainWindow.minimize();
+    }
+  });
+
+  ipcMain.handle('app:maximize', () => {
+    if (mainWindow) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.maximize();
+      }
+    }
+  });
+
+  ipcMain.handle('app:isMaximized', () => {
+    return mainWindow ? mainWindow.isMaximized() : false;
+  });
+
+  ipcMain.handle('app:close', () => {
+    if (mainWindow) {
+      mainWindow.close();
+    }
+  });
+
+  // Legacy handlers for backward compatibility (will be implemented in later tasks)
   ipcMain.handle('getPlaylists', () => {
-    return mockPlaylists;
+    return [{ id: '1', title: 'Sample Playlist' }];
   });
 
-  ipcMain.handle('getPlaylistDetails', (event, playlistId) => {
-    // This will be overridden by tests
-    return { error: 'Not implemented' };
+  ipcMain.handle('getPlaylistDetails', (_event, playlistId) => {
+    return { error: 'Not implemented yet - will be added in later tasks' };
   });
 
-  ipcMain.handle('playlist:getMetadata', (event, url) => {
-    // This will be implemented later
-    return { error: 'Not implemented' };
+  ipcMain.handle('playlist:getMetadata', (_event, url) => {
+    return { error: 'Not implemented yet - will be added in later tasks' };
   });
 
-  ipcMain.handle('import:start', (event, url) => {
-    // This will be implemented later
-    return { error: 'Not implemented' };
+  ipcMain.handle('import:start', (_event, url) => {
+    return { error: 'Not implemented yet - will be added in later tasks' };
   });
 }
 
@@ -95,13 +120,13 @@ const createWindow = async (): Promise<BrowserWindow> => {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
   
-  // Get saved window settings or use defaults
-  const windowSize = settingsService.get('windowSize') || {
+  // Use default window settings for Phase 1 (settings service will be implemented in later tasks)
+  const windowSize = {
     width: APP_CONFIG.window.width,
     height: APP_CONFIG.window.height,
   };
   
-  const windowPosition = settingsService.get('windowPosition') || {
+  const windowPosition = {
     x: Math.floor((screenWidth - windowSize.width) / 2),
     y: Math.floor((screenHeight - windowSize.height) / 2),
   };
@@ -122,7 +147,6 @@ const createWindow = async (): Promise<BrowserWindow> => {
     minHeight: APP_CONFIG.window.minHeight,
     show: false, // Don't show until ready
     title: 'Playlistify',
-    icon: path.join(__dirname, '../assets/icon.png'), // Will be created later
     webPreferences: {
       nodeIntegration: APP_CONFIG.security.nodeIntegration,
       contextIsolation: APP_CONFIG.security.contextIsolation,
@@ -149,33 +173,19 @@ const createWindow = async (): Promise<BrowserWindow> => {
     }
   });
 
-  // Save window size and position when changed (debounced)
-  let saveTimeout: NodeJS.Timeout | null = null;
-  
-  const saveWindowState = () => {
-    if (saveTimeout) {
-      clearTimeout(saveTimeout);
+  // Basic window state management for Phase 1
+  // (Advanced state persistence will be implemented in later tasks)
+  mainWindow.on('resize', () => {
+    if (APP_CONFIG.development.debugLogging) {
+      console.log('Window resized');
     }
-    
-    saveTimeout = setTimeout(() => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        const [width, height] = mainWindow.getSize();
-        const [x, y] = mainWindow.getPosition();
-        
-        // Ensure we have valid numbers
-        if (typeof width === 'number' && typeof height === 'number') {
-          settingsService.set('windowSize', { width, height });
-        }
-        
-        if (typeof x === 'number' && typeof y === 'number') {
-          settingsService.set('windowPosition', { x, y });
-        }
-      }
-    }, 500); // Debounce by 500ms
-  };
+  });
 
-  mainWindow.on('resize', saveWindowState);
-  mainWindow.on('move', saveWindowState);
+  mainWindow.on('move', () => {
+    if (APP_CONFIG.development.debugLogging) {
+      console.log('Window moved');
+    }
+  });
 
   // Handle window closed
   mainWindow.on('closed', () => {

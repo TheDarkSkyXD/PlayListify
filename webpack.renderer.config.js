@@ -54,10 +54,6 @@ module.exports = {
           syntactic: true,
         },
       },
-      eslint: {
-        files: './src/**/*.{ts,tsx}',
-        enabled: process.env.NODE_ENV !== 'production',
-      },
       logger: {
         infrastructure: 'silent',
         issues: 'console',

@@ -4,9 +4,13 @@ const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 module.exports = {
   target: 'electron-preload',
   entry: './src/preload.ts',
+  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+  devtool: process.env.NODE_ENV === 'production' ? 'source-map' : 'eval-source-map',
+  
   module: {
     rules: require('./webpack.rules'),
   },
+  
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.css', '.json'],
     alias: {
@@ -15,20 +19,45 @@ module.exports = {
       '@/services': path.resolve(__dirname, 'src/services'),
       '@/utils': path.resolve(__dirname, 'src/utils'),
       '@/types': path.resolve(__dirname, 'src/types'),
+      '@/shared': path.resolve(__dirname, 'src/shared'),
       '@/handlers': path.resolve(__dirname, 'src/handlers'),
       '@/repositories': path.resolve(__dirname, 'src/repositories'),
-      '@/shared': path.resolve(__dirname, 'src/shared'),
+      '@/adapters': path.resolve(__dirname, 'src/adapters'),
       '@/styles': path.resolve(__dirname, 'src/styles'),
     },
   },
+  
   plugins: [
     new ForkTsCheckerWebpackPlugin({
       typescript: {
         configFile: path.resolve(__dirname, 'tsconfig.json'),
+        diagnosticOptions: {
+          semantic: true,
+          syntactic: true,
+        },
+      },
+      logger: {
+        infrastructure: 'silent',
+        issues: 'console',
+        devServer: false,
       },
     }),
   ],
+  
   optimization: {
     nodeEnv: false, // Prevent webpack from setting NODE_ENV
+    minimize: process.env.NODE_ENV === 'production',
+  },
+  
+  externals: {
+    // Mark electron as external to prevent bundling
+    'electron': 'commonjs electron',
+  },
+  
+  stats: {
+    colors: true,
+    modules: false,
+    chunks: false,
+    chunkModules: false,
   },
 };

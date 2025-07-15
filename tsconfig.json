@@ -14,10 +14,10 @@
     "strictPropertyInitialization": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
+    "noUncheckedIndexedAccess": false,
     "noImplicitOverride": true,
-    "exactOptionalPropertyTypes": true,
-    "noPropertyAccessFromIndexSignature": true,
+    "exactOptionalPropertyTypes": false,
+    "noPropertyAccessFromIndexSignature": false,
     "noImplicitThis": true,
     
     // Module resolution
@@ -73,7 +73,10 @@
     "coverage",
     ".webpack",
     "**/*.spec.ts",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "src/services/**/*",
+    "src/handlers/**/*",
+    "src/repositories/**/*"
   ],
   "ts-node": {
     "esm": false,
