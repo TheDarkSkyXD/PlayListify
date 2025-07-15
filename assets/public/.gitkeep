@@ -1,0 +1,7 @@
+# Public Assets
+
+Static assets that need to be publicly accessible.
+
+## Structure
+- Files that will be copied to the build output
+- Static resources referenced by the application

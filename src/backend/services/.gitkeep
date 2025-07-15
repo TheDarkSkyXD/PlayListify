@@ -1,0 +1,8 @@
+# Backend Services
+
+Core business logic services for the main process.
+
+## Structure
+- Each service handles a specific domain of functionality
+- Services are injected and managed through dependency injection
+- Services communicate with external dependencies and file system

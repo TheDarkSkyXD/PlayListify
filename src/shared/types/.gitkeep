@@ -1,0 +1,9 @@
+# Shared Types
+
+TypeScript type definitions shared between frontend and backend.
+
+## Structure
+- Interface definitions for IPC communication
+- Data model types
+- Configuration types
+- Error types

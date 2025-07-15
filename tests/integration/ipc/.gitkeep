@@ -1,0 +1,3 @@
+# IPC Integration Tests
+
+Integration tests for IPC communication between main and renderer processes.

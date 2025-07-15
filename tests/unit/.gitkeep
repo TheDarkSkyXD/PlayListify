@@ -1,0 +1,8 @@
+# Unit Tests
+
+Unit tests organized to mirror the source directory structure.
+
+## Structure
+- `/frontend` - Frontend component and utility tests
+- `/backend` - Backend service and handler tests
+- `/shared` - Shared utility and type tests

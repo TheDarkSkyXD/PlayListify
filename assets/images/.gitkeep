@@ -1,0 +1,8 @@
+# Images Directory
+
+Static images and graphics used in the application.
+
+## Structure
+- `/backgrounds` - Background images
+- `/placeholders` - Placeholder images
+- `/branding` - Brand-related images

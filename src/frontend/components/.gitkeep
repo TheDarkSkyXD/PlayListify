@@ -1,0 +1,9 @@
+# Frontend Components Directory
+
+This directory contains React components organized by feature and type.
+
+## Structure
+- `/ui` - Reusable UI components (buttons, inputs, etc.)
+- `/layout` - Layout components (headers, sidebars, etc.)
+- `/features` - Feature-specific components
+- `/common` - Common/shared components

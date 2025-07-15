@@ -1,0 +1,9 @@
+# Backend Utilities
+
+Utility functions specific to the backend/main process.
+
+## Structure
+- Server-side utility functions
+- File system helpers
+- System integration utilities
+- Backend-specific constants and configurations

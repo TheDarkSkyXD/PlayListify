@@ -1,0 +1,8 @@
+# Frontend Utilities
+
+Utility functions specific to the frontend/renderer process.
+
+## Structure
+- Client-side utility functions
+- Helper functions for UI logic
+- Frontend-specific constants and configurations

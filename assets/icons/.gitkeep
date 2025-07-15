@@ -1,0 +1,8 @@
+# Icons Directory
+
+Application icons and iconography assets.
+
+## Structure
+- `/app` - Application icons (various sizes)
+- `/ui` - UI icons and graphics
+- `/brand` - Brand and logo assets

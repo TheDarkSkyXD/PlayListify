@@ -1,0 +1,9 @@
+# Shared Utilities
+
+Utility functions that can be used in both frontend and backend.
+
+## Structure
+- Pure utility functions
+- Validation helpers
+- Data transformation utilities
+- Common helper functions

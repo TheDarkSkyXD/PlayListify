@@ -1,0 +1,8 @@
+# State Management
+
+Zustand stores for client-side state management.
+
+## Structure
+- Each store handles a specific domain of state
+- Stores are organized by feature or functionality
+- Shared stores for cross-cutting concerns

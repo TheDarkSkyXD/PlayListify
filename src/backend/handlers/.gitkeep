@@ -1,0 +1,10 @@
+# IPC Handlers
+
+IPC request handlers organized by domain.
+
+## Structure
+- `/app` - Application lifecycle handlers
+- `/files` - File system operation handlers
+- `/settings` - Settings management handlers
+- `/playlists` - Playlist operation handlers (future)
+- `/downloads` - Download operation handlers (future)

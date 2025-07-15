@@ -1,0 +1,9 @@
+# Custom Hooks
+
+React custom hooks for reusable logic.
+
+## Structure
+- `/queries` - React Query hooks for data fetching
+- `/mutations` - React Query hooks for data mutations
+- `/ui` - UI-related custom hooks
+- `/utils` - Utility hooks

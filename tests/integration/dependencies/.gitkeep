@@ -1,0 +1,3 @@
+# Dependencies Integration Tests
+
+Integration tests for external dependency management (yt-dlp, FFmpeg).

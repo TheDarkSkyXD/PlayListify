@@ -1,0 +1,9 @@
+# Shared Constants
+
+Constants and configuration values shared between processes.
+
+## Structure
+- Application constants
+- Configuration defaults
+- IPC channel names
+- File paths and directory names

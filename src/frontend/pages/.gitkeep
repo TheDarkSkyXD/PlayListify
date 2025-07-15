@@ -1,0 +1,8 @@
+# Pages Directory
+
+Top-level page components for routing.
+
+## Structure
+- Each page represents a route in the application
+- Pages compose components from the components directory
+- Pages handle route-specific logic and data fetching
