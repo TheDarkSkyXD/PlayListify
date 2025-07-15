@@ -87,14 +87,14 @@ module.exports = {
     {
       name: '@electron-forge/plugin-webpack',
       config: {
-        mainConfig: './webpack.main.config.js',
+        mainConfig: './webpack.main.simple.config.js',
         devContentSecurityPolicy: "default-src 'self' 'unsafe-inline' data:; script-src 'self' 'unsafe-eval' 'unsafe-inline' data:",
         renderer: {
-          config: './webpack.renderer.config.js',
+          config: './webpack.renderer.simple.config.js',
           entryPoints: [
             {
               html: './src/index.html',
-              js: './src/renderer.tsx',
+              js: './src/renderer-simple.tsx',
               name: 'main_window',
               preload: {
                 js: './src/preload.ts',

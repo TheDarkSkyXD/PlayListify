@@ -1,2 +1,2 @@
-import './styles/main.css';
+import './styles/globals.css';
 //# sourceMappingURL=renderer.d.ts.map

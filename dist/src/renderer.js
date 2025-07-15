@@ -7,7 +7,7 @@ console.log('🔍 DEBUGGING: Document ready state:', document.readyState);
 const react_1 = tslib_1.__importDefault(require("react"));
 const client_1 = tslib_1.__importDefault(require("react-dom/client"));
 const App_1 = require("./components/App");
-require("./styles/main.css");
+require("./styles/globals.css");
 console.log('🔍 DEBUGGING: React version:', react_1.default.version);
 console.log('🔍 DEBUGGING: Imports loaded successfully');
 const rootElement = document.getElementById('root');

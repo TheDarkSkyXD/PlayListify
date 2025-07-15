@@ -3,8 +3,8 @@ console.log('🔍 DEBUGGING: Document ready state:', document.readyState);
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { App } from './components/App';
-import './styles/main.css';
+import { SimpleApp } from './SimpleApp';
+import './styles/globals.css';
 
 console.log('🔍 DEBUGGING: React version:', React.version);
 
@@ -20,7 +20,7 @@ if (rootElement) {
   console.log('🔍 DEBUGGING: About to render App...');
   root.render(
     <React.StrictMode>
-      <App />
+      <SimpleApp />
     </React.StrictMode>
   );
   console.log('🔍 DEBUGGING: App rendered successfully!');

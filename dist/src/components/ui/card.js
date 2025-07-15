@@ -1,0 +1,26 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CardContent = exports.CardDescription = exports.CardTitle = exports.CardFooter = exports.CardHeader = exports.Card = void 0;
+const tslib_1 = require("tslib");
+const jsx_runtime_1 = require("react/jsx-runtime");
+const React = tslib_1.__importStar(require("react"));
+const utils_1 = require("@/lib/utils");
+const Card = React.forwardRef(({ className, ...props }, ref) => ((0, jsx_runtime_1.jsx)("div", { ref: ref, className: (0, utils_1.cn)("rounded-lg border bg-card text-card-foreground shadow-sm", className), ...props })));
+exports.Card = Card;
+Card.displayName = "Card";
+const CardHeader = React.forwardRef(({ className, ...props }, ref) => ((0, jsx_runtime_1.jsx)("div", { ref: ref, className: (0, utils_1.cn)("flex flex-col space-y-1.5 p-6", className), ...props })));
+exports.CardHeader = CardHeader;
+CardHeader.displayName = "CardHeader";
+const CardTitle = React.forwardRef(({ className, ...props }, ref) => ((0, jsx_runtime_1.jsx)("div", { ref: ref, className: (0, utils_1.cn)("text-2xl font-semibold leading-none tracking-tight", className), ...props })));
+exports.CardTitle = CardTitle;
+CardTitle.displayName = "CardTitle";
+const CardDescription = React.forwardRef(({ className, ...props }, ref) => ((0, jsx_runtime_1.jsx)("div", { ref: ref, className: (0, utils_1.cn)("text-sm text-muted-foreground", className), ...props })));
+exports.CardDescription = CardDescription;
+CardDescription.displayName = "CardDescription";
+const CardContent = React.forwardRef(({ className, ...props }, ref) => ((0, jsx_runtime_1.jsx)("div", { ref: ref, className: (0, utils_1.cn)("p-6 pt-0", className), ...props })));
+exports.CardContent = CardContent;
+CardContent.displayName = "CardContent";
+const CardFooter = React.forwardRef(({ className, ...props }, ref) => ((0, jsx_runtime_1.jsx)("div", { ref: ref, className: (0, utils_1.cn)("flex items-center p-6 pt-0", className), ...props })));
+exports.CardFooter = CardFooter;
+CardFooter.displayName = "CardFooter";
+//# sourceMappingURL=card.js.map

@@ -2,35 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.App = void 0;
 const jsx_runtime_1 = require("react/jsx-runtime");
-const react_1 = require("react");
+const button_1 = require("@/components/ui/button");
+const card_1 = require("@/components/ui/card");
+const input_1 = require("@/components/ui/input");
+const lucide_react_1 = require("lucide-react");
 const App = () => {
-    const [count, setCount] = (0, react_1.useState)(0);
-    console.log('🔍 React App component rendered!');
-    return ((0, jsx_runtime_1.jsxs)("div", { style: {
-            padding: '20px',
-            fontFamily: 'Arial, sans-serif',
-            backgroundColor: '#f0f8ff',
-            minHeight: '100vh'
-        }, children: [(0, jsx_runtime_1.jsx)("h1", { style: { color: '#2c3e50', marginBottom: '20px' }, children: "\uD83C\uDFB5 Playlistify" }), (0, jsx_runtime_1.jsx)("p", { style: { fontSize: '18px', marginBottom: '20px' }, children: "Electron + React + TypeScript + Webpack Setup Complete! \uD83C\uDF89" }), (0, jsx_runtime_1.jsx)("div", { style: { marginBottom: '20px' }, children: (0, jsx_runtime_1.jsxs)("button", { onClick: () => setCount(count + 1), style: {
-                        backgroundColor: '#3498db',
-                        color: 'white',
-                        border: 'none',
-                        padding: '10px 20px',
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                    }, children: ["Count: ", count] }) }), (0, jsx_runtime_1.jsxs)("div", { style: {
-                    backgroundColor: '#ecf0f1',
-                    padding: '15px',
-                    borderRadius: '5px',
-                    border: '1px solid #bdc3c7'
-                }, children: [(0, jsx_runtime_1.jsx)("h3", { children: "\u2705 Task 1 Implementation Status:" }), (0, jsx_runtime_1.jsxs)("ul", { children: [(0, jsx_runtime_1.jsx)("li", { children: "\u2705 Electron Forge project with TypeScript + Webpack template" }), (0, jsx_runtime_1.jsx)("li", { children: "\u2705 TypeScript configured with strict type checking" }), (0, jsx_runtime_1.jsx)("li", { children: "\u2705 Path aliases configured (@/* imports)" }), (0, jsx_runtime_1.jsx)("li", { children: "\u2705 Webpack configuration for main, renderer, and preload processes" }), (0, jsx_runtime_1.jsx)("li", { children: "\u2705 Basic window creation and lifecycle management" }), (0, jsx_runtime_1.jsx)("li", { children: "\u2705 Secure IPC communication architecture" }), (0, jsx_runtime_1.jsx)("li", { children: "\u2705 Context isolation and security measures" })] })] }), (0, jsx_runtime_1.jsxs)("div", { style: {
-                    backgroundColor: '#fff3cd',
-                    padding: '15px',
-                    borderRadius: '5px',
-                    border: '1px solid #ffeaa7',
-                    marginTop: '20px'
-                }, children: [(0, jsx_runtime_1.jsx)("h3", { children: "\uD83D\uDCCB Next Steps (Future Tasks):" }), (0, jsx_runtime_1.jsxs)("ul", { children: [(0, jsx_runtime_1.jsx)("li", { children: "Task 2: Establish Project Directory Structure" }), (0, jsx_runtime_1.jsx)("li", { children: "Task 3: Implement Core Dependency Management System" }), (0, jsx_runtime_1.jsx)("li", { children: "Task 4: Set Up React Frontend with UI Framework" }), (0, jsx_runtime_1.jsx)("li", { children: "And more..." })] })] })] }));
+    return ((0, jsx_runtime_1.jsxs)("div", { className: "min-h-screen bg-background text-foreground", children: [(0, jsx_runtime_1.jsx)("header", { className: "border-b border-border bg-card", children: (0, jsx_runtime_1.jsxs)("div", { className: "container mx-auto px-4 py-3 flex items-center justify-between", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-center space-x-2", children: [(0, jsx_runtime_1.jsx)(lucide_react_1.Music, { className: "h-6 w-6 text-primary" }), (0, jsx_runtime_1.jsx)("h1", { className: "text-xl font-bold", children: "PlayListify" })] }), (0, jsx_runtime_1.jsxs)("div", { className: "flex items-center space-x-4", children: [(0, jsx_runtime_1.jsxs)("div", { className: "relative", children: [(0, jsx_runtime_1.jsx)(lucide_react_1.Search, { className: "absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" }), (0, jsx_runtime_1.jsx)(input_1.Input, { placeholder: "Search playlists...", className: "pl-10 w-64" })] }), (0, jsx_runtime_1.jsx)(button_1.Button, { variant: "outline", size: "icon", children: (0, jsx_runtime_1.jsx)(lucide_react_1.Settings, { className: "h-4 w-4" }) })] })] }) }), (0, jsx_runtime_1.jsxs)("main", { className: "container mx-auto px-4 py-8", children: [(0, jsx_runtime_1.jsxs)("div", { className: "mb-8", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between mb-6", children: [(0, jsx_runtime_1.jsx)("h2", { className: "text-2xl font-semibold", children: "Your Playlists" }), (0, jsx_runtime_1.jsxs)(button_1.Button, { children: [(0, jsx_runtime_1.jsx)(lucide_react_1.Plus, { className: "h-4 w-4 mr-2" }), "Create Playlist"] })] }), (0, jsx_runtime_1.jsx)("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6", children: [1, 2, 3, 4].map((i) => ((0, jsx_runtime_1.jsxs)(card_1.Card, { className: "hover:shadow-lg transition-shadow cursor-pointer", children: [(0, jsx_runtime_1.jsxs)(card_1.CardHeader, { children: [(0, jsx_runtime_1.jsx)("div", { className: "w-full h-32 bg-muted rounded-md mb-4 flex items-center justify-center", children: (0, jsx_runtime_1.jsx)(lucide_react_1.Music, { className: "h-8 w-8 text-muted-foreground" }) }), (0, jsx_runtime_1.jsxs)(card_1.CardTitle, { className: "text-lg", children: ["Playlist ", i] }), (0, jsx_runtime_1.jsx)(card_1.CardDescription, { children: "Sample playlist description with some details about the content." })] }), (0, jsx_runtime_1.jsx)(card_1.CardContent, { children: (0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between text-sm text-muted-foreground", children: [(0, jsx_runtime_1.jsx)("span", { children: "12 videos" }), (0, jsx_runtime_1.jsx)("span", { children: "2 hours" })] }) })] }, i))) })] }), (0, jsx_runtime_1.jsx)("div", { className: "text-center py-12", children: (0, jsx_runtime_1.jsxs)(card_1.Card, { className: "max-w-md mx-auto", children: [(0, jsx_runtime_1.jsxs)(card_1.CardHeader, { children: [(0, jsx_runtime_1.jsx)(card_1.CardTitle, { children: "Welcome to PlayListify!" }), (0, jsx_runtime_1.jsx)(card_1.CardDescription, { children: "Start by creating your first playlist or importing videos from YouTube." })] }), (0, jsx_runtime_1.jsxs)(card_1.CardContent, { className: "space-y-4", children: [(0, jsx_runtime_1.jsxs)(button_1.Button, { className: "w-full", children: [(0, jsx_runtime_1.jsx)(lucide_react_1.Plus, { className: "h-4 w-4 mr-2" }), "Create Your First Playlist"] }), (0, jsx_runtime_1.jsx)(button_1.Button, { variant: "outline", className: "w-full", children: "Import from YouTube" })] })] }) })] })] }));
 };
 exports.App = App;
 //# sourceMappingURL=App.js.map
