@@ -1,217 +1,197 @@
-# Playlistify: User Stories & Acceptance Criteria
+# User Stories (Single Source of Truth)
 
-This document outlines the user stories for the Playlistify application. Each story is designed to be a self-contained unit of functionality with clear, measurable, and AI-verifiable acceptance criteria that align with the project's technical architecture.
+This document is the single source of truth for all application requirements, combining user stories with detailed, AI-verifiable acceptance criteria that serve as the test plan.
 
 ---
 
-## Epic 1: Project Foundation & Playlist Viewing
+## Epic 1: Project Foundation & Core Infrastructure
 
-**Goal:** Establish the core application shell and enable users to import, view, and search within public YouTube playlists.
+**Goal:** Establish the core application shell, including the main layout, navigation, and foundational services for settings, storage, and communication.
 
 ---
 
 ### **Story 1.1: Main Application Layout**
 
-**As a user,** I want to see the main application window with a persistent sidebar and top navigation bar so that I can understand the layout and see the main sections of the app.
+**As a user,** I want to see a consistent and professional application layout with a sidebar for navigation and a top bar for context, so that I can easily navigate the app and understand its structure.
 
 *   **Acceptance Criteria:**
-    *   **AC1:** The application launches and displays a single, primary window.
-    *   **AC2:** A sidebar is rendered on the left side of the window and remains visible across all main navigation routes.
-    *   **AC3:** A top navigation bar is rendered at the top of the window and remains visible across all main navigation routes.
-    *   **AC4:** The main content area is correctly rendered to the right of the sidebar and below the top navigation bar.
+    *   **AC1:** The application launches displaying a main window with a persistent sidebar (`Sidenavbar.tsx`) and a top navigation bar (`TopNavbar.tsx`).
+    *   **AC2:** The sidebar contains clickable navigation links for "Dashboard", "My Playlists", "Downloads", "History", and "Settings".
+    *   **AC3:** The top bar displays the application title and a theme (dark/light mode) toggle button.
+    *   **AC4:** The main content area renders the component corresponding to the selected route (e.g., `Dashboard.tsx` for the "Dashboard" route).
+    *   **AC5:** The application supports both light and dark themes, and the theme can be toggled via the button in the top navbar. The theme choice is persisted across sessions.
+    *   **AC6:** A visual regression snapshot of the initial application layout matches the baseline image.
 
----
+### **Story 1.2: Dashboard UI Structure**
 
-### **Story 1.2: Build Dashboard UI Structure**
-
-**As a user,** I want a dashboard that serves as my central starting point, designed to display my "Recent Playlists" and "Continue Watching" history.
-
-*   **Acceptance Criteria:**
-    *   **AC1:** A "Dashboard" view is rendered when the corresponding navigation item is clicked.
-    *   **AC2:** The dashboard contains two distinct sections with the headers "Recent Playlists" and "Continue Watching".
-    *   **AC3:** When no data is available, the "Recent Playlists" section must display the exact text: "Your recent playlists will appear here."
-    *   **AC4:** When no data is available, the "Continue Watching" section must display an empty state message.
-
----
-
-### **Story 1.3: Import Public Playlist**
-
-**As a user,** I want to use the `+ Add` menu to import a public YouTube playlist using its URL, so that the import process starts in the background and I can continue using the app.
+**As a user,** I want a dashboard that serves as my central starting point, designed to display my "Recent Playlists" and "Continue Watching" history so I can quickly resume my activities.
 
 *   **Acceptance Criteria:**
-    *   **AC1:** Clicking the "Add Playlist" menu item opens a dialog. Upon pasting a valid YouTube playlist URL, a preview of the playlist (thumbnail, title, video count) is displayed within the dialog within 2 seconds.
-    *   **AC2:** When the "Import" button is clicked, a new task with `type: 'IMPORT'` and `status: 'QUEUED'` must be created in the `background_tasks` table in the SQLite database.
-    *   **AC3:** The import operation must be non-blocking. The UI thread must remain responsive, with user interactions completing in under 200ms while the import is in progress.
-    *   **AC4:** Upon task creation, a `task:update` event must be emitted via the secure IPC bridge, making the new task immediately visible in the Activity Center UI.
-    *   **AC5:** After the background task successfully inserts the playlist and video data into the SQLite database, a desktop notification with the title "Import Complete" and the body "[Playlist Title] has been successfully imported" must be displayed.
+    *   **AC1:** The "Dashboard" route (`/`) renders the `Dashboard.tsx` component.
+    *   **AC2:** The dashboard contains two distinct sections with `h2` headers: "Recent Playlists" and "Continue Watching".
+    *   **AC3:** When no data is available, these sections display a clear empty-state message (e.g., "You haven't viewed any playlists recently.").
+    *   **AC4:** The layout is responsive and adapts to different window sizes without breaking.
 
----
+### **Story 1.3: Persistent Settings Management**
 
-### **Story 1.4: View Playlist Details**
-
-**As a user,** I want to select an imported playlist and see the list of all its videos, including thumbnails and titles, so that I can browse its contents.
+**As a developer,** I need a reliable way to store and retrieve user settings and application state persistently so that user preferences and application data are not lost between sessions.
 
 *   **Acceptance Criteria:**
-    *   **AC1:** Clicking a playlist in the sidebar navigates to the playlist details view for that `playlistId`.
-    *   **AC2:** While the `playlist:get-details` IPC call is pending, the UI must display a skeleton loader that mimics the structure of the playlist header and at least five video list items.
-    *   **AC3:** The `playlist:get-details` IPC handler must query the SQLite database, joining the `playlists`, `videos`, and `playlist_videos` tables to retrieve all data for the given `playlistId`.
-    *   **AC4:** The view must render the playlist's title, total video count, and a "Last checked" timestamp in the header.
-    *   **AC5:** Each video in the list must render its thumbnail, title, channel name, duration, and a status dot.
+    *   **AC1:** The application uses `electron-store` for managing settings, accessible via a `settingsService.ts`.
+    *   **AC2:** A default configuration is established and applied on the first launch.
+    *   **AC3:** Settings are stored in a predictable location within the user's application data directory.
+    *   **AC4:** Settings can be read and written through a type-safe IPC API (`settings-handlers.ts`). For example, `window.api.settings.get('downloadLocation')` returns the correct value.
+    *   **AC5:** Changes to settings (e.g., theme, download path) are immediately reflected in the application and persist after a restart.
 
----
+### **Story 1.4: Foundational File System Utilities**
 
-### **Story 1.5: Search within Playlist**
-
-**As a user,** I want to search for a specific video by title within a selected playlist so that I can find content quickly.
+**As a developer,** I need a set of robust file system utilities to manage application files, directories, and user-generated content like downloads and playlist metadata.
 
 *   **Acceptance Criteria:**
-    *   **AC1:** The playlist detail view must contain a text input field for search.
-    *   **AC2:** The search input must be debounced by 300ms to prevent re-renders on every keystroke.
-    *   **AC3:** The video list must filter client-side within 50ms of the debounced search query changing, showing only videos whose titles contain a case-insensitive match of the query.
-    *   **AC4:** If the filtered result is empty, a message "No results found" must be displayed.
+    *   **AC1:** A `fileUtils.ts` module provides functions for creating directories, checking file existence, reading/writing JSON files, and validating paths.
+    *   **AC2:** The application initializes required directories (e.g., for downloads, logs, binaries) on startup.
+    *   **AC3:** All file system operations are exposed to the frontend via a secure IPC channel (`file-handlers.ts`).
+    *   **AC4:** Path validation is implemented to prevent directory traversal or other file system vulnerabilities.
 
----
+### **Story 1.5: Secure and Type-Safe IPC Communication**
 
-### **Story 1.6: Infinite Scroll for Video Lists**
-
-**As a user browsing a large playlist,** I want the video list to load more items automatically as I scroll down so that I can view all content without clicking through pages.
+**As a developer,** I need a secure and type-safe communication bridge between the frontend (Renderer) and backend (Main) processes so that data can be exchanged reliably without exposing sensitive Node.js APIs to the frontend.
 
 *   **Acceptance Criteria:**
-    *   **AC1:** When scrolling through a list of 1000+ video items, the browser frame rate must remain at or above 50 FPS.
-    *   **AC2:** The number of `VideoListItem` components rendered in the DOM must not exceed the number of visible items plus a buffer of 10 (5 above, 5 below the viewport).
-    *   **AC3:** The scrollbar's size must accurately reflect the total size of the virtualized list, not just the rendered items.
+    *   **AC1:** A `preload.ts` script is configured with `contextIsolation: true` and `nodeIntegration: false`.
+    *   **AC2:** The `contextBridge` is used to expose a well-defined API (e.g., `window.api`) to the renderer process.
+    *   **AC3:** The exposed API is type-safe, with types shared between the frontend and backend (`src/shared/types`).
+    *   **AC4:** No Node.js modules (e.g., `fs`, `path`) are directly exposed to the renderer process.
+    *   **AC5:** All communication is funneled through specific IPC handlers (`app-handlers.ts`, `playlist-handlers.ts`, etc.) which call corresponding backend services.
 
 ---
 
-## Epic 2: Custom Playlist Management
+## Epic 2: Playlist Management & Content Discovery
 
-**Goal:** Empower users to create, populate, and manage their own local playlists from scratch.
+**Goal:** Enable users to import public YouTube playlists, create their own custom local playlists, and manage the videos within them.
 
 ---
 
-### **Story 2.1: Create a Custom Playlist**
+### **Story 2.1: Import Public Playlist via URL**
 
-**As a user,** I want to create a new, empty custom playlist with a unique title and description.
+**As a user,** I want to import a public YouTube playlist by pasting its URL into the "Add New Playlist" dialog so that I can add new content to my library.
 
 *   **Acceptance Criteria:**
-    *   **AC1:** The "Add Playlist" dialog must have a "Custom Playlist" tab with "Title" and "Description" fields.
-    *   **AC2:** The Title field must enforce a 100-character limit and the Description must enforce a 512-character limit, both with visible character counters.
-    *   **AC3:** On clicking "Create Playlist," the `playlist:create-custom` IPC handler must be called. The handler must first query the database to ensure the title is unique.
-    *   **AC4:** If the title already exists, the IPC handler must return an error `{ success: false, error: 'DUPLICATE_TITLE' }`, and the UI must display the message "A playlist with this title already exists."
-    *   **AC5:** If the title is unique, the handler must insert a new record into the `playlists` table with `type = 'CUSTOM'`.
+    *   **AC1:** Clicking the "Add New Playlist" button opens a dialog with two tabs: "From YouTube" and "Custom Playlist".
+    *   **AC2:** Pasting a valid YouTube playlist URL into the "From YouTube" tab's input field triggers a metadata fetch using `yt-dlp`.
+    *   **AC3:** The dialog displays a preview of the playlist including its thumbnail, title, and video count.
+    *   **AC4:** Clicking "Import" saves the playlist and its video metadata to the database via `playlist-manager.ts`.
+    *   **AC5:** The import process runs in the background, and the UI remains responsive.
+    *   **AC6:** An invalid URL results in a user-friendly error message within the dialog.
+    *   **AC7:** The Content Security Policy in `backend.ts` is configured to allow loading thumbnails from `i.ytimg.com` and `img.youtube.com`.
 
----
+### **Story 2.2: Create a Custom Playlist**
 
-### **Story 2.2: Add Videos to a Custom Playlist**
-
-**As a user,** I want to add a video from an existing playlist to one of my custom playlists so I can organize content according to my own themes.
-
-*   **Acceptance Criteria:**
-    *   **AC1:** The context menu for any video must have an "Add to Playlist" option, which reveals a submenu listing all custom playlists.
-    *   **AC2:** On selecting a playlist, the `playlist:add-video-to-custom` IPC handler must be called.
-    *   **AC3:** The backend handler must first check the `playlist_videos` junction table to see if the video-playlist association already exists.
-    *   **AC4:** If the association exists, no new record is created, and a notification "Video is already in this playlist" is shown.
-    *   **AC5:** If the association does not exist, a new row is inserted into the `playlist_videos` table, and a notification "Video added to '[Playlist Name]'" is shown.
-
----
-
-## Epic 3: Core Downloading & Offline Playback
-
-**Goal:** Implement a robust archiving system, allowing users to download videos with smart quality selection and watch them offline.
-
----
-
-### **Story 3.1: Download a Single Video**
-
-**As a user,** I want to download a single video from a playlist or URL with full control over the options, so I can save specific content to my library.
+**As a user,** I want to create a new, empty custom playlist with a unique title and description so that I can organize videos according to my own themes.
 
 *   **Acceptance Criteria:**
-    *   **AC1:** The "Download" dialog must allow format selection (MP4/MP3) and dynamically populate a quality dropdown based on the available qualities for that video.
-    *   **AC2:** Before downloading, the backend must verify that available disk space at the target path is greater than the video's estimated size. If not, an error is returned.
-    *   **AC3:** The backend download process must use `yt-dlp` to download the video and `fluent-ffmpeg` to embed the thumbnail into the final MP4 file's metadata.
-    *   **AC4:** The download task must be created and managed by the persistent, priority-based queue service.
-    *   **AC5:** The video's `download_status` in the `videos` table must be updated to 'COMPLETED' upon successful download.
+    *   **AC1:** In the "Add New Playlist" dialog, the "Custom Playlist" tab contains input fields for "Title" and "Description".
+    *   **AC2:** Character limits and counters are displayed for both the title and description fields.
+    *   **AC3:** Clicking "Create" with a unique title inserts a new record into the `playlists` table with `type = 'CUSTOM'`.
+    *   **AC4:** Attempting to create a playlist with a title that already exists displays a validation error message "A playlist with this title already exists." and does not create a duplicate record.
+    *   **AC5:** The form has a loading state during submission to provide feedback to the user.
 
----
+### **Story 2.3: View and Navigate Playlists**
 
-### **Story 3.2: Download an Entire Playlist**
-
-**As a user,** I want to download all videos from a playlist with a single action, and for any video that doesn't have my selected quality, I want the app to automatically download the best available quality instead.
+**As a user,** I want to see all my imported and custom playlists in a clean, responsive grid or list, so that I can easily browse and select them.
 
 *   **Acceptance Criteria:**
-    *   **AC1:** Initiating a playlist download creates a "parent" task in the `background_tasks` table.
-    *   **AC2:** For each video in the playlist, a "child" download task is created and linked to the parent task.
-    *   **AC3:** For each child task, the download service must first query the video's available formats. If the user-selected quality is not present, the service must select the highest available quality from that video's format list for the download command.
-    *   **AC4:** The parent task's progress must be calculated as an aggregate of the progress of its child tasks.
-    *   **AC5:** If one or more child tasks fail, the parent task's final status must be set to `COMPLETED_WITH_ERRORS`.
+    *   **AC1:** The "My Playlists" page displays all playlists in a responsive grid (`PlaylistGrid.tsx`) by default.
+    *   **AC2:** Each playlist is represented by a `PlaylistCard.tsx` component showing its thumbnail (with a fallback), title, and video count.
+    *   **AC3:** A view toggle button allows switching between a grid view and a list view (`PlaylistListView.tsx`). The choice is persisted.
+    *   **AC4:** The page displays a skeleton loader while playlists are being fetched.
+    *   **AC5:** If no playlists exist, a clear "empty state" message is shown with a call to action to create or import a playlist.
+    *   **AC6:** Clicking on a playlist card navigates the user to the detailed view for that playlist.
 
----
+### **Story 2.4: View Playlist Details and Search**
 
-### **Story 3.3: Basic Offline Playback**
-
-**As a user,** I want to click on a successfully downloaded video and have it play within the application.
-
-*   **Acceptance Criteria:**
-    *   **AC1:** When a downloaded video is clicked, the application must first call an IPC handler to verify the local file exists at its recorded path. If not, a "File not found" message is displayed.
-    *   **AC2:** The video player must load the video using a secure, custom file protocol (e.g., `app://`) registered via Electron's `protocol.registerFileProtocol`.
-    *   **AC3:** The player UI must have working controls for play/pause, volume, and a seek bar that accurately reflects the video's current time and buffered range.
-
----
-
-## Epic 4: Background Tasks & Activity Center
-
-**Goal:** Implement a robust system for handling long-running tasks and provide a UI for users to monitor their progress.
-
----
-
-### **Story 4.1: Persistent Backend Task Management**
-
-**As a developer,** I need a centralized, persistent service to manage the state and progress of all long-running background tasks.
+**As a user,** I want to select an imported playlist to see all its videos, and search within that list to find specific content quickly.
 
 *   **Acceptance Criteria:**
-    *   **AC1:** A `background_tasks` table exists in the SQLite database, as defined in the schema.
-    *   **AC2:** All long-running operations (imports, downloads) create a corresponding record in the `background_tasks` table. All database operations related to task creation and updates must be wrapped in a transaction.
-    *   **AC3:** The schema supports a `parentId` to link child tasks to a parent, enabling features like batch playlist downloads.
-    *   **AC4:** On application startup, the `BackgroundTaskService` must query the `background_tasks` table for any tasks with a non-terminal status (e.g., 'QUEUED', 'DOWNLOADING'). For each such task, it must re-enqueue the job into the `p-queue`.
+    *   **AC1:** The playlist detail view header displays the playlist's title, description, and total video count.
+    *   **AC2:** The view contains a list of all videos in the playlist, with each item showing the video's thumbnail, title, and duration.
+    *   **AC3:** A search input field is present on the playlist detail page.
+    *   **AC4:** Typing in the search field filters the displayed video list in real-time (with debouncing) in a case-insensitive manner.
+    *   **AC5:** Clearing the search input restores the full, unfiltered list of videos.
+    *   **AC6:** If a search yields no results, a "No results found" message is displayed.
 
----
+### **Story 2.5: Manage Playlists and Videos**
 
-### **Story 4.2: Activity Center UI**
-
-**As a user,** I want to see a persistent widget that shows me my active tasks, which I can cancel or clear at any time.
-
-*   **Acceptance Criteria:**
-    *   **AC1:** A widget is persistently displayed in the bottom-right corner of the application.
-    *   **AC2:** The widget listens for `task:update` events from the backend via the IPC bridge and updates its display in real-time.
-    *   **AC3:** Each active task in the widget must have a "Cancel" button that calls a `task:cancel` IPC handler, which stops the corresponding backend task and sets its status to `CANCELLED` in the database.
-    *   **AC4:** Progress updates displayed in the UI must be throttled to update a maximum of 2 times per second to ensure UI performance.
-
----
-
-## Epic 5: Playlist Health & Status Sync
-
-**Goal:** Introduce an automated status-checking system for imported playlists to keep users informed about video availability.
-
----
-
-### **Story 5.1: Backend Health Check Service**
-
-**As a developer,** I need a backend service that can check an imported playlist against YouTube to see if any videos have been deleted or privated.
+**As a user,** I want to manage my playlists and the videos within them through a set of actions like editing details, deleting, and adding videos to custom playlists.
 
 *   **Acceptance Criteria:**
-    *   **AC1:** The service uses `yt-dlp` with a lightweight flag (e.g., `--get-title`) to verify a video's status.
-    *   **AC2:** After checking, the service updates the `availability_status` field for the video in the SQLite database to 'Live', 'Deleted', or 'Private'.
-    *   **AC3:** The service processes all video checks for a playlist using a `p-queue` instance configured with `{ concurrency: 2 }` to avoid IP rate-limiting.
-    *   **AC4:** After all videos in a playlist are checked, the `last_health_check` timestamp on the `playlists` table is updated.
+    *   **AC1:** A dropdown menu (`PlaylistActionsDropdown.tsx`) is available on each playlist card, offering actions like "Edit", "Delete", and "Download".
+    *   **AC2:** The "Edit" action opens a dialog (`EditPlaylistDetailsDialog.tsx`) allowing the user to change the title and description of a playlist.
+    *   **AC3:** The "Delete" action shows a confirmation dialog (`ConfirmDeleteDialog.tsx`) before permanently removing the playlist and its associated data.
+    *   **AC4:** From a video list, a user can add an individual video to one of their custom playlists.
+    *   **AC5:** A user can reorder videos within a custom playlist using drag-and-drop.
 
 ---
 
-### **Story 5.2: Scheduled Background Sync**
+## Epic 3: Video Downloading, Conversion & Offline Playback
 
-**As a developer,** I need a scheduler that automatically and safely runs the Health Check Service on all imported playlists based on the user's chosen frequency.
+**Goal:** Implement a robust archiving system, allowing users to download videos with smart quality selection, convert formats, and watch them offline.
+
+---
+
+### **Story 3.1: Download a Single Video or Entire Playlist**
+
+**As a user,** I want to download a single video or an entire playlist with control over quality and location, so I can watch content offline.
 
 *   **Acceptance Criteria:**
-    *   **AC1:** A scheduler, initialized on app startup, reads the user's sync frequency setting from `electron-store`.
-    *   **AC2:** The scheduler checks if it should run based on the user's setting and the `last_health_check` timestamp of each playlist.
-    *   **AC3:** The scheduler must query the `BackgroundTaskService` to check for active, user-initiated tasks. If any are found, the health check is paused and will be re-attempted on the next interval.
-    *   **AC4:** If the queue is free and it's time to run, the scheduler triggers the `HealthCheckService`.
+    *   **AC1:** A download can be initiated for a single video or an entire playlist from the UI.
+    *   **AC2:** A dialog (`DownloadContentDialog.tsx` or `DownloadPlaylistDialog.tsx`) appears, allowing the user to select video quality and download directory.
+    *   **AC3:** The quality selection dropdown is dynamically populated by querying the available formats for the specific video/playlist using `yt-dlp -F`. Only available MP4 qualities are shown.
+    *   **AC4:** The download is managed by a queue (`downloadManager.ts` using `p-queue`) to handle concurrent downloads based on user settings.
+    *   **AC5:** The `yt-dlp` command uses `--ffmpeg-location` to ensure reliable merging of video and audio streams.
+    *   **AC6:** If the user's selected quality is unavailable for a specific video, the system automatically falls back to downloading the next highest available quality for that video.
+
+### **Story 3.2: Embed Thumbnails and Track Download Quality**
+
+**As a user,** I want my downloaded videos to have their original thumbnails embedded, and I want to see the actual quality that was downloaded for each file.
+
+*   **Acceptance Criteria:**
+    *   **AC1:** During the download process, `yt-dlp` is used to download the video's thumbnail image file separately.
+    *   **AC2:** If necessary, `ffmpegService.ts` converts the thumbnail image to a compatible format (e.g., JPG).
+    *   **AC3:** `ffmpegService.ts` is used to embed the converted thumbnail into the final downloaded MP4 file.
+    *   **AC4:** The database is updated to store the actual quality that was downloaded for each video (e.g., '1080p', '720p'), which may differ from the requested quality due to the fallback mechanism.
+    *   **AC5:** The UI displays the actual downloaded quality for each video in its details.
+
+### **Story 3.3: Monitor Download Status**
+
+**As a user,** I want to see the status and progress of my active and completed downloads so I can track what's happening.
+
+*   **Acceptance Criteria:**
+    *   **AC1:** A "Downloads" page (`Downloads.tsx`) displays a list of all current and past downloads.
+    *   **AC2:** The list is filterable by status (e.g., Active, Paused, Completed, Failed).
+    *   **AC3:** Each download item (`DownloadItem.tsx`) shows its title, thumbnail, a progress bar, and current status.
+    *   **AC4:** The UI provides controls to pause, resume, or cancel active downloads.
+    *   **AC5:** The download state is managed by a Zustand store (`downloadStore.ts`) and is persisted across application restarts.
+
+### **Story 3.4: Video Format Conversion**
+
+**As a user,** I want the ability to convert a downloaded video to a different format (e.g., MP4 to MP3) so that I can use the content in different ways.
+
+*   **Acceptance Criteria:**
+    *   **AC1:** A `formatConverter.ts` service using `fluent-ffmpeg` is available to handle conversions.
+    *   **AC2:** The UI provides an option to convert a downloaded video, presenting a `FormatSelector.tsx` component.
+    *   **AC3:** The user can select the output format (e.g., mp4, webm, mp3, flac) and quality/bitrate options.
+    *   **AC4:** The conversion process shows progress and reports success or failure.
+    *   **AC5:** IPC handlers (`formatConverterHandlers.ts`) are set up to manage the communication for format conversion.
+
+### **Story 3.5: Offline Video Playback**
+
+**As a user,** I want to click on a downloaded video and have it play smoothly within the application, even when I'm offline.
+
+*   **Acceptance Criteria:**
+    *   **AC1:** Clicking a downloaded video in the UI launches the `VideoPlayer.tsx` component.
+    *   **AC2:** The player first verifies the local file exists; if not, a "File not found" error is displayed.
+    *   **AC3:** The video is loaded using a secure method (e.g., a custom file protocol or by serving it from the backend).
+    *   **AC4:** The player provides custom controls (play/pause, volume, seek, fullscreen) for locally played files.
+    *   **AC5:** For streaming a YouTube URL, the player uses the standard YouTube embedded player controls for a familiar experience.
+    *   **AC6:** Keyboard shortcuts are available for common playback actions (e.g., spacebar for play/pause, arrow keys for seek).

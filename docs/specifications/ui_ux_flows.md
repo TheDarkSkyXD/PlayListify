@@ -1,89 +1,90 @@
 # UI/UX Flows
 
-This document describes the user interface and user experience flows for key tasks within the Playlistify application.
+This document details the key user interface (UI) and user experience (UX) flows for the Playlistify application. It provides a step-by-step description of user interactions and the corresponding system responses.
 
-## 1. Unified Flow: Creating or Importing a Playlist
+---
 
-1.  **User is on any main screen:** The user can access the "+ Add" menu from the top navigation bar.
-    *   **UI Element:** Top navigation bar
-    *   **Description:** A horizontal bar at the top of the application window, containing the application logo, navigation links, and the "+ Add" button.
-2.  **User clicks the "+ Add" button:** A dropdown menu appears with a single item.
-    *   **UI Element:** "+ Add" button
-    *   **Description:** A button with a "+" icon and the label "Add". When clicked, it triggers the display of a dropdown menu.
-    *   **Menu Contents:** The dropdown menu contains only one option: "Add Playlist".
-3.  **User selects "Add Playlist":** A dialog box appears, providing two methods for adding a playlist.
-    *   **UI Element:** Dialog box
-    *   **Description:** A modal window titled "Add Playlist" that appears on top of the main application window. It contains two tabs: "Create Custom Playlist" and "Import from YouTube URL".
+## 1. Core Navigation and Layout
 
-### 1A. Flow: Creating a Custom Playlist
+*   **1.1. Initial View:**
+    1.  User launches the application.
+    2.  The main window appears, displaying the `AppLayout` component.
+    3.  The layout consists of a persistent `Sidenavbar` on the left, a `TopNavbar` at the top, and a main content area.
+    4.  The "Dashboard" view is loaded into the main content area by default.
 
-1.  **User is in the "Add Playlist" dialog and selects the "Create Custom Playlist" tab:** The dialog displays input fields for the playlist title and description.
-    *   **Mockup:** The "Create Custom Playlist" tab has input fields for "Playlist Title" (single-line text input) and "Description" (multi-line text input), each with a character counter displayed below. The "Create Playlist" button, styled with a green background and white text, is located at the bottom-right corner of the dialog.
-2.  **User enters a title and (optionally) a description:** The character counters update in real-time as the user types.
-3.  **User clicks the "Create Playlist" button:**
-    *   The application validates the input. If the title is a duplicate, an error message is displayed.
-    *   If the input is valid, a new, empty playlist is created.
-    *   The dialog closes.
-    *   The new playlist appears in the sidebar navigation.
+*   **1.2. Page Navigation:**
+    1.  User clicks a navigation link in the `Sidenavbar` (e.g., "Downloads").
+    2.  The `TanStack Router` updates the route.
+    3.  The corresponding page component (e.g., `Downloads.tsx`) is rendered in the main content area.
+    4.  The `Sidenavbar` and `TopNavbar` remain unchanged.
 
-### 1B. Flow: Importing a Playlist from YouTube
+---
 
-1.  **User is in the "Add Playlist" dialog and selects the "Import from YouTube URL" tab:** The dialog displays an input field for a YouTube playlist URL.
-    *   **Mockup:** The "Import from YouTube URL" tab features a prominent input field labeled "YouTube Playlist URL" with a placeholder text "https://www.youtube.com/playlist?list=...". Below the input field, there's an "Import" button, styled with a blue background and white text, aligned to the right.
-2.  **User pastes a valid YouTube playlist URL into the input field:**
-    *   The application automatically fetches playlist metadata (title, thumbnail, video count) and displays it as a preview within the dialog.
-    *   An error message is displayed if the URL is invalid or the playlist cannot be accessed.
-3.  **User clicks the "Import" button:**
-    *   The dialog closes.
-    *   A task is added to the Activity Center, displaying the playlist title and a "Queued" status.
-    *   The task's status updates in real-time as the playlist is imported.
-4.  **When the playlist import is complete:**
-    *   The task in the Activity Center changes to "Completed" or "Completed with errors".
-    *   A success notification is displayed briefly.
-    *   The imported playlist appears in the sidebar navigation.
+## 2. Playlist Import Flow
 
-## 2. Downloading a Video (from within a Playlist)
+*   **2.1. Initiating Import:**
+    1.  User clicks the `+ Add` button in the `TopNavbar`.
+    2.  A dropdown menu appears. User selects "Add Playlist".
+    3.  The `AddNewPlaylistDialog` modal appears, displaying two tabs: "From YouTube" (default) and "Custom Playlist".
 
-1.  **User is viewing a playlist's details:** The user sees a list of videos in the playlist.
-    *   **UI Element:** Playlist details view
-    *   **Description:** A view that displays the details of a playlist, including a list of videos, playlist metadata, and controls for managing the playlist.
-2.  **User right-clicks a video item to open its context menu and selects "Download":** A download options dialog appears.
-    *   **UI Element:** Context Menu
-    *   **Description:** A right-click menu on a video item that contains actions for that video, including "Download".
-3.  **The user selects the desired quality, format, and subtitle options:** The dialog displays the default download location.
-    *   **UI Element:** Download options dialog
-    *   **Description:** A modal window that appears on top of the playlist details view. It contains options for selecting the download quality, format, and subtitle options.
-    *   **Mockup:** The download options dialog includes dropdown menus for "Quality" (e.g., "1080p", "720p") and "Format" (options: "MP4", "MP3"). A checkbox labeled "Include Subtitles" is present. The default download location is displayed as a read-only text field. The "Download" button, styled with a blue background and white text, is positioned at the bottom-right corner.
-4.  **User clicks the "Download" button:**
-    *   The dialog closes.
-    *   A task is added to the Activity Center, displaying the video title and a "Queued" status.
-    *   The task's status updates in real-time as the video is downloaded.
-5.  **When the download is complete:**
-    *   The task in the Activity Center changes to "Completed" or "Failed".
-    *   A success notification is displayed briefly.
+*   **2.2. YouTube Playlist Import:**
+    1.  User pastes a valid YouTube playlist URL into the input field on the "From YouTube" tab.
+    2.  After a 300ms debounce, the frontend sends the URL to the backend via the `playlist:get-preview` IPC channel.
+    3.  The backend uses `yt-dlp` to fetch the playlist's metadata.
+    4.  A preview section appears in the dialog, displaying the playlist's thumbnail, title, and video count.
+    5.  User clicks the "Import" button.
+    6.  The dialog closes immediately.
+    7.  The frontend sends the URL to the `playlist:import` IPC channel.
+    8.  The backend creates a new `'IMPORT'` task in the `background_tasks` table.
+    9.  The `ActivityCenter` widget appears in the bottom-right corner, showing the new import task with a "Queued" status.
+    10. The backend processes the import, and the `ActivityCenter` shows real-time progress.
+    11. Upon completion, a system notification is triggered, and the new playlist appears in the `Sidenavbar`.
 
-## 3. Playing a Downloaded Video
+---
 
-1.  **User is viewing a playlist's details:** The user sees a list of videos in the playlist.
-    *   **UI Element:** Playlist details view
-    *   **Description:** A view that displays the details of a playlist, including a list of videos in the playlist, playlist metadata, and controls for managing the playlist.
-2.  **The user clicks on a downloaded video item:**
-    *   The application verifies that the local file exists. If not, a "File not found" message is displayed.
-    *   If the file exists, the video player opens and begins playing the video.
-3.  **The user interacts with the video player controls:** The user can play/pause, adjust the volume, seek, toggle loop, and select subtitle tracks.
-    *   **UI Element:** Video player
-    *   **Description:** A video player component that displays the video and provides controls for playback.
-    *   **Mockup:** The video player displays the video in the center. Below the video, there are controls: a play/pause button (icon changes based on state), a volume slider, a seek bar with a current time and total time display, a loop toggle button, and a subtitle selection menu (if subtitles are available).
+## 3. Custom Playlist Creation Flow
 
-## 4. Managing Application Settings
+*   **3.1. Creating the Playlist:**
+    1.  User opens the `AddNewPlaylistDialog` and clicks the "Custom Playlist" tab.
+    2.  User fills in the "Title" and "Description" fields. Character counters provide real-time feedback.
+    3.  User clicks the "Create Playlist" button.
+    4.  The frontend calls the `playlist:create-custom` IPC channel.
+    5.  **Success Path:** The backend verifies the title is unique, creates the playlist in the database, the dialog closes, and the new playlist appears in the `Sidenavbar`.
+    6.  **Failure Path (Duplicate Title):** The backend returns a `DUPLICATE_TITLE` error. The dialog remains open, and an error message "A playlist with this title already exists." is displayed below the title field.
 
-1.  **User clicks on "Settings" in the Sidebar:** The Settings page is displayed.
-    *   **UI Element:** Sidebar
-    *   **Description:** A vertical navigation bar on the left side of the application window, containing links to different sections of the application, such as "Playlists", "Settings", and "Activity Center".
-2.  **User navigates to "Auto-Sync Settings":** The auto-sync settings section is displayed.
-    *   **UI Element:** Settings page
-    *   **Description:** A page that displays the application settings, organized into sections such as "General", "Downloads", and "Auto-Sync".
-3.  **User selects a sync frequency (Hourly, Daily, Weekly, Never):** The selected frequency is saved.
-    *   **UI Element:** Auto-sync settings section
-    *   **Description:** A section on the Settings page that displays the auto-sync settings, including options for selecting the sync frequency.
-    *   **Mockup:** The auto-sync settings section would contain a dropdown menu for selecting the sync frequency, with options such as "Hourly", "Daily", "Weekly", and "Never".
+---
+
+## 4. Video Download Flow (Single Video)
+
+*   **4.1. Initiating Download:**
+    1.  User right-clicks a video in any playlist view to open its context menu.
+    2.  User selects the "Download" option.
+    3.  The `DownloadContentDialog` modal opens.
+
+*   **4.2. Configuring and Starting Download:**
+    1.  The dialog automatically fetches and displays the available quality options for that specific video via the `download:get-quality-options` IPC channel.
+    2.  User selects the desired format (MP4/MP3) and quality.
+    3.  User can optionally click "Select Location" to open a native OS folder selection dialog.
+    4.  User clicks "Add to Download Queue".
+    5.  The dialog closes.
+    6.  The frontend calls the `download:start` IPC channel.
+    7.  The backend performs a disk space check. If it fails, a system notification is shown.
+    8.  If successful, a new `'DOWNLOAD'` task is created and appears in the `ActivityCenter`.
+    9.  The backend downloads the video, embeds the thumbnail, and moves it to the final location.
+    10. The `ActivityCenter` shows real-time progress and status updates.
+
+---
+
+## 5. Activity Center and Task Monitoring
+
+*   **5.1. Task Lifecycle:**
+    1.  A long-running task (import/download) is initiated by the user.
+    2.  A new task item immediately appears in the `ActivityCenter` with a "Queued" status.
+    3.  When the task starts processing, its status changes to "In Progress" (e.g., "Downloading", "Importing"), and a progress bar appears and updates.
+    4.  If the user clicks the "Cancel" button on a task, its status changes to "Cancelled".
+    5.  Upon completion, the status changes to "Completed" or "Failed".
+    6.  The completed/failed task item remains in the list for a brief period (e.g., 10 seconds) before fading out.
+
+*   **5.2. Widget Interaction:**
+    1.  User can click the "Minimize" icon on the `ActivityCenter` header to collapse the widget, showing only the header.
+    2.  User can click the "Clear All" button to immediately remove all tasks with a terminal status (Completed, Failed, Cancelled) from the view.

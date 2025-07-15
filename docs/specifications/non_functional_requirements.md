@@ -1,84 +1,49 @@
 # Non-Functional Requirements
 
-This document outlines the non-functional requirements for the Playlistify application. These requirements define the quality attributes of the system, such as performance, security, usability, and reliability.
+This document specifies the non-functional requirements (NFRs) for the Playlistify application. These requirements define the quality attributes and constraints of the system.
 
-## Performance
+---
 
-*   **NFR.P.1:** The application shall launch within 2 seconds.
-    *   **Rationale:** To provide a responsive user experience.
-    *   **Measurement:** Time taken for the application window to become fully interactive after launch.
-*   **NFR.P.2:** Playlist details shall load within 2 seconds.
-    *   **Rationale:** To allow users to quickly browse playlist contents.
-    *   **Measurement:** Time taken for the playlist details view to fully render after a playlist is selected.
-*   **NFR.P.3:** Song search results shall be displayed within 0.5 seconds.
-    *   **Rationale:** To provide a responsive search experience.
-    *   **Measurement:** Time taken for search results to be displayed after the user submits a search query.
-*   **NFR.P.4:** Scrolling through large playlists (100+ videos) shall maintain a frame rate of at least 30 FPS.
-    *   **Rationale:** To ensure a smooth scrolling experience.
-    *   **Measurement:** Measured using performance monitoring tools.
+## 1.0 Performance
 
-## Security
+| ID      | Requirement                                                              | Measurement / Verification                                                                                                                                                                                                                                                        |
+| :------ | :----------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **NFR-1.1** | **UI Responsiveness:** The user interface must remain responsive during background operations. | - User interactions (clicks, typing) must register and provide feedback in under 200ms, even while a playlist import or download is in progress. <br> - This will be verified via end-to-end tests using Playwright.                                                                      |
+| **NFR-1.2** | **List Virtualization:** The application must efficiently render large lists of videos. | - When scrolling through a playlist of 1,000+ videos, the browser frame rate must remain at or above 50 FPS. <br> - The number of DOM nodes for list items should not exceed the number of visible items plus a small buffer (e.g., 10). Verified via Playwright and browser performance profiling. |
+| **NFR-1.3** | **Search Performance:** Client-side search must be performant.            | - Filtering the video list based on a search query must complete within 50ms of the debounced input. <br> - The search input must be debounced by at least 300ms to avoid excessive re-renders. Verified via component-level performance tests.                                 |
+| **NFR-1.4** | **Resource Usage:** The application should have low resource usage when idle. | - When idle (no active tasks or user interaction), the application's CPU usage should be less than 2%. <br> - Memory usage should be stable and not exhibit memory leaks over a 24-hour period. Verified via OS-level monitoring tools.                                                |
+| **NFR-1.5** | **Startup Time:** The application should launch quickly.                  | - The main application window should be visible and interactive within 3 seconds of launching the application from a cold start. Verified via manual testing and automated launch scripts.                                                                                  |
 
-*   **NFR.S.1:** The application shall protect user data from unauthorized access.
-    *   **Rationale:** To ensure user privacy and data integrity.
-    *   **Measurement:** No critical or high-severity vulnerabilities found during annual security audits and penetration testing.
-*   **NFR.S.2:** The application shall use secure communication channels (HTTPS) for all sensitive data transmission.
-    *   **Rationale:** To prevent eavesdropping and man-in-the-middle attacks.
-    *   **Measurement:** Verification of HTTPS usage for all API calls.
-*   **NFR.S.3:** The application shall sanitize user inputs to prevent injection attacks.
-    *   **Rationale:** To prevent malicious code from being injected into the application.
-    *   **Measurement:** Automated testing with tools like OWASP ZAP.
-*   **NFR.S.4:** The application shall store sensitive data (e.g., API keys) securely using encryption.
-    *   **Rationale:** To protect sensitive data from unauthorized access in case of a data breach.
-    *   Measurement:** Sensitive data is encrypted using AES-256 encryption, and code review confirms proper encryption implementation.
-*   **NFR.S.5:** Perform regular security audits and penetration testing to identify vulnerabilities.
-    *   **Rationale:** To proactively identify and address potential security weaknesses.
-    *   **Measurement:** Conduct annual security audits and penetration testing by qualified security professionals.
-*   **NFR.S.6:** Use Electronegativity to identify misconfigurations and security anti-patterns.
-    *   **Rationale:** To ensure secure Electron configuration.
-    *   **Measurement:** Run Electronegativity on each build and address any identified issues.
+## 2.0 Reliability & Data Integrity
 
-## Usability
+| ID      | Requirement                                                              | Measurement / Verification                                                                                                                                                                                                                                                        |
+| :------ | :----------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **NFR-2.1** | **Task Persistence:** Background tasks must be persistent across sessions. | - If the application is closed during an import or download, the task's state is saved. <br> - Upon restart, the `BackgroundTaskService` must identify and re-queue any unfinished tasks. This is verified by Test Case 4.1 in the Master Acceptance Test Plan.                 |
+| **NFR-2.2** | **Transactional Integrity:** Database operations must be atomic.         | - All database operations that involve multiple related inserts or updates (e.g., creating a playlist and adding its videos) must be wrapped in a single transaction. <br> - Verification is done via code review and integration tests that simulate failures mid-operation. |
+| **NFR-2.3** | **Error Handling:** The application must handle errors gracefully.       | - Backend errors (e.g., API failures, database errors) must be caught and logged, and must not crash the main process. <br> - The UI must display user-friendly error messages instead of technical error codes.                                                                   |
+| **NFR-2.4** | **Data Validation:** All data must be validated before being processed.  | - All data received from external sources (e.g., YouTube API) or user input is validated against a defined schema (e.g., using Zod). <br> - Invalid data is rejected and an appropriate error is logged and communicated to the user.                                             |
 
-*   **NFR.U.1:** The application shall have a clear and intuitive user interface.
-    *   **Rationale:** To make the application easy to use and navigate.
-    *   **Measurement:** A System Usability Scale (SUS) score of 70 or higher.
-*   **NFR.U.2:** The application shall provide helpful error messages to guide users when they encounter problems.
-    *   **Rationale:** To assist users in resolving issues and completing their tasks.
-    *   **Measurement:** 80% of users rate error messages as helpful in a post-task survey.
-*   **NFR.U.3:** The application shall be accessible to users with disabilities, following WCAG guidelines.
-    *   **Rationale:** To ensure that the application is usable by everyone.
-    *   **Measurement:** Accessibility audits using tools like WAVE.
+## 3.0 Security
 
-## Reliability
+| ID      | Requirement                                                              | Measurement / Verification                                                                                                                                                                                                                                                        |
+| :------ | :----------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **NFR-3.1** | **Secure IPC:** Communication between the main and renderer processes must be secure. | - The preload script must have `contextIsolation` enabled and `nodeIntegration` disabled. <br> - Only specific, required functionalities are exposed to the renderer process via the `contextBridge`. Verified by reviewing the Electron configuration and preload script.        |
+| **NFR-3.2** | **File System Access:** The renderer process must not have direct file system access. | - All file system operations (read, write, delete) must be handled by the main process and exposed to the renderer process only through dedicated, secure IPC channels. Verified by code review and security audit.                                                                 |
+| **NFR-3.3** | **Input Sanitization:** All user-provided input must be sanitized.      | - File paths, search queries, and playlist titles/descriptions are sanitized to prevent injection attacks or path traversal vulnerabilities. Verified by unit tests that attempt to inject malicious strings.                                                                    |
+| **NFR-3.4** | **Credential Security:** OAuth credentials must not be exposed.          | - The application's `client_id` and `client_secret` for Google OAuth are obfuscated in production builds. <br> - User-specific tokens are stored encrypted on the user's machine using `electron-store` with a machine-specific key. Verified via build script and code review. |
 
-*   **NFR.R.1:** The application shall have a Mean Time Between Failures (MTBF) of at least 100 hours of active use.
-    *   **Rationale:** To ensure a stable and reliable user experience for a desktop application.
-    *   **Measurement:** Calculated based on crash reports and session data over a 30-day period.
-*   **NFR.R.2:** The application shall be able to recover from failures gracefully.
-    *   **Rationale:** To minimize the impact of errors on the user experience.
-    *   **Measurement:** Mean time to recovery (MTTR) from failures is less than 30 minutes, and the error rate is less than 0.1%.
-*   **NFR.R.3:** The application shall handle a local database of 10,000 videos without noticeable performance degradation in UI interactions.
-    *   **Rationale:** To ensure the application remains responsive as the user's local library grows.
-    *   **Measurement:** UI interaction response times (e.g., search, filter, load playlist) remain under 2 seconds with a 10,000-video database.
+## 4.0 Usability & Accessibility
 
-## Maintainability
+| ID      | Requirement                                                              | Measurement / Verification                                                                                                                                                                                                                                                        |
+| :------ | :----------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **NFR-4.1** | **Keyboard Navigation:** All interactive elements must be keyboard accessible. | - All buttons, inputs, and navigation links can be focused and activated using the Tab and Enter/Space keys. <br> - Focus order is logical and predictable. Verified via manual testing and automated accessibility checks.                                                           |
+| **NFR-4.2** | **Accessibility Standards:** The application should meet basic accessibility standards. | - All images and icons have appropriate `alt` text or `aria-label` attributes. <br> - Color contrast ratios meet WCAG AA standards. <br> - The application is navigable and usable with a screen reader. Verified using accessibility audit tools like Lighthouse or Axe.        |
+| **NFR-4.3** | **Destructive Action Confirmation:** Destructive actions must require user confirmation. | - Deleting a playlist or video requires the user to confirm the action in a modal dialog. <br> - The dialog clearly explains the consequence of the action. Verified via E2E tests for all deletion workflows.                                                                    |
 
-*   **NFR.M.1:** The codebase shall be well-documented and easy to understand.
-    *   **Rationale:** To facilitate maintenance and future development.
-    *   **Measurement:** Code Maintainability Index (CMI) score of 70 or higher, as measured by static analysis tools.
-*   **NFR.M.2:** The application shall be designed in a modular way, with clear separation of concerns.
-    *   **Rationale:** To make it easier to modify and extend the application.
-    *   **Measurement:** Coupling Between Objects (CBO) metric is below 20, as measured by static analysis tools.
-*   **NFR.M.3:** The application shall use consistent coding standards and conventions.
-    *   **Rationale:** To improve code readability and maintainability.
-    *   **Measurement:** Linting and code style checks.
+## 5.0 Maintainability & Extensibility
 
-## Scalability
-
-*   **NFR.SC.1:** The application shall be able to handle a growing number of playlists and videos without significant performance degradation.
-    *   **Rationale:** To accommodate a growing user base and larger video libraries.
-    *   **Measurement:** Load testing with increasing data volumes.
-*   **NFR.SC.2:** The application's backend services (if any) shall be able to scale to handle increased traffic.
-    *   **Rationale:** To ensure the application can handle a growing user base.
-    *   **Measurement:** Load testing of backend services.
+| ID      | Requirement                                                              | Measurement / Verification                                                                                                                                                                                                                                                        |
+| :------ | :----------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **NFR-5.1** | **Modularity:** The codebase must be modular and well-organized.         | - The code adheres to the layered architecture defined in `docs/architecture/high_level_design.md`. <br> - Services, repositories, and UI components are separated into distinct modules with clear responsibilities. Verified via code review.                               |
+| **NFR-5.2** | **Code Quality:** The code must adhere to defined coding standards.      | - The entire TypeScript codebase passes linting and formatting checks (ESLint, Prettier) without errors. <br> - This is enforced automatically as a pre-commit hook.                                                                                                                |
+| **NFR-5.3** | **Test Coverage:** Core business logic must have high unit test coverage. | - Core backend services (e.g., `PlaylistManager`, `DownloadManager`) and complex UI components must have a unit test coverage of at least 80%. Verified via code coverage reports from Jest.                                                                                    |
