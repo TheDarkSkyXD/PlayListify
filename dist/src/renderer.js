@@ -6,7 +6,7 @@ console.log('🔍 DEBUGGING: Renderer script started!');
 console.log('🔍 DEBUGGING: Document ready state:', document.readyState);
 const react_1 = tslib_1.__importDefault(require("react"));
 const client_1 = tslib_1.__importDefault(require("react-dom/client"));
-const App_1 = require("./components/App");
+const SimpleApp_1 = require("./SimpleApp");
 require("./styles/globals.css");
 console.log('🔍 DEBUGGING: React version:', react_1.default.version);
 console.log('🔍 DEBUGGING: Imports loaded successfully');
@@ -16,7 +16,7 @@ if (rootElement) {
     console.log('🔍 DEBUGGING: Creating React root...');
     const root = client_1.default.createRoot(rootElement);
     console.log('🔍 DEBUGGING: About to render App...');
-    root.render((0, jsx_runtime_1.jsx)(react_1.default.StrictMode, { children: (0, jsx_runtime_1.jsx)(App_1.App, {}) }));
+    root.render((0, jsx_runtime_1.jsx)(react_1.default.StrictMode, { children: (0, jsx_runtime_1.jsx)(SimpleApp_1.SimpleApp, {}) }));
     console.log('🔍 DEBUGGING: App rendered successfully!');
 }
 else {

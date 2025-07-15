@@ -1,0 +1,1 @@
+{"version":3,"file":"router.d.ts","sourceRoot":"","sources":["../../../../src/frontend/lib/router.ts"],"names":[],"mappings":"AA4DA,eAAO,MAAM,MAAM,i0FAIjB,CAAC;AAGH,OAAO,QAAQ,wBAAwB,CAAC;IACtC,UAAU,QAAQ;QAChB,MAAM,EAAE,OAAO,MAAM,CAAC;KACvB;CACF;AAED,MAAM,MAAM,MAAM,GAAG,OAAO,MAAM,CAAC"}

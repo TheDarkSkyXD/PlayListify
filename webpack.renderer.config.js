@@ -43,6 +43,7 @@ module.exports = {
       '@/repositories': path.resolve(__dirname, 'src/repositories'),
       '@/adapters': path.resolve(__dirname, 'src/adapters'),
       '@/styles': path.resolve(__dirname, 'src/styles'),
+      '@/lib': path.resolve(__dirname, 'src/lib'),
     },
   },
   
