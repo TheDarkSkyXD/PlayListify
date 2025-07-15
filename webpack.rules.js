@@ -16,6 +16,7 @@ module.exports = [
       },
     },
   },
+  // TypeScript and TSX files
   {
     test: /\.tsx?$/,
     exclude: /(node_modules|\.webpack)/,
@@ -23,17 +24,56 @@ module.exports = [
       loader: 'ts-loader',
       options: {
         transpileOnly: true,
+        compilerOptions: {
+          noEmit: false,
+        },
       },
     },
   },
+  // JavaScript and JSX files (fallback)
   {
     test: /\.jsx?$/,
     exclude: /node_modules/,
     use: {
       loader: 'babel-loader',
       options: {
-        presets: ['@babel/preset-env', '@babel/preset-react'],
+        presets: [
+          ['@babel/preset-env', {
+            targets: {
+              electron: '37.2.0',
+            },
+          }],
+          ['@babel/preset-react', {
+            runtime: 'automatic',
+          }],
+          '@babel/preset-typescript',
+        ],
+        plugins: [
+          '@babel/plugin-proposal-class-properties',
+          '@babel/plugin-proposal-object-rest-spread',
+        ],
       },
     },
+  },
+  // Images and assets
+  {
+    test: /\.(png|jpe?g|gif|svg|ico)$/i,
+    type: 'asset/resource',
+    generator: {
+      filename: 'assets/images/[name][ext]',
+    },
+  },
+  // Fonts
+  {
+    test: /\.(woff|woff2|eot|ttf|otf)$/i,
+    type: 'asset/resource',
+    generator: {
+      filename: 'assets/fonts/[name][ext]',
+    },
+  },
+  // JSON files
+  {
+    test: /\.json$/,
+    type: 'json',
   },
 ];

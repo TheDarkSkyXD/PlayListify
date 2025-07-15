@@ -4,33 +4,79 @@
     "module": "commonjs",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "outDir": "./dist",
+    
+    // Strict type checking options (enhanced for better type safety)
     "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitThis": true,
+    
+    // Module resolution
     "esModuleInterop": true,
-    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "allowImportingTsExtensions": false,
+    
+    // Emit options
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    "removeComments": false,
+    "importHelpers": true,
+    "newLine": "lf",
+    
+    // Advanced options
+    "skipLibCheck": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    
+    // JSX
     "jsx": "react-jsx",
+    
+    // Path mapping (organized by domain)
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@/components/*": ["src/components/*"],
+      "@/services/*": ["src/services/*"],
+      "@/utils/*": ["src/utils/*"],
+      "@/types/*": ["src/types/*"],
+      "@/shared/*": ["src/shared/*"],
+      "@/handlers/*": ["src/handlers/*"],
+      "@/repositories/*": ["src/repositories/*"],
+      "@/adapters/*": ["src/adapters/*"],
+      "@/styles/*": ["src/styles/*"]
     },
+    
     "typeRoots": ["./types", "./node_modules/@types"],
-    "types": ["node", "jest"]
+    "types": ["node", "jest", "electron", "better-sqlite3"]
   },
   "include": [
     "src/**/*",
     "tests/**/*",
-    "types/**/*",
-    "src/types/global.d.ts"
+    "types/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "coverage"
-  ]
+    "coverage",
+    ".webpack",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ],
+  "ts-node": {
+    "esm": false,
+    "experimentalSpecifierResolution": "node"
+  }
 }
