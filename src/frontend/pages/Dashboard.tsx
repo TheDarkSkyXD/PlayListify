@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Music, Plus, TrendingUp, Clock, Download } from 'lucide-react';
+import { SimpleDataFetchingTest } from '../components/examples/SimpleDataFetchingTest';
 
 export const Dashboard: React.FC = () => {
   // Mock data for demonstration
@@ -147,6 +148,12 @@ export const Dashboard: React.FC = () => {
             </Link>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Data Fetching and State Management Example */}
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Data Fetching & State Management Demo</h2>
+        <SimpleDataFetchingTest />
       </div>
     </div>
   );
