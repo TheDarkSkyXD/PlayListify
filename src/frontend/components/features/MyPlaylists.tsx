@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { PlaylistCard } from './PlaylistCard';
+import React, { useEffect, useState } from 'react';
 import { AddPlaylistDialog } from './AddPlaylistDialog';
+import { type Playlist } from './PlaylistGrid';
 
-interface Playlist {
+interface LegacyPlaylist {
   id: number;
   title: string;
   description: string;
@@ -14,10 +14,12 @@ interface Playlist {
 }
 
 export interface MyPlaylistsProps {
-  onPlaylistClick: (playlistId: number) => void;
+  onPlaylistClick: (playlistId: string) => void;
 }
 
-export const MyPlaylists: React.FC<MyPlaylistsProps> = ({ onPlaylistClick }) => {
+export const MyPlaylists: React.FC<MyPlaylistsProps> = ({
+  onPlaylistClick,
+}) => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +34,7 @@ export const MyPlaylists: React.FC<MyPlaylistsProps> = ({ onPlaylistClick }) => 
   const loadPlaylists = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await window.api.playlist.getAll();
       if (response.success) {
@@ -51,7 +53,10 @@ export const MyPlaylists: React.FC<MyPlaylistsProps> = ({ onPlaylistClick }) => 
   const loadViewMode = async () => {
     try {
       const response = await window.api.settings.get('playlistViewMode');
-      if (response.success && (response.data === 'grid' || response.data === 'list')) {
+      if (
+        response.success &&
+        (response.data === 'grid' || response.data === 'list')
+      ) {
         setViewMode(response.data);
       }
     } catch (error) {
@@ -62,7 +67,7 @@ export const MyPlaylists: React.FC<MyPlaylistsProps> = ({ onPlaylistClick }) => 
   const handleViewModeToggle = async () => {
     const newViewMode = viewMode === 'grid' ? 'list' : 'grid';
     setViewMode(newViewMode);
-    
+
     try {
       await window.api.settings.set('playlistViewMode', newViewMode);
     } catch (error) {
@@ -96,38 +101,38 @@ export const MyPlaylists: React.FC<MyPlaylistsProps> = ({ onPlaylistClick }) => 
   };
 
   const renderEmptyState = () => (
-    <div className="empty-state">
-      <div className="empty-state-icon">🎵</div>
+    <div className='empty-state'>
+      <div className='empty-state-icon'>🎵</div>
       <h3>No playlists yet</h3>
       <p>Start by creating a custom playlist or importing one from YouTube</p>
-      <button className="btn-primary" onClick={handleAddPlaylist}>
+      <button className='btn-primary' onClick={handleAddPlaylist}>
         Add Your First Playlist
       </button>
     </div>
   );
 
   const renderError = () => (
-    <div className="error-state">
-      <div className="error-icon">⚠️</div>
+    <div className='error-state'>
+      <div className='error-icon'>⚠️</div>
       <h3>Failed to load playlists</h3>
       <p>{error}</p>
-      <button className="btn-secondary" onClick={loadPlaylists}>
+      <button className='btn-secondary' onClick={loadPlaylists}>
         Try Again
       </button>
     </div>
   );
 
   const renderLoading = () => (
-    <div className="loading-state">
-      <div className="loading-spinner"></div>
+    <div className='loading-state'>
+      <div className='loading-spinner'></div>
       <p>Loading playlists...</p>
     </div>
   );
 
   if (isLoading) {
     return (
-      <div className="my-playlists">
-        <div className="playlists-header">
+      <div className='my-playlists'>
+        <div className='playlists-header'>
           <h1>My Playlists</h1>
         </div>
         {renderLoading()}
@@ -137,8 +142,8 @@ export const MyPlaylists: React.FC<MyPlaylistsProps> = ({ onPlaylistClick }) => 
 
   if (error) {
     return (
-      <div className="my-playlists">
-        <div className="playlists-header">
+      <div className='my-playlists'>
+        <div className='playlists-header'>
           <h1>My Playlists</h1>
         </div>
         {renderError()}
@@ -147,18 +152,18 @@ export const MyPlaylists: React.FC<MyPlaylistsProps> = ({ onPlaylistClick }) => 
   }
 
   return (
-    <div className="my-playlists">
-      <div className="playlists-header">
+    <div className='my-playlists'>
+      <div className='playlists-header'>
         <h1>My Playlists</h1>
-        <div className="playlists-actions">
+        <div className='playlists-actions'>
           <button
-            className="view-toggle-btn"
+            className='view-toggle-btn'
             onClick={handleViewModeToggle}
             title={`Switch to ${viewMode === 'grid' ? 'list' : 'grid'} view`}
           >
             {viewMode === 'grid' ? '☰' : '⊞'}
           </button>
-          <button className="btn-primary" onClick={handleAddPlaylist}>
+          <button className='btn-primary' onClick={handleAddPlaylist}>
             + Add Playlist
           </button>
         </div>
@@ -167,7 +172,9 @@ export const MyPlaylists: React.FC<MyPlaylistsProps> = ({ onPlaylistClick }) => 
       {playlists.length === 0 ? (
         renderEmptyState()
       ) : (
-        <div className={`playlists-container ${viewMode === 'list' ? 'playlists-list' : 'playlists-grid'}`}>
+        <div
+          className={`playlists-container ${viewMode === 'list' ? 'playlists-list' : 'playlists-grid'}`}
+        >
           {playlists.map(playlist => (
             <PlaylistCard
               key={playlist.id}

@@ -1,11 +1,10 @@
 // src/frontend/stores/usePlaylistUIStore.ts
 
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
+import { persist } from 'zustand/middleware';
+import { STORE_CONFIG } from './store-utils';
 
 // Types
-export type ViewMode = 'grid' | 'list' | 'compact';
 export type SortBy =
   | 'name'
   | 'created_at'
@@ -13,6 +12,7 @@ export type SortBy =
   | 'song_count'
   | 'duration';
 export type SortOrder = 'asc' | 'desc';
+export type ViewMode = 'grid' | 'list';
 
 export interface PlaylistFilters {
   search: string;
@@ -26,97 +26,73 @@ export interface PlaylistFilters {
   };
 }
 
-export interface PlaylistSelection {
-  selectedIds: Set<string>;
-  lastSelectedId?: string;
-  selectionMode: boolean;
+export interface SavedFilter {
+  name: string;
+  filters: PlaylistFilters;
+  createdAt: string;
 }
 
 export interface PlaylistUIState {
-  // View preferences
-  viewMode: ViewMode;
+  // Search and Filters
+  filters: PlaylistFilters;
+  searchHistory: string[];
+  savedFilters: SavedFilter[];
+
+  // Sorting
   sortBy: SortBy;
   sortOrder: SortOrder;
-  itemsPerPage: number;
-  showThumbnails: boolean;
-  showMetadata: boolean;
-  compactMode: boolean;
 
-  // Filters and search
-  filters: PlaylistFilters;
-  activeFilterCount: number;
-  searchHistory: string[];
-  savedFilters: Array<{
-    id: string;
-    name: string;
-    filters: PlaylistFilters;
-    createdAt: string;
-  }>;
+  // View Mode
+  viewMode: ViewMode;
 
-  // Selection state
-  selection: PlaylistSelection;
-
-  // UI state
-  sidebarCollapsed: boolean;
-  showFilterPanel: boolean;
-  showBulkActions: boolean;
+  // Pagination
   currentPage: number;
-  scrollPosition: number;
+  itemsPerPage: number;
 
-  // Recently viewed
-  recentlyViewed: Array<{
-    id: string;
-    name: string;
-    viewedAt: string;
-  }>;
+  // Selection State
+  selectedPlaylists: string[];
+  isSelectionMode: boolean;
+
+  // UI State
+  showFilterPanel: boolean;
 
   // Actions
-  setViewMode: (mode: ViewMode) => void;
-  setSorting: (sortBy: SortBy, sortOrder?: SortOrder) => void;
-  setItemsPerPage: (count: number) => void;
-  toggleThumbnails: () => void;
-  toggleMetadata: () => void;
-  toggleCompactMode: () => void;
-
-  // Filter actions
   setSearch: (search: string) => void;
-  setTags: (tags: string[]) => void;
-  addTag: (tag: string) => void;
-  removeTag: (tag: string) => void;
-  setPrivacyFilter: (isPrivate?: boolean) => void;
-  setSongCountRange: (min?: number, max?: number) => void;
-  setDateRange: (start?: string, end?: string) => void;
-  clearFilters: () => void;
-  saveCurrentFilters: (name: string) => void;
-  loadSavedFilters: (id: string) => void;
-  deleteSavedFilters: (id: string) => void;
   addToSearchHistory: (query: string) => void;
   clearSearchHistory: () => void;
 
-  // Selection actions
-  selectPlaylist: (id: string, multiSelect?: boolean) => void;
-  deselectPlaylist: (id: string) => void;
-  selectAll: (ids: string[]) => void;
-  deselectAll: () => void;
-  toggleSelection: (id: string) => void;
+  addTag: (tag: string) => void;
+  removeTag: (tag: string) => void;
+  setTags: (tags: string[]) => void;
+
+  setPrivacyFilter: (isPrivate?: boolean) => void;
+  setSongCountRange: (min?: number, max?: number) => void;
+  setDateRange: (start?: string, end?: string) => void;
+
+  setSorting: (sortBy: SortBy, sortOrder?: SortOrder) => void;
+  setViewMode: (viewMode: ViewMode) => void;
+
+  setCurrentPage: (page: number) => void;
+  setItemsPerPage: (itemsPerPage: number) => void;
+
+  // Selection Actions
+  togglePlaylistSelection: (id: string) => void;
+  selectAllPlaylists: (ids: string[]) => void;
+  clearSelection: () => void;
   setSelectionMode: (enabled: boolean) => void;
 
-  // UI actions
-  toggleSidebar: () => void;
   toggleFilterPanel: () => void;
-  setCurrentPage: (page: number) => void;
-  setScrollPosition: (position: number) => void;
-  addToRecentlyViewed: (playlist: { id: string; name: string }) => void;
 
-  // Computed getters
-  getActiveFilters: () => Partial<PlaylistFilters>;
-  getSelectedCount: () => number;
-  isSelected: (id: string) => boolean;
+  clearFilters: () => void;
   hasActiveFilters: () => boolean;
+  activeFilterCount: number;
+
+  saveCurrentFilters: (name: string) => void;
+  loadSavedFilters: (name: string) => void;
+  deleteSavedFilters: (name: string) => void;
 }
 
-// Default state
-const defaultFilters: PlaylistFilters = {
+const initialFilters: PlaylistFilters = {
   search: '',
   tags: [],
   isPrivate: undefined,
@@ -125,324 +101,276 @@ const defaultFilters: PlaylistFilters = {
   dateRange: undefined,
 };
 
-const defaultSelection: PlaylistSelection = {
-  selectedIds: new Set(),
-  lastSelectedId: undefined,
-  selectionMode: false,
-};
-
-// Create the store
 export const usePlaylistUIStore = create<PlaylistUIState>()(
   persist(
-    immer((set, get) => ({
-      // Initial state
-      viewMode: 'grid',
-      sortBy: 'updated_at',
-      sortOrder: 'desc',
-      itemsPerPage: 20,
-      showThumbnails: true,
-      showMetadata: true,
-      compactMode: false,
-
-      filters: defaultFilters,
-      activeFilterCount: 0,
+    (set, get) => ({
+      // Initial State
+      filters: initialFilters,
       searchHistory: [],
       savedFilters: [],
-
-      selection: defaultSelection,
-
-      sidebarCollapsed: false,
-      showFilterPanel: false,
-      showBulkActions: false,
+      sortBy: 'updated_at',
+      sortOrder: 'desc',
+      viewMode: 'grid',
       currentPage: 1,
-      scrollPosition: 0,
+      itemsPerPage: 12,
+      selectedPlaylists: [],
+      isSelectionMode: false,
+      showFilterPanel: false,
+      activeFilterCount: 0,
 
-      recentlyViewed: [],
+      // Search Actions
+      setSearch: (search: string) => {
+        set(state => ({
+          filters: { ...state.filters, search },
+          currentPage: 1, // Reset to first page when searching
+          activeFilterCount: calculateActiveFilterCount({
+            ...state.filters,
+            search,
+          }),
+        }));
+      },
 
-      // View preference actions
-      setViewMode: mode =>
+      addToSearchHistory: (query: string) => {
         set(state => {
-          state.viewMode = mode;
-        }),
+          const trimmedQuery = query.trim();
+          if (!trimmedQuery) return state;
 
-      setSorting: (sortBy, sortOrder) =>
+          const newHistory = [
+            trimmedQuery,
+            ...state.searchHistory.filter(item => item !== trimmedQuery),
+          ].slice(0, STORE_CONFIG.limits.maxSearchHistory);
+
+          return { searchHistory: newHistory };
+        });
+      },
+
+      clearSearchHistory: () => {
+        set({ searchHistory: [] });
+      },
+
+      // Tag Actions
+      addTag: (tag: string) => {
         set(state => {
-          state.sortBy = sortBy;
-          state.sortOrder =
+          const trimmedTag = tag.trim().toLowerCase();
+          if (!trimmedTag || state.filters.tags.includes(trimmedTag))
+            return state;
+
+          const newTags = [...state.filters.tags, trimmedTag];
+          return {
+            filters: { ...state.filters, tags: newTags },
+            currentPage: 1,
+            activeFilterCount: calculateActiveFilterCount({
+              ...state.filters,
+              tags: newTags,
+            }),
+          };
+        });
+      },
+
+      removeTag: (tag: string) => {
+        set(state => {
+          const newTags = state.filters.tags.filter(t => t !== tag);
+          return {
+            filters: { ...state.filters, tags: newTags },
+            currentPage: 1,
+            activeFilterCount: calculateActiveFilterCount({
+              ...state.filters,
+              tags: newTags,
+            }),
+          };
+        });
+      },
+
+      setTags: (tags: string[]) => {
+        set(state => ({
+          filters: { ...state.filters, tags },
+          currentPage: 1,
+          activeFilterCount: calculateActiveFilterCount({
+            ...state.filters,
+            tags,
+          }),
+        }));
+      },
+
+      // Filter Actions
+      setPrivacyFilter: (isPrivate?: boolean) => {
+        set(state => ({
+          filters: { ...state.filters, isPrivate },
+          currentPage: 1,
+          activeFilterCount: calculateActiveFilterCount({
+            ...state.filters,
+            isPrivate,
+          }),
+        }));
+      },
+
+      setSongCountRange: (min?: number, max?: number) => {
+        set(state => ({
+          filters: {
+            ...state.filters,
+            minSongCount: min,
+            maxSongCount: max,
+          },
+          currentPage: 1,
+          activeFilterCount: calculateActiveFilterCount({
+            ...state.filters,
+            minSongCount: min,
+            maxSongCount: max,
+          }),
+        }));
+      },
+
+      setDateRange: (start?: string, end?: string) => {
+        set(state => ({
+          filters: {
+            ...state.filters,
+            dateRange: start || end ? { start, end } : undefined,
+          },
+          currentPage: 1,
+          activeFilterCount: calculateActiveFilterCount({
+            ...state.filters,
+            dateRange: start || end ? { start, end } : undefined,
+          }),
+        }));
+      },
+
+      // Sorting Actions
+      setSorting: (sortBy: SortBy, sortOrder?: SortOrder) => {
+        set(state => ({
+          sortBy,
+          sortOrder:
             sortOrder ||
             (state.sortBy === sortBy && state.sortOrder === 'asc'
               ? 'desc'
-              : 'asc');
-          state.currentPage = 1; // Reset to first page when sorting changes
-        }),
-
-      setItemsPerPage: count =>
-        set(state => {
-          state.itemsPerPage = count;
-          state.currentPage = 1; // Reset to first page
-        }),
-
-      toggleThumbnails: () =>
-        set(state => {
-          state.showThumbnails = !state.showThumbnails;
-        }),
-
-      toggleMetadata: () =>
-        set(state => {
-          state.showMetadata = !state.showMetadata;
-        }),
-
-      toggleCompactMode: () =>
-        set(state => {
-          state.compactMode = !state.compactMode;
-        }),
-
-      // Filter actions
-      setSearch: search =>
-        set(state => {
-          state.filters.search = search;
-          state.currentPage = 1;
-          state.activeFilterCount = calculateActiveFilterCount(state.filters);
-        }),
-
-      setTags: tags =>
-        set(state => {
-          state.filters.tags = tags;
-          state.currentPage = 1;
-          state.activeFilterCount = calculateActiveFilterCount(state.filters);
-        }),
-
-      addTag: tag =>
-        set(state => {
-          if (!state.filters.tags.includes(tag)) {
-            state.filters.tags.push(tag);
-            state.currentPage = 1;
-            state.activeFilterCount = calculateActiveFilterCount(state.filters);
-          }
-        }),
-
-      removeTag: tag =>
-        set(state => {
-          state.filters.tags = state.filters.tags.filter(t => t !== tag);
-          state.currentPage = 1;
-          state.activeFilterCount = calculateActiveFilterCount(state.filters);
-        }),
-
-      setPrivacyFilter: isPrivate =>
-        set(state => {
-          state.filters.isPrivate = isPrivate;
-          state.currentPage = 1;
-          state.activeFilterCount = calculateActiveFilterCount(state.filters);
-        }),
-
-      setSongCountRange: (min, max) =>
-        set(state => {
-          state.filters.minSongCount = min;
-          state.filters.maxSongCount = max;
-          state.currentPage = 1;
-          state.activeFilterCount = calculateActiveFilterCount(state.filters);
-        }),
-
-      setDateRange: (start, end) =>
-        set(state => {
-          state.filters.dateRange = start || end ? { start, end } : undefined;
-          state.currentPage = 1;
-          state.activeFilterCount = calculateActiveFilterCount(state.filters);
-        }),
-
-      clearFilters: () =>
-        set(state => {
-          state.filters = { ...defaultFilters };
-          state.currentPage = 1;
-          state.activeFilterCount = 0;
-        }),
-
-      saveCurrentFilters: name =>
-        set(state => {
-          const id = `filter_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          state.savedFilters.push({
-            id,
-            name,
-            filters: { ...state.filters },
-            createdAt: new Date().toISOString(),
-          });
-        }),
-
-      loadSavedFilters: id =>
-        set(state => {
-          const savedFilter = state.savedFilters.find(f => f.id === id);
-          if (savedFilter) {
-            state.filters = { ...savedFilter.filters };
-            state.currentPage = 1;
-            state.activeFilterCount = calculateActiveFilterCount(state.filters);
-          }
-        }),
-
-      deleteSavedFilters: id =>
-        set(state => {
-          state.savedFilters = state.savedFilters.filter(f => f.id !== id);
-        }),
-
-      addToSearchHistory: query =>
-        set(state => {
-          if (query.trim() && !state.searchHistory.includes(query)) {
-            state.searchHistory.unshift(query);
-            // Keep only last 10 searches
-            state.searchHistory = state.searchHistory.slice(0, 10);
-          }
-        }),
-
-      clearSearchHistory: () =>
-        set(state => {
-          state.searchHistory = [];
-        }),
-
-      // Selection actions
-      selectPlaylist: (id, multiSelect = false) =>
-        set(state => {
-          if (!multiSelect) {
-            state.selection.selectedIds.clear();
-          }
-          state.selection.selectedIds.add(id);
-          state.selection.lastSelectedId = id;
-          state.showBulkActions = state.selection.selectedIds.size > 0;
-        }),
-
-      deselectPlaylist: id =>
-        set(state => {
-          state.selection.selectedIds.delete(id);
-          if (state.selection.lastSelectedId === id) {
-            state.selection.lastSelectedId = undefined;
-          }
-          state.showBulkActions = state.selection.selectedIds.size > 0;
-        }),
-
-      selectAll: ids =>
-        set(state => {
-          state.selection.selectedIds = new Set(ids);
-          state.showBulkActions = state.selection.selectedIds.size > 0;
-        }),
-
-      deselectAll: () =>
-        set(state => {
-          state.selection.selectedIds.clear();
-          state.selection.lastSelectedId = undefined;
-          state.showBulkActions = false;
-        }),
-
-      toggleSelection: id =>
-        set(state => {
-          if (state.selection.selectedIds.has(id)) {
-            state.selection.selectedIds.delete(id);
-            if (state.selection.lastSelectedId === id) {
-              state.selection.lastSelectedId = undefined;
-            }
-          } else {
-            state.selection.selectedIds.add(id);
-            state.selection.lastSelectedId = id;
-          }
-          state.showBulkActions = state.selection.selectedIds.size > 0;
-        }),
-
-      setSelectionMode: enabled =>
-        set(state => {
-          state.selection.selectionMode = enabled;
-          if (!enabled) {
-            state.selection.selectedIds.clear();
-            state.selection.lastSelectedId = undefined;
-            state.showBulkActions = false;
-          }
-        }),
-
-      // UI actions
-      toggleSidebar: () =>
-        set(state => {
-          state.sidebarCollapsed = !state.sidebarCollapsed;
-        }),
-
-      toggleFilterPanel: () =>
-        set(state => {
-          state.showFilterPanel = !state.showFilterPanel;
-        }),
-
-      setCurrentPage: page =>
-        set(state => {
-          state.currentPage = page;
-        }),
-
-      setScrollPosition: position =>
-        set(state => {
-          state.scrollPosition = position;
-        }),
-
-      addToRecentlyViewed: playlist =>
-        set(state => {
-          // Remove if already exists
-          state.recentlyViewed = state.recentlyViewed.filter(
-            p => p.id !== playlist.id,
-          );
-
-          // Add to beginning
-          state.recentlyViewed.unshift({
-            ...playlist,
-            viewedAt: new Date().toISOString(),
-          });
-
-          // Keep only last 20
-          state.recentlyViewed = state.recentlyViewed.slice(0, 20);
-        }),
-
-      // Computed getters
-      getActiveFilters: () => {
-        const state = get();
-        const activeFilters: Partial<PlaylistFilters> = {};
-
-        if (state.filters.search) activeFilters.search = state.filters.search;
-        if (state.filters.tags.length > 0)
-          activeFilters.tags = state.filters.tags;
-        if (state.filters.isPrivate !== undefined)
-          activeFilters.isPrivate = state.filters.isPrivate;
-        if (state.filters.minSongCount !== undefined)
-          activeFilters.minSongCount = state.filters.minSongCount;
-        if (state.filters.maxSongCount !== undefined)
-          activeFilters.maxSongCount = state.filters.maxSongCount;
-        if (state.filters.dateRange)
-          activeFilters.dateRange = state.filters.dateRange;
-
-        return activeFilters;
+              : 'asc'),
+          currentPage: 1,
+        }));
       },
 
-      getSelectedCount: () => {
-        const state = get();
-        return state.selection.selectedIds.size;
+      // View Mode Actions
+      setViewMode: (viewMode: ViewMode) => {
+        set({ viewMode });
       },
 
-      isSelected: id => {
-        const state = get();
-        return state.selection.selectedIds.has(id);
+      // Pagination Actions
+      setCurrentPage: (page: number) => {
+        set({ currentPage: Math.max(1, page) });
+      },
+
+      setItemsPerPage: (itemsPerPage: number) => {
+        set({
+          itemsPerPage: Math.max(1, itemsPerPage),
+          currentPage: 1,
+        });
+      },
+
+      // Selection Actions
+      togglePlaylistSelection: (id: string) => {
+        set(state => {
+          const isSelected = state.selectedPlaylists.includes(id);
+          const newSelection = isSelected
+            ? state.selectedPlaylists.filter(playlistId => playlistId !== id)
+            : [...state.selectedPlaylists, id];
+
+          return {
+            selectedPlaylists: newSelection,
+            isSelectionMode: newSelection.length > 0,
+          };
+        });
+      },
+
+      selectAllPlaylists: (ids: string[]) => {
+        set({
+          selectedPlaylists: ids,
+          isSelectionMode: ids.length > 0,
+        });
+      },
+
+      clearSelection: () => {
+        set({
+          selectedPlaylists: [],
+          isSelectionMode: false,
+        });
+      },
+
+      setSelectionMode: (enabled: boolean) => {
+        set(state => ({
+          isSelectionMode: enabled,
+          selectedPlaylists: enabled ? state.selectedPlaylists : [],
+        }));
+      },
+
+      // UI Actions
+      toggleFilterPanel: () => {
+        set(state => ({ showFilterPanel: !state.showFilterPanel }));
+      },
+
+      // Filter Management
+      clearFilters: () => {
+        set({
+          filters: initialFilters,
+          currentPage: 1,
+          activeFilterCount: 0,
+        });
       },
 
       hasActiveFilters: () => {
-        const state = get();
-        return state.activeFilterCount > 0;
+        const { filters } = get();
+        return calculateActiveFilterCount(filters) > 0;
       },
-    })),
+
+      saveCurrentFilters: (name: string) => {
+        set(state => {
+          const newSavedFilter: SavedFilter = {
+            name: name.trim(),
+            filters: { ...state.filters },
+            createdAt: new Date().toISOString(),
+          };
+
+          const existingIndex = state.savedFilters.findIndex(
+            f => f.name === name.trim(),
+          );
+          const newSavedFilters =
+            existingIndex >= 0
+              ? state.savedFilters.map((f, i) =>
+                  i === existingIndex ? newSavedFilter : f,
+                )
+              : [...state.savedFilters, newSavedFilter];
+
+          return { savedFilters: newSavedFilters };
+        });
+      },
+
+      loadSavedFilters: (name: string) => {
+        set(state => {
+          const savedFilter = state.savedFilters.find(f => f.name === name);
+          if (!savedFilter) return state;
+
+          return {
+            filters: { ...savedFilter.filters },
+            currentPage: 1,
+            activeFilterCount: calculateActiveFilterCount(savedFilter.filters),
+          };
+        });
+      },
+
+      deleteSavedFilters: (name: string) => {
+        set(state => ({
+          savedFilters: state.savedFilters.filter(f => f.name !== name),
+        }));
+      },
+    }),
     {
       name: 'playlist-ui-store',
-      storage: createJSONStorage(() => localStorage),
+      version: STORE_CONFIG.persistence.version,
       partialize: state => ({
-        // Persist only UI preferences, not temporary state
-        viewMode: state.viewMode,
-        sortBy: state.sortBy,
-        sortOrder: state.sortOrder,
-        itemsPerPage: state.itemsPerPage,
-        showThumbnails: state.showThumbnails,
-        showMetadata: state.showMetadata,
-        compactMode: state.compactMode,
-        sidebarCollapsed: state.sidebarCollapsed,
+        filters: state.filters,
         searchHistory: state.searchHistory,
         savedFilters: state.savedFilters,
-        recentlyViewed: state.recentlyViewed,
+        sortBy: state.sortBy,
+        sortOrder: state.sortOrder,
+        viewMode: state.viewMode,
+        itemsPerPage: state.itemsPerPage,
       }),
     },
   ),
@@ -452,32 +380,28 @@ export const usePlaylistUIStore = create<PlaylistUIState>()(
 function calculateActiveFilterCount(filters: PlaylistFilters): number {
   let count = 0;
 
-  if (filters.search) count++;
-  if (filters.tags.length > 0) count++;
+  if (filters.search.trim()) count++;
+  if (filters.tags.length > 0) count += filters.tags.length;
   if (filters.isPrivate !== undefined) count++;
   if (filters.minSongCount !== undefined || filters.maxSongCount !== undefined)
     count++;
-  if (filters.dateRange) count++;
+  if (filters.dateRange?.start || filters.dateRange?.end) count++;
 
   return count;
 }
 
 // Selector hooks for better performance
-export const usePlaylistViewMode = () =>
-  usePlaylistUIStore(state => state.viewMode);
+export const usePlaylistFilters = () =>
+  usePlaylistUIStore(state => state.filters);
 export const usePlaylistSorting = () =>
   usePlaylistUIStore(state => ({
     sortBy: state.sortBy,
     sortOrder: state.sortOrder,
   }));
-export const usePlaylistFilters = () =>
-  usePlaylistUIStore(state => state.filters);
+export const usePlaylistViewMode = () =>
+  usePlaylistUIStore(state => state.viewMode);
 export const usePlaylistSelection = () =>
-  usePlaylistUIStore(state => state.selection);
-export const usePlaylistUIPreferences = () =>
   usePlaylistUIStore(state => ({
-    showThumbnails: state.showThumbnails,
-    showMetadata: state.showMetadata,
-    compactMode: state.compactMode,
-    itemsPerPage: state.itemsPerPage,
+    selectedPlaylists: state.selectedPlaylists,
+    isSelectionMode: state.isSelectionMode,
   }));

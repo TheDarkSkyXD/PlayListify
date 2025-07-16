@@ -1,168 +1,237 @@
+import { Plus } from 'lucide-react';
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Music, Plus, Search, Filter, Grid, List as ListIcon } from 'lucide-react';
+import { PlaylistActionsBar } from '../components/features/PlaylistActionsBar';
+import {
+  PlaylistGrid,
+  type Playlist,
+} from '../components/features/PlaylistGrid';
+import { Button } from '../components/ui/button';
+import {
+  usePlaylistFilters,
+  usePlaylistSorting,
+  usePlaylistUIStore,
+  usePlaylistViewMode,
+} from '../stores/usePlaylistUIStore';
+import {
+  filterAndSortPlaylists,
+  getFilterSummary,
+  getPaginationInfo,
+  paginatePlaylists,
+} from '../utils/playlist-filters';
 
 export const Playlists: React.FC = () => {
-  // Mock data for demonstration
-  const playlists = [
+  // Mock data for demonstration - convert to match Playlist interface
+  const mockPlaylists: Playlist[] = [
     {
-      id: 1,
-      name: 'Coding Music',
+      id: '1',
+      title: 'Coding Music',
       description: 'Focus music for programming sessions',
-      videos: 25,
-      duration: '2h 15m',
-      thumbnail: null,
-      lastUpdated: '2 hours ago',
-      isDownloaded: true,
+      type: 'custom',
+      videoCount: 25,
+      totalDuration: 8100, // 2h 15m in seconds
+      tags: ['coding', 'focus', 'instrumental'],
+      isPrivate: false,
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+      updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      lastAccessedAt: new Date(),
     },
     {
-      id: 2,
-      name: 'Workout Hits',
+      id: '2',
+      title: 'Workout Hits',
       description: 'High-energy music for workouts',
-      videos: 18,
-      duration: '1h 32m',
-      thumbnail: null,
-      lastUpdated: '1 day ago',
-      isDownloaded: false,
+      type: 'youtube',
+      source: 'https://youtube.com/playlist?list=example1',
+      videoCount: 18,
+      totalDuration: 5520, // 1h 32m in seconds
+      tags: ['workout', 'energy', 'motivation'],
+      isPrivate: false,
+      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+      updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      lastAccessedAt: new Date(),
     },
     {
-      id: 3,
-      name: 'Study Focus',
+      id: '3',
+      title: 'Study Focus',
       description: 'Ambient and instrumental music for studying',
-      videos: 12,
-      duration: '45m',
-      thumbnail: null,
-      lastUpdated: '3 days ago',
-      isDownloaded: true,
+      type: 'custom',
+      videoCount: 12,
+      totalDuration: 2700, // 45m in seconds
+      tags: ['study', 'ambient', 'focus'],
+      isPrivate: true,
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+      updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+      lastAccessedAt: new Date(),
     },
     {
-      id: 4,
-      name: 'Chill Vibes',
+      id: '4',
+      title: 'Chill Vibes',
       description: 'Relaxing music for downtime',
-      videos: 30,
-      duration: '3h 20m',
-      thumbnail: null,
-      lastUpdated: '1 week ago',
-      isDownloaded: false,
+      type: 'youtube',
+      source: 'https://youtube.com/playlist?list=example2',
+      videoCount: 30,
+      totalDuration: 12000, // 3h 20m in seconds
+      tags: ['chill', 'relax', 'ambient'],
+      isPrivate: false,
+      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
+      updatedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      lastAccessedAt: new Date(),
     },
   ];
 
+  // Get state from stores
+  const filters = usePlaylistFilters();
+  const { sortBy, sortOrder } = usePlaylistSorting();
+  const viewMode = usePlaylistViewMode();
+  const { currentPage, itemsPerPage, setCurrentPage } = usePlaylistUIStore();
+
+  // Apply filtering and sorting
+  const filteredAndSortedPlaylists = React.useMemo(() => {
+    return filterAndSortPlaylists(mockPlaylists, filters, sortBy, sortOrder);
+  }, [mockPlaylists, filters, sortBy, sortOrder]);
+
+  // Apply pagination
+  const paginatedPlaylists = React.useMemo(() => {
+    return paginatePlaylists(
+      filteredAndSortedPlaylists,
+      currentPage,
+      itemsPerPage,
+    );
+  }, [filteredAndSortedPlaylists, currentPage, itemsPerPage]);
+
+  // Get pagination info
+  const paginationInfo = React.useMemo(() => {
+    return getPaginationInfo(
+      filteredAndSortedPlaylists.length,
+      currentPage,
+      itemsPerPage,
+    );
+  }, [filteredAndSortedPlaylists.length, currentPage, itemsPerPage]);
+
+  // Get filter summary
+  const filterSummary = React.useMemo(() => {
+    return getFilterSummary(
+      filters,
+      mockPlaylists.length,
+      filteredAndSortedPlaylists.length,
+    );
+  }, [filters, mockPlaylists.length, filteredAndSortedPlaylists.length]);
+
+  // Handlers
+  const handlePlaylistSelect = (id: string) => {
+    console.log('Selected playlist:', id);
+    // TODO: Navigate to playlist detail view
+  };
+
+  const handlePlaylistAction = (action: string, id: string) => {
+    console.log('Playlist action:', action, 'for playlist:', id);
+
+    // Handle different playlist actions
+    switch (action) {
+      case 'play':
+        console.log('Playing playlist:', id);
+        // TODO: Implement play functionality
+        break;
+      case 'edit':
+        console.log('Editing playlist:', id);
+        // TODO: Open edit dialog
+        break;
+      case 'duplicate':
+        console.log('Duplicating playlist:', id);
+        // TODO: Implement duplicate functionality
+        break;
+      case 'delete':
+        console.log('Deleting playlist:', id);
+        // TODO: Show confirmation dialog and delete
+        break;
+      case 'download':
+        console.log('Downloading playlist:', id);
+        // TODO: Implement download functionality
+        break;
+      case 'share':
+        console.log('Sharing playlist:', id);
+        // TODO: Implement share functionality
+        break;
+      case 'toggle-privacy':
+        console.log('Toggling privacy for playlist:', id);
+        // TODO: Implement privacy toggle
+        break;
+      case 'toggle-favorite':
+        console.log('Toggling favorite for playlist:', id);
+        // TODO: Implement favorite toggle
+        break;
+      case 'open-source':
+        const playlist = mockPlaylists.find(p => p.id === id);
+        if (playlist?.source) {
+          window.open(playlist.source, '_blank');
+        }
+        break;
+      default:
+        console.log('Unknown action:', action, 'for playlist:', id);
+    }
+  };
+
+  const handleAddPlaylist = () => {
+    console.log('Add playlist clicked');
+    // TODO: Open add playlist dialog
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   return (
-    <div className="space-y-8">
+    <div className='space-y-6'>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className='flex items-center justify-between'>
         <div>
-          <h1 className="text-3xl font-bold">Playlists</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className='text-3xl font-bold'>Playlists</h1>
+          <p className='mt-2 text-muted-foreground'>
             Manage your YouTube playlists and downloads
           </p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
+        <Button onClick={handleAddPlaylist}>
+          <Plus className='mr-2 h-4 w-4' />
           Create Playlist
         </Button>
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex items-center justify-between space-x-4">
-        <div className="flex items-center space-x-4 flex-1">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search playlists..." 
-              className="pl-10"
-            />
-          </div>
-          <Button variant="outline" size="sm">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
-          </Button>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
-            <Grid className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm">
-            <ListIcon className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      {/* Actions Bar with Search and Filters */}
+      <PlaylistActionsBar onAddPlaylist={handleAddPlaylist} />
 
-      {/* Playlists Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {playlists.map((playlist) => (
-          <Card key={playlist.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
-            <CardHeader>
-              <div className="w-full h-32 bg-muted rounded-md mb-4 flex items-center justify-center relative overflow-hidden">
-                <Music className="h-8 w-8 text-muted-foreground" />
-                {playlist.isDownloaded && (
-                  <div className="absolute top-2 right-2 w-3 h-3 bg-green-500 rounded-full"></div>
-                )}
-              </div>
-              <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                {playlist.name}
-              </CardTitle>
-              <CardDescription className="line-clamp-2">
-                {playlist.description}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{playlist.videos} videos</span>
-                  <span>{playlist.duration}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Updated {playlist.lastUpdated}</span>
-                  {playlist.isDownloaded ? (
-                    <span className="text-green-600 font-medium">Downloaded</span>
-                  ) : (
-                    <span className="text-orange-600 font-medium">Online</span>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Empty State (when no playlists) */}
-      {playlists.length === 0 && (
-        <div className="text-center py-12">
-          <Card className="max-w-md mx-auto">
-            <CardHeader>
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                <Music className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <CardTitle>No playlists yet</CardTitle>
-              <CardDescription>
-                Start by creating your first playlist or importing from YouTube.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Your First Playlist
-              </Button>
-              <Button variant="outline" className="w-full">
-                Import from YouTube
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Filter Summary */}
+      {filteredAndSortedPlaylists.length !== mockPlaylists.length && (
+        <div className='text-sm text-muted-foreground'>{filterSummary}</div>
       )}
 
-      {/* Pagination (for future implementation) */}
-      {playlists.length > 0 && (
-        <div className="flex items-center justify-center space-x-2 pt-6">
-          <Button variant="outline" size="sm" disabled>
+      {/* Playlists Grid */}
+      <PlaylistGrid
+        playlists={paginatedPlaylists}
+        viewMode={viewMode}
+        onPlaylistSelect={handlePlaylistSelect}
+        onPlaylistAction={handlePlaylistAction}
+        onAddPlaylist={handleAddPlaylist}
+      />
+
+      {/* Pagination */}
+      {filteredAndSortedPlaylists.length > itemsPerPage && (
+        <div className='flex items-center justify-center space-x-2 pt-6'>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={!paginationInfo.hasPreviousPage}
+          >
             Previous
           </Button>
-          <span className="text-sm text-muted-foreground">Page 1 of 1</span>
-          <Button variant="outline" size="sm" disabled>
+          <span className='text-sm text-muted-foreground'>
+            Page {currentPage} of {paginationInfo.totalPages}
+          </span>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={!paginationInfo.hasNextPage}
+          >
             Next
           </Button>
         </div>
