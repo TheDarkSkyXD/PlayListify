@@ -72,21 +72,21 @@ core functionality first, followed by advanced features and optimizations.
   - Handle various YouTube playlist types and privacy settings
   - _Requirements: 2.1, 2.2, 2.5, 2.6_
 
-- [-] 3.1 Create YouTube URL Validation Service
+- [x] 3.1 Create YouTube URL Validation Service
   - Implement YouTube URL format validation using regex patterns
   - Add playlist accessibility checking before import
   - Create preview functionality to show playlist metadata
   - Implement rate limiting to prevent API abuse
   - _Requirements: 2.1, 2.2_
 
-- [ ] 3.2 Implement YouTube Metadata Extraction
+- [x] 3.2 Implement YouTube Metadata Extraction
   - Create yt-dlp wrapper service for playlist metadata fetching
   - Extract playlist information (title, description, video count)
   - Extract individual video metadata (title, duration, thumbnail, etc.)
   - Handle private, unlisted, and deleted videos gracefully
   - _Requirements: 2.3, 2.4_
 
-- [ ] 3.3 Add Import Progress and Error Handling
+- [x] 3.3 Add Import Progress and Error Handling
   - Implement progress tracking for long-running import operations
   - Add cancellation support for import processes
   - Create detailed error reporting for failed imports
@@ -100,7 +100,7 @@ core functionality first, followed by advanced features and optimizations.
   - Create IPC channel documentation and testing utilities
   - _Requirements: 5.1, 5.6_
 
-- [ ] 4.1 Implement Core Playlist IPC Handlers
+- [-] 4.1 Implement Core Playlist IPC Handlers
   - Create IPC handlers for playlist CRUD operations
   - Add type-safe request/response interfaces using TypeScript
   - Implement proper error serialization across IPC boundary
