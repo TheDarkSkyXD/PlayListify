@@ -25,11 +25,7 @@ export abstract class BaseError extends Error {
   public readonly suggestions?: string[];
   public readonly cause?: Error;
 
-  constructor(
-    message: string,
-    code: string,
-    options: BaseErrorOptions = {}
-  ) {
+  constructor(message: string, code: string, options: BaseErrorOptions = {}) {
     super(message);
     this.name = this.constructor.name;
     this.code = code;
@@ -40,7 +36,7 @@ export abstract class BaseError extends Error {
     this.userMessage = options.userMessage;
     this.suggestions = options.suggestions;
     this.cause = options.cause;
-    
+
     // Maintain proper stack trace
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
@@ -125,8 +121,13 @@ export class InvalidInputError extends BaseError {
       ...options,
       context: options.context || 'TaskManagement',
       recoverable: true,
-      userMessage: 'Invalid input provided. Please check your data and try again.',
-      suggestions: ['Verify input format', 'Check required fields', 'Consult documentation'],
+      userMessage:
+        'Invalid input provided. Please check your data and try again.',
+      suggestions: [
+        'Verify input format',
+        'Check required fields',
+        'Consult documentation',
+      ],
     });
   }
 }
@@ -137,8 +138,13 @@ export class ParentTaskNotFoundError extends BaseError {
       ...options,
       context: options.context || 'TaskManagement',
       recoverable: true,
-      userMessage: 'Parent task not found. The task may have been deleted or moved.',
-      suggestions: ['Refresh the task list', 'Check if the parent task exists', 'Create the parent task first'],
+      userMessage:
+        'Parent task not found. The task may have been deleted or moved.',
+      suggestions: [
+        'Refresh the task list',
+        'Check if the parent task exists',
+        'Create the parent task first',
+      ],
     });
   }
 }
@@ -149,8 +155,13 @@ export class InvalidStateTransitionError extends BaseError {
       ...options,
       context: options.context || 'TaskManagement',
       recoverable: true,
-      userMessage: 'Invalid task state transition. The requested operation is not allowed.',
-      suggestions: ['Check current task state', 'Review allowed transitions', 'Try a different operation'],
+      userMessage:
+        'Invalid task state transition. The requested operation is not allowed.',
+      suggestions: [
+        'Check current task state',
+        'Review allowed transitions',
+        'Try a different operation',
+      ],
     });
   }
 }
@@ -162,7 +173,11 @@ export class TaskNotFoundError extends BaseError {
       context: options.context || 'TaskManagement',
       recoverable: true,
       userMessage: 'Task not found. The task may have been deleted or moved.',
-      suggestions: ['Refresh the task list', 'Check if the task ID is correct', 'Search for the task by name'],
+      suggestions: [
+        'Refresh the task list',
+        'Check if the task ID is correct',
+        'Search for the task by name',
+      ],
     });
   }
 }
@@ -173,8 +188,13 @@ export class CircularDependencyError extends BaseError {
       ...options,
       context: options.context || 'TaskManagement',
       recoverable: true,
-      userMessage: 'Circular dependency detected. Tasks cannot depend on themselves.',
-      suggestions: ['Review task dependencies', 'Remove circular references', 'Restructure task hierarchy'],
+      userMessage:
+        'Circular dependency detected. Tasks cannot depend on themselves.',
+      suggestions: [
+        'Review task dependencies',
+        'Remove circular references',
+        'Restructure task hierarchy',
+      ],
     });
   }
 }
@@ -187,7 +207,11 @@ export class DatabaseError extends BaseError {
       context: options.context || 'Database',
       recoverable: true,
       userMessage: 'Database operation failed. Please try again.',
-      suggestions: ['Retry the operation', 'Check database connection', 'Restart the application'],
+      suggestions: [
+        'Retry the operation',
+        'Check database connection',
+        'Restart the application',
+      ],
     });
   }
 }
@@ -199,7 +223,11 @@ export class DatabaseConnectionError extends BaseError {
       context: options.context || 'Database',
       recoverable: true,
       userMessage: 'Cannot connect to database. Please check your setup.',
-      suggestions: ['Check database file permissions', 'Verify database path', 'Restart the application'],
+      suggestions: [
+        'Check database file permissions',
+        'Verify database path',
+        'Restart the application',
+      ],
     });
   }
 }
@@ -210,8 +238,13 @@ export class SchemaExecutionError extends BaseError {
       ...options,
       context: options.context || 'Database',
       recoverable: false,
-      userMessage: 'Database schema error. The application may need to be reinstalled.',
-      suggestions: ['Restart the application', 'Clear application data', 'Reinstall the application'],
+      userMessage:
+        'Database schema error. The application may need to be reinstalled.',
+      suggestions: [
+        'Restart the application',
+        'Clear application data',
+        'Reinstall the application',
+      ],
     });
   }
 }
@@ -223,8 +256,14 @@ export class FileSystemReadOnlyError extends BaseError {
       ...options,
       context: options.context || 'FileSystem',
       recoverable: true,
-      userMessage: 'Cannot write to file system. Check permissions or disk space.',
-      suggestions: ['Check file permissions', 'Verify disk space', 'Run as administrator', 'Choose different location'],
+      userMessage:
+        'Cannot write to file system. Check permissions or disk space.',
+      suggestions: [
+        'Check file permissions',
+        'Verify disk space',
+        'Run as administrator',
+        'Choose different location',
+      ],
     });
   }
 }
@@ -236,7 +275,11 @@ export class DiskFullError extends BaseError {
       context: options.context || 'FileSystem',
       recoverable: true,
       userMessage: 'Not enough disk space. Please free up space and try again.',
-      suggestions: ['Free up disk space', 'Choose different download location', 'Delete unnecessary files'],
+      suggestions: [
+        'Free up disk space',
+        'Choose different download location',
+        'Delete unnecessary files',
+      ],
     });
   }
 }
@@ -248,8 +291,13 @@ export class DependencyError extends BaseError {
       ...options,
       context: options.context || 'Dependencies',
       recoverable: true,
-      userMessage: 'Dependency management error. Some features may not work properly.',
-      suggestions: ['Restart the application', 'Check internet connection', 'Try manual installation'],
+      userMessage:
+        'Dependency management error. Some features may not work properly.',
+      suggestions: [
+        'Restart the application',
+        'Check internet connection',
+        'Try manual installation',
+      ],
     });
   }
 }
@@ -260,8 +308,14 @@ export class DependencyInstallationError extends BaseError {
       ...options,
       context: options.context || 'Dependencies',
       recoverable: true,
-      userMessage: 'Failed to install required dependencies. Some features may not work.',
-      suggestions: ['Check internet connection', 'Retry installation', 'Check firewall settings', 'Try manual installation'],
+      userMessage:
+        'Failed to install required dependencies. Some features may not work.',
+      suggestions: [
+        'Check internet connection',
+        'Retry installation',
+        'Check firewall settings',
+        'Try manual installation',
+      ],
     });
   }
 }
@@ -272,8 +326,13 @@ export class DependencyValidationError extends BaseError {
       ...options,
       context: options.context || 'Dependencies',
       recoverable: true,
-      userMessage: 'Dependency validation failed. The installed version may be corrupted.',
-      suggestions: ['Reinstall dependencies', 'Check file integrity', 'Clear dependency cache'],
+      userMessage:
+        'Dependency validation failed. The installed version may be corrupted.',
+      suggestions: [
+        'Reinstall dependencies',
+        'Check file integrity',
+        'Clear dependency cache',
+      ],
     });
   }
 }
@@ -284,8 +343,14 @@ export class DependencyDownloadError extends BaseError {
       ...options,
       context: options.context || 'Dependencies',
       recoverable: true,
-      userMessage: 'Failed to download required dependencies. Check your internet connection.',
-      suggestions: ['Check internet connection', 'Retry download', 'Check firewall settings', 'Use different network'],
+      userMessage:
+        'Failed to download required dependencies. Check your internet connection.',
+      suggestions: [
+        'Check internet connection',
+        'Retry download',
+        'Check firewall settings',
+        'Use different network',
+      ],
     });
   }
 }
@@ -297,8 +362,13 @@ export class NetworkError extends BaseError {
       ...options,
       context: options.context || 'Network',
       recoverable: true,
-      userMessage: 'Network connection error. Please check your internet connection.',
-      suggestions: ['Check internet connection', 'Try again later', 'Check firewall settings'],
+      userMessage:
+        'Network connection error. Please check your internet connection.',
+      suggestions: [
+        'Check internet connection',
+        'Try again later',
+        'Check firewall settings',
+      ],
     });
   }
 }
@@ -310,7 +380,11 @@ export class TimeoutError extends BaseError {
       context: options.context || 'Network',
       recoverable: true,
       userMessage: 'Operation timed out. Please try again.',
-      suggestions: ['Try again', 'Check internet connection', 'Increase timeout settings'],
+      suggestions: [
+        'Try again',
+        'Check internet connection',
+        'Increase timeout settings',
+      ],
     });
   }
 }
@@ -324,7 +398,11 @@ export class ValidationError extends BaseError {
       recoverable: true,
       details: { ...options.details, field },
       userMessage: `Validation failed${field ? ` for ${field}` : ''}. Please check your input.`,
-      suggestions: ['Check input format', 'Verify required fields', 'Review validation rules'],
+      suggestions: [
+        'Check input format',
+        'Verify required fields',
+        'Review validation rules',
+      ],
     });
   }
 }
@@ -337,21 +415,142 @@ export class SecurityError extends BaseError {
       context: options.context || 'Security',
       recoverable: false,
       userMessage: 'Security violation detected. Operation blocked for safety.',
-      suggestions: ['Contact support', 'Check application integrity', 'Restart application'],
+      suggestions: [
+        'Contact support',
+        'Check application integrity',
+        'Restart application',
+      ],
     });
   }
 }
 
 // Permission Errors
 export class PermissionError extends BaseError {
-  constructor(message: string, resource?: string, options: BaseErrorOptions = {}) {
+  constructor(
+    message: string,
+    resource?: string,
+    options: BaseErrorOptions = {},
+  ) {
     super(message, 'PERMISSION_ERROR', {
       ...options,
       context: options.context || 'Permissions',
       recoverable: true,
       details: { ...options.details, resource },
       userMessage: `Permission denied${resource ? ` for ${resource}` : ''}. Check file permissions.`,
-      suggestions: ['Run as administrator', 'Check file permissions', 'Change file location'],
+      suggestions: [
+        'Run as administrator',
+        'Check file permissions',
+        'Change file location',
+      ],
+    });
+  }
+}
+
+// Playlist Management Errors
+export class PlaylistNotFoundError extends BaseError {
+  constructor(
+    message: string,
+    playlistId?: string,
+    options: BaseErrorOptions = {},
+  ) {
+    super(message, 'PLAYLIST_NOT_FOUND', {
+      ...options,
+      context: options.context || 'PlaylistManagement',
+      recoverable: true,
+      details: { ...options.details, playlistId },
+      userMessage: 'Playlist not found. It may have been deleted or moved.',
+      suggestions: [
+        'Refresh the playlist list',
+        'Check if the playlist exists',
+        'Search for the playlist by name',
+      ],
+    });
+  }
+}
+
+export class PlaylistAlreadyExistsError extends BaseError {
+  constructor(
+    message: string,
+    playlistName?: string,
+    options: BaseErrorOptions = {},
+  ) {
+    super(message, 'PLAYLIST_ALREADY_EXISTS', {
+      ...options,
+      context: options.context || 'PlaylistManagement',
+      recoverable: true,
+      details: { ...options.details, playlistName },
+      userMessage:
+        'A playlist with this name already exists. Please choose a different name.',
+      suggestions: [
+        'Choose a different name',
+        'Add a number or date to make it unique',
+        'Check existing playlists',
+      ],
+    });
+  }
+}
+
+export class SongNotFoundError extends BaseError {
+  constructor(
+    message: string,
+    songId?: string,
+    options: BaseErrorOptions = {},
+  ) {
+    super(message, 'SONG_NOT_FOUND', {
+      ...options,
+      context: options.context || 'PlaylistManagement',
+      recoverable: true,
+      details: { ...options.details, songId },
+      userMessage: 'Song not found. It may have been deleted or moved.',
+      suggestions: [
+        'Refresh the song list',
+        'Check if the song exists',
+        'Search for the song by title',
+      ],
+    });
+  }
+}
+
+export class SongAlreadyInPlaylistError extends BaseError {
+  constructor(
+    message: string,
+    songId?: string,
+    playlistId?: string,
+    options: BaseErrorOptions = {},
+  ) {
+    super(message, 'SONG_ALREADY_IN_PLAYLIST', {
+      ...options,
+      context: options.context || 'PlaylistManagement',
+      recoverable: true,
+      details: { ...options.details, songId, playlistId },
+      userMessage: 'This song is already in the playlist.',
+      suggestions: [
+        'Check the playlist contents',
+        'Choose a different song',
+        'Remove the existing entry first',
+      ],
+    });
+  }
+}
+
+export class InvalidPlaylistOperationError extends BaseError {
+  constructor(
+    message: string,
+    operation?: string,
+    options: BaseErrorOptions = {},
+  ) {
+    super(message, 'INVALID_PLAYLIST_OPERATION', {
+      ...options,
+      context: options.context || 'PlaylistManagement',
+      recoverable: true,
+      details: { ...options.details, operation },
+      userMessage:
+        'Invalid playlist operation. The requested action cannot be performed.',
+      suggestions: [
+        'Check playlist state',
+        'Try a different operation',
+        'Refresh and try again',
+      ],
     });
   }
 }
