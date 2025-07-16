@@ -51,7 +51,10 @@
     "deps:check": "npm outdated",
     "deps:update": "npm update",
     "security:audit": "npm audit",
-    "security:fix": "npm audit fix"
+    "security:fix": "npm audit fix",
+    "security:scan": "npm audit --audit-level moderate",
+    "security:report": "npm audit --json > security-audit.json",
+    "security:check-deps": "npm audit --audit-level high --production"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",
