@@ -12,27 +12,27 @@ export declare function useAppVersion(): import("../use-query-state").QueryState
 /**
  * Query for checking if app is maximized
  */
-export declare function useAppMaximizedState(): import("../use-query-state").QueryStateResult<any>;
+export declare function useAppMaximizedState(): import("../use-query-state").QueryStateResult<boolean>;
 /**
  * Mutation for minimizing the app
  */
-export declare function useMinimizeApp(): import("@tanstack/react-query").UseMutationResult<unknown, Error, void, unknown>;
+export declare function useMinimizeApp(): import("@tanstack/react-query").UseMutationResult<void, Error, void, unknown>;
 /**
  * Mutation for maximizing the app
  */
-export declare function useMaximizeApp(): import("@tanstack/react-query").UseMutationResult<unknown, Error, void, unknown>;
+export declare function useMaximizeApp(): import("@tanstack/react-query").UseMutationResult<void, Error, void, unknown>;
 /**
  * Mutation for unmaximizing the app
  */
-export declare function useUnmaximizeApp(): import("@tanstack/react-query").UseMutationResult<unknown, Error, void, unknown>;
+export declare function useUnmaximizeApp(): import("@tanstack/react-query").UseMutationResult<void, Error, void, unknown>;
 /**
  * Mutation for closing the app
  */
-export declare function useCloseApp(): import("@tanstack/react-query").UseMutationResult<unknown, Error, void, unknown>;
+export declare function useCloseApp(): import("@tanstack/react-query").UseMutationResult<void, Error, void, unknown>;
 /**
  * Mutation for quitting the app
  */
-export declare function useQuitApp(): import("@tanstack/react-query").UseMutationResult<unknown, Error, void, unknown>;
+export declare function useQuitApp(): import("@tanstack/react-query").UseMutationResult<void, Error, void, unknown>;
 /**
  * Hook for invalidating all app-related queries
  */

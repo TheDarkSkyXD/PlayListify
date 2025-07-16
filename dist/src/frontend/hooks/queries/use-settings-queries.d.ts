@@ -43,19 +43,19 @@ export declare function useUpdateMultipleSettings(): import("@tanstack/react-que
 /**
  * Mutation for resetting settings to defaults
  */
-export declare function useResetSettings(): import("@tanstack/react-query").UseMutationResult<unknown, Error, void, unknown>;
+export declare function useResetSettings(): import("@tanstack/react-query").UseMutationResult<void, Error, void, unknown>;
 /**
  * Mutation for exporting settings
  */
-export declare function useExportSettings(): import("@tanstack/react-query").UseMutationResult<unknown, Error, void, unknown>;
+export declare function useExportSettings(): import("@tanstack/react-query").UseMutationResult<string, Error, void, unknown>;
 /**
  * Mutation for importing settings
  */
-export declare function useImportSettings(): import("@tanstack/react-query").UseMutationResult<unknown, Error, string, unknown>;
+export declare function useImportSettings(): import("@tanstack/react-query").UseMutationResult<boolean, Error, string, unknown>;
 /**
  * Mutation for initializing download location
  */
-export declare function useInitializeDownloadLocation(): import("@tanstack/react-query").UseMutationResult<unknown, Error, void, unknown>;
+export declare function useInitializeDownloadLocation(): import("@tanstack/react-query").UseMutationResult<void, Error, void, unknown>;
 /**
  * Hook for invalidating settings queries
  */

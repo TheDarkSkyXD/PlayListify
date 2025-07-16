@@ -12,11 +12,11 @@ export declare function useDependencyStatus(): import("../use-query-state").Quer
 /**
  * Query for getting specific dependency version
  */
-export declare function useDependencyVersion(dependencyName: 'ytdlp' | 'ffmpeg'): import("../use-query-state").QueryStateResult<any>;
+export declare function useDependencyVersion(dependencyName: 'ytdlp' | 'ffmpeg'): import("../use-query-state").QueryStateResult<string | null>;
 /**
  * Query for checking if all dependencies are ready
  */
-export declare function useAllDependenciesReady(): import("../use-query-state").QueryStateResult<any>;
+export declare function useAllDependenciesReady(): import("../use-query-state").QueryStateResult<boolean>;
 /**
  * Mutation for installing a dependency
  */
@@ -40,11 +40,11 @@ export declare function useInstallAllDependencies(): import("@tanstack/react-que
 /**
  * Mutation for validating a dependency
  */
-export declare function useValidateDependency(): import("@tanstack/react-query").UseMutationResult<unknown, Error, "ytdlp" | "ffmpeg", unknown>;
+export declare function useValidateDependency(): import("@tanstack/react-query").UseMutationResult<boolean, Error, "ytdlp" | "ffmpeg", unknown>;
 /**
  * Mutation for cleaning up dependencies
  */
-export declare function useCleanupDependencies(): import("@tanstack/react-query").UseMutationResult<unknown, Error, void, unknown>;
+export declare function useCleanupDependencies(): import("@tanstack/react-query").UseMutationResult<any, Error, void, unknown>;
 /**
  * Hook for setting up dependency event listeners
  */
