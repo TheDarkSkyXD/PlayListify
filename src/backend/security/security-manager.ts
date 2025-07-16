@@ -5,11 +5,17 @@
  */
 
 import { SecurityError } from '@/shared/errors';
-import type { Logger } from '@/shared/interfaces/logger';
 import * as crypto from 'crypto';
 import { app } from 'electron';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+// Logger interface
+interface Logger {
+  info(message: string, context?: string, meta?: any): void;
+  warn(message: string, context?: string, meta?: any): void;
+  error(message: string, context?: string, meta?: any): void;
+  debug(message: string, context?: string, meta?: any): void;
+}
 
 export interface SecurityConfig {
   processIsolation: {

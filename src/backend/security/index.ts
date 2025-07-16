@@ -3,6 +3,11 @@
  * Exports all security-related components and utilities
  */
 
+import { CSPManager } from './csp-config';
+import { DependencySecurityManager } from './dependency-security';
+import { SecurityAuditor } from './security-audit';
+import { SecurityManager } from './security-manager';
+
 // Core security components
 export { CSPManager } from './csp-config';
 export { DependencySecurityManager } from './dependency-security';
@@ -43,10 +48,10 @@ export type { SecuritySettings } from './security-config';
  * Initialize all security components
  */
 export async function initializeSecurity(logger: any): Promise<{
-  securityManager: SecurityManager;
-  securityAuditor: SecurityAuditor;
-  cspManager: CSPManager;
-  dependencySecurityManager: DependencySecurityManager;
+  securityManager: any;
+  securityAuditor: any;
+  cspManager: any;
+  dependencySecurityManager: any;
 }> {
   const { getSecurityConfig } = await import('./security-config');
   const { app } = await import('electron');

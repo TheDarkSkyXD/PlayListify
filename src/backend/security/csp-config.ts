@@ -3,7 +3,13 @@
  * Comprehensive CSP setup for enhanced web security in Electron renderer processes
  */
 
-import type { Logger } from '@/shared/interfaces/logger';
+// Logger interface
+interface Logger {
+  info(message: string, context?: string, meta?: any): void;
+  warn(message: string, context?: string, meta?: any): void;
+  error(message: string, context?: string, meta?: any): void;
+  debug(message: string, context?: string, meta?: any): void;
+}
 import { BrowserWindow, session } from 'electron';
 
 export interface CSPConfig {
