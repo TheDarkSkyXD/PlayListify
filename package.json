@@ -22,10 +22,8 @@
     "clean:cache": "rimraf node_modules/.cache .webpack/cache",
     "lint": "eslint src tests --ext .ts,.tsx,.js,.jsx --fix",
     "lint:check": "eslint src tests --ext .ts,.tsx,.js,.jsx",
-    "lint:staged": "lint-staged",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,css,md,json,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,css,md,json,yml,yaml}\"",
-    "format:staged": "prettier --write",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
     "validate": "npm run type-check && npm run lint:check && npm run format:check",
@@ -43,7 +41,7 @@
     "make:all": "cross-env NODE_ENV=production electron-forge make --platform=win32,darwin,linux",
     "publish": "cross-env NODE_ENV=production electron-forge publish",
     "postinstall": "electron-rebuild",
-    "prepare": "husky",
+    "prepare": "npm run build:all",
     "prepublishOnly": "npm run validate && npm run test:ci && npm run build:prod",
     "analyze": "cross-env NODE_ENV=production webpack --config webpack.analyzer.config.js",
     "deps:check": "npm outdated",
@@ -106,15 +104,6 @@
     "typescript": "^5.8.3",
     "webpack-bundle-analyzer": "^4.10.2",
     "webpack-cli": "^6.0.1"
-  },
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{css,md,json,yml,yaml}": [
-      "prettier --write"
-    ]
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
