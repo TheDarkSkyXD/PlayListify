@@ -1,4 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { AlertCircle, Loader2, Music } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 export interface AddPlaylistDialogProps {
   isOpen: boolean;
@@ -25,7 +40,8 @@ export const AddPlaylistDialog: React.FC<AddPlaylistDialogProps> = ({
 
   // YouTube import state
   const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [playlistPreview, setPlaylistPreview] = useState<PlaylistPreview | null>(null);
+  const [playlistPreview, setPlaylistPreview] =
+    useState<PlaylistPreview | null>(null);
   const [isValidatingUrl, setIsValidatingUrl] = useState(false);
 
   // Custom playlist state
@@ -57,7 +73,7 @@ export const AddPlaylistDialog: React.FC<AddPlaylistDialogProps> = ({
 
     try {
       const response = await window.api.youtube.validateUrl(url);
-      
+
       if (!response.success) {
         setError(response.error || 'Invalid URL');
         setPlaylistPreview(null);
@@ -71,8 +87,10 @@ export const AddPlaylistDialog: React.FC<AddPlaylistDialogProps> = ({
       }
 
       // Get playlist metadata
-      const metadataResponse = await window.api.youtube.getPlaylistMetadata(response.data.sanitizedUrl);
-      
+      const metadataResponse = await window.api.youtube.getPlaylistMetadata(
+        response.data.sanitizedUrl,
+      );
+
       if (metadataResponse.success) {
         setPlaylistPreview({
           title: metadataResponse.data.title,
@@ -83,7 +101,9 @@ export const AddPlaylistDialog: React.FC<AddPlaylistDialogProps> = ({
         });
         setError(null);
       } else {
-        setError(metadataResponse.error || 'Failed to fetch playlist information');
+        setError(
+          metadataResponse.error || 'Failed to fetch playlist information',
+        );
         setPlaylistPreview(null);
       }
     } catch (error) {
@@ -98,7 +118,7 @@ export const AddPlaylistDialog: React.FC<AddPlaylistDialogProps> = ({
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
     setYoutubeUrl(url);
-    
+
     // Debounce URL validation
     const timeoutId = setTimeout(() => {
       validateYouTubeUrl(url);
@@ -118,7 +138,7 @@ export const AddPlaylistDialog: React.FC<AddPlaylistDialogProps> = ({
 
     try {
       const response = await window.api.youtube.importPlaylist(youtubeUrl);
-      
+
       if (response.success) {
         onPlaylistAdded(response.data.playlist);
         onClose();
@@ -192,77 +212,79 @@ export const AddPlaylistDialog: React.FC<AddPlaylistDialogProps> = ({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content add-playlist-dialog" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Add New Playlist</h2>
-          <button className="modal-close" onClick={onClose}>
-            ×
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className='max-w-2xl'>
+        <DialogHeader>
+          <DialogTitle>Add New Playlist</DialogTitle>
+        </DialogHeader>
 
-        <div className="dialog-tabs">
-          <button
-            className={`tab-button ${activeTab === 'youtube' ? 'active' : ''}`}
-            onClick={() => setActiveTab('youtube')}
-          >
-            From YouTube
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'custom' ? 'active' : ''}`}
-            onClick={() => setActiveTab('custom')}
-          >
-            Custom Playlist
-          </button>
-        </div>
+        <Tabs
+          value={activeTab}
+          onValueChange={value => setActiveTab(value as 'youtube' | 'custom')}
+        >
+          <TabsList className='grid w-full grid-cols-2'>
+            <TabsTrigger value='youtube'>From YouTube</TabsTrigger>
+            <TabsTrigger value='custom'>Custom Playlist</TabsTrigger>
+          </TabsList>
 
-        <div className="modal-body">
           {error && (
-            <div className="error-message">
-              {error}
-            </div>
+            <Alert variant='destructive'>
+              <AlertCircle className='h-4 w-4' />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
-          {activeTab === 'youtube' && (
-            <div className="youtube-tab">
-              <div className="form-group">
-                <label htmlFor="youtube-url">YouTube Playlist URL</label>
-                <input
-                  id="youtube-url"
-                  type="url"
-                  value={youtubeUrl}
-                  onChange={handleUrlChange}
-                  placeholder="https://www.youtube.com/playlist?list=..."
-                  disabled={isLoading}
-                />
-                {isValidatingUrl && (
-                  <div className="validation-spinner">Validating URL...</div>
-                )}
-              </div>
+          <TabsContent value='youtube' className='space-y-4'>
+            <div className='space-y-2'>
+              <Label htmlFor='youtube-url'>YouTube Playlist URL</Label>
+              <Input
+                id='youtube-url'
+                type='url'
+                value={youtubeUrl}
+                onChange={handleUrlChange}
+                placeholder='https://www.youtube.com/playlist?list=...'
+                disabled={isLoading}
+              />
+              {isValidatingUrl && (
+                <div className='flex items-center space-x-2 text-sm text-muted-foreground'>
+                  <Loader2 className='h-4 w-4 animate-spin' />
+                  <span>Validating URL...</span>
+                </div>
+              )}
+            </div>
 
-              {playlistPreview && (
-                <div className="playlist-preview">
-                  <h3>Playlist Preview</h3>
-                  <div className="preview-content">
-                    {playlistPreview.thumbnailUrl && (
+            {playlistPreview && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className='text-lg'>Playlist Preview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className='flex space-x-4'>
+                    {playlistPreview.thumbnailUrl ? (
                       <img
                         src={playlistPreview.thumbnailUrl}
-                        alt="Playlist thumbnail"
-                        className="preview-thumbnail"
-                        onError={(e) => {
+                        alt='Playlist thumbnail'
+                        className='h-18 w-24 flex-shrink-0 rounded-md object-cover'
+                        onError={e => {
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
                       />
+                    ) : (
+                      <div className='flex h-18 w-24 flex-shrink-0 items-center justify-center rounded-md bg-muted'>
+                        <Music className='h-6 w-6 text-muted-foreground' />
+                      </div>
                     )}
-                    <div className="preview-info">
-                      <h4 className="preview-title">{playlistPreview.title}</h4>
-                      <p className="preview-uploader">by {playlistPreview.uploader}</p>
-                      <p className="preview-video-count">{playlistPreview.videoCount} videos</p>
+                    <div className='flex-1 space-y-2'>
+                      <h4 className='font-semibold'>{playlistPreview.title}</h4>
+                      <p className='text-sm text-muted-foreground'>
+                        by {playlistPreview.uploader}
+                      </p>
+                      <p className='text-sm text-muted-foreground'>
+                        {playlistPreview.videoCount} videos
+                      </p>
                       {playlistPreview.description && (
-                        <p className="preview-description">
+                        <p className='line-clamp-3 text-sm text-muted-foreground'>
                           {playlistPreview.description.length > 200
                             ? `${playlistPreview.description.substring(0, 200)}...`
                             : playlistPreview.description}
@@ -270,81 +292,77 @@ export const AddPlaylistDialog: React.FC<AddPlaylistDialogProps> = ({
                       )}
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
 
-          {activeTab === 'custom' && (
-            <div className="custom-tab">
-              <div className="form-group">
-                <label htmlFor="custom-title">
-                  Title <span className="required">*</span>
-                </label>
-                <input
-                  id="custom-title"
-                  type="text"
-                  value={customTitle}
-                  onChange={handleCustomTitleChange}
-                  placeholder="Enter playlist title"
-                  disabled={isLoading}
-                  maxLength={255}
-                />
-                <div className="character-count">
+          <TabsContent value='custom' className='space-y-4'>
+            <div className='space-y-2'>
+              <Label htmlFor='custom-title'>
+                Title <span className='text-destructive'>*</span>
+              </Label>
+              <Input
+                id='custom-title'
+                type='text'
+                value={customTitle}
+                onChange={handleCustomTitleChange}
+                placeholder='Enter playlist title'
+                disabled={isLoading}
+                maxLength={255}
+              />
+              <div className='flex items-center justify-between'>
+                <span className='text-xs text-muted-foreground'>
                   {customTitle.length}/255 characters
-                </div>
+                </span>
                 {titleError && (
-                  <div className="field-error">{titleError}</div>
+                  <span className='text-xs text-destructive'>{titleError}</span>
                 )}
               </div>
+            </div>
 
-              <div className="form-group">
-                <label htmlFor="custom-description">Description</label>
-                <textarea
-                  id="custom-description"
-                  value={customDescription}
-                  onChange={(e) => setCustomDescription(e.target.value)}
-                  placeholder="Enter playlist description (optional)"
-                  disabled={isLoading}
-                  maxLength={1000}
-                  rows={4}
-                />
-                <div className="character-count">
-                  {customDescription.length}/1000 characters
-                </div>
+            <div className='space-y-2'>
+              <Label htmlFor='custom-description'>Description</Label>
+              <Textarea
+                id='custom-description'
+                value={customDescription}
+                onChange={e => setCustomDescription(e.target.value)}
+                placeholder='Enter playlist description (optional)'
+                disabled={isLoading}
+                maxLength={1000}
+                rows={4}
+              />
+              <div className='text-right text-xs text-muted-foreground'>
+                {customDescription.length}/1000 characters
               </div>
             </div>
-          )}
-        </div>
+          </TabsContent>
+        </Tabs>
 
-        <div className="modal-footer">
-          <button
-            className="btn-secondary"
-            onClick={onClose}
-            disabled={isLoading}
-          >
+        <DialogFooter>
+          <Button variant='outline' onClick={onClose} disabled={isLoading}>
             Cancel
-          </button>
-          
+          </Button>
+
           {activeTab === 'youtube' ? (
-            <button
-              className="btn-primary"
+            <Button
               onClick={handleImportPlaylist}
               disabled={!playlistPreview || isLoading || isValidatingUrl}
             >
+              {isLoading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
               {isLoading ? 'Importing...' : 'Import Playlist'}
-            </button>
+            </Button>
           ) : (
-            <button
-              className="btn-primary"
+            <Button
               onClick={handleCreateCustomPlaylist}
               disabled={!customTitle.trim() || !!titleError || isLoading}
             >
+              {isLoading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
               {isLoading ? 'Creating...' : 'Create Playlist'}
-            </button>
+            </Button>
           )}
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
