@@ -1,0 +1,99 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "build:main",
+      "group": "build",
+      "label": "npm: build:main",
+      "detail": "Build main process"
+    },
+    {
+      "type": "npm",
+      "script": "build:renderer",
+      "group": "build",
+      "label": "npm: build:renderer",
+      "detail": "Build renderer process"
+    },
+    {
+      "type": "npm",
+      "script": "build:all",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "label": "npm: build:all",
+      "detail": "Build all processes"
+    },
+    {
+      "type": "npm",
+      "script": "dev",
+      "group": "build",
+      "label": "npm: dev",
+      "detail": "Start development server",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "typescript",
+        "fileLocation": "relative",
+        "pattern": {
+          "regexp": "^([^\\s].*)\\((\\d+|\\d+,\\d+|\\d+,\\d+,\\d+,\\d+)\\):\\s+(error|warning|info)\\s+(TS\\d+)\\s*:\\s*(.*)$",
+          "file": 1,
+          "location": 2,
+          "severity": 3,
+          "code": 4,
+          "message": 5
+        }
+      }
+    },
+    {
+      "type": "npm",
+      "script": "test",
+      "group": "test",
+      "label": "npm: test",
+      "detail": "Run tests"
+    },
+    {
+      "type": "npm",
+      "script": "test:watch",
+      "group": "test",
+      "label": "npm: test:watch",
+      "detail": "Run tests in watch mode",
+      "isBackground": true
+    },
+    {
+      "type": "npm",
+      "script": "lint",
+      "group": "build",
+      "label": "npm: lint",
+      "detail": "Run ESLint with auto-fix"
+    },
+    {
+      "type": "npm",
+      "script": "format",
+      "group": "build",
+      "label": "npm: format",
+      "detail": "Format code with Prettier"
+    },
+    {
+      "type": "npm",
+      "script": "type-check",
+      "group": "build",
+      "label": "npm: type-check",
+      "detail": "Run TypeScript type checking"
+    },
+    {
+      "type": "npm",
+      "script": "validate",
+      "group": "build",
+      "label": "npm: validate",
+      "detail": "Run all quality checks"
+    },
+    {
+      "type": "npm",
+      "script": "clean",
+      "group": "build",
+      "label": "npm: clean",
+      "detail": "Clean build artifacts"
+    }
+  ]
+}
