@@ -9,6 +9,7 @@ import { registerFileHandlers } from './files/file-handlers';
 import { registerSettingsHandlers } from './settings/settings-handlers';
 import { registerPlaylistHandlers } from './app/playlist-handlers';
 import { initializeDependencyHandlers, cleanupDependencyHandlers } from './dependency-handlers';
+import { initializeErrorHandlers, cleanupErrorHandlers } from './error-handlers';
 
 /**
  * Interface for IPC handler registration functions

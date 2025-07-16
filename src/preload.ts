@@ -50,6 +50,11 @@ const SECURITY_CONFIG = {
     'dependency:statusUpdated', 'dependency:downloadProgress', 'dependency:installStarted',
     'dependency:installCompleted', 'dependency:installFailed',
     
+    // Error handling channels
+    'error:getStatistics', 'error:getRecentReports', 'error:report',
+    'error:clearOldReports', 'error:gracefulShutdown', 'error:test',
+    'error-notification',
+    
     // Legacy channels for backward compatibility
     'playlist:getMetadata', 'import:start', 'task:update', 'getPlaylistDetails', 'getPlaylists'
   ]),
@@ -373,6 +378,17 @@ const electronAPI: ElectronAPI = {
     onInstallStarted: createSecureListener<[string]>('dependency:installStarted'),
     onInstallCompleted: createSecureListener<[string]>('dependency:installCompleted'),
     onInstallFailed: createSecureListener<[any]>('dependency:installFailed'),
+  },
+
+  // Error handling and recovery
+  error: {
+    getStatistics: createSecureInvoke<[], any>('error:getStatistics'),
+    getRecentReports: createSecureInvoke<[number?], any[]>('error:getRecentReports'),
+    report: createSecureInvoke<[{ message: string; stack?: string; name?: string }, any, any?], boolean>('error:report'),
+    clearOldReports: createSecureInvoke<[number?], void>('error:clearOldReports'),
+    gracefulShutdown: createSecureInvoke<[string?], void>('error:gracefulShutdown'),
+    test: process.env.NODE_ENV === 'development' ? createSecureInvoke<[string], boolean>('error:test') : undefined,
+    onNotification: createSecureListener<[any]>('error-notification'),
   },
 
   // Legacy methods for backward compatibility

@@ -108,6 +108,21 @@ export interface DependencyAPI {
   onInstallFailed(callback: (event: any, data: any) => void): void;
 }
 
+// Error handling and recovery interface
+export interface ErrorAPI {
+  getStatistics(): Promise<any>;
+  getRecentReports(limit?: number): Promise<any[]>;
+  report(
+    error: { message: string; stack?: string; name?: string },
+    context: any,
+    options?: any
+  ): Promise<boolean>;
+  clearOldReports(maxAge?: number): Promise<void>;
+  gracefulShutdown(reason?: string): Promise<void>;
+  test?(errorType: string): Promise<boolean>; // Development only
+  onNotification(callback: (event: any, notification: any) => void): void;
+}
+
 // Main Electron API interface exposed to renderer
 export interface ElectronAPI {
   app: AppAPI;
@@ -116,6 +131,7 @@ export interface ElectronAPI {
   playlist: PlaylistAPI;
   youtube: YouTubeAPI;
   dependency: DependencyAPI;
+  error: ErrorAPI;
   
   // Legacy methods for backward compatibility
   getPlaylistMetadata: (url: string) => Promise<any>;

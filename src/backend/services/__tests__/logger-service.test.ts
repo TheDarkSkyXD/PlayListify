@@ -12,14 +12,7 @@ jest.mock('electron', () => ({
 
 // Mock fs-extra
 jest.mock('fs-extra');
-const mockFs = {
-  ensureDir: jest.fn(),
-  readdir: jest.fn(),
-  appendFile: jest.fn(),
-  stat: jest.fn(),
-  remove: jest.fn(),
-  statSync: jest.fn()
-} as any;
+const mockFs = fs as jest.Mocked<typeof fs>;
 
 describe('LoggerService', () => {
   let logger: LoggerService;

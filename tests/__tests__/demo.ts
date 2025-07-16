@@ -9,8 +9,8 @@
  * - Proper error handling and logging for all file operations
  */
 
-import { FileSystemService } from '../file-system-service';
-import { validatePath, sanitizePath } from '../../utils/path-validation';
+import { FileSystemService } from '../../src/backend/services/file-system-service';
+import { validatePath, sanitizePath } from '../../src/backend/utils/path-validation';
 import * as path from 'path';
 import * as os from 'os';
 

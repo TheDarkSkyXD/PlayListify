@@ -3,8 +3,8 @@
  * This script shows all the logging features in action
  */
 
-import { createLogger, LoggerService } from '../logger-service';
-import { createDevelopmentService } from '../development-service';
+import { createLogger, LoggerService } from '../../src/backend/services/logger-service';
+import { createDevelopmentService } from '../../src/backend/services/development-service';
 
 async function demonstrateLoggingSystem() {
   console.log('=== Playlistify Logging System Demonstration ===\n');

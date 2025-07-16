@@ -8,6 +8,8 @@ import type { AppConfig } from '@/shared/types';
 import { initializeIPCHandlers, cleanupIPCHandlers } from './backend/handlers/index';
 import { createLogger } from './backend/services/logger-service';
 import { createDevelopmentService } from './backend/services/development-service';
+import { ErrorHandlerService } from './backend/services/error-handler-service';
+import { initializeErrorHandlers, cleanupErrorHandlers } from './backend/handlers/error-handlers';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -32,6 +34,9 @@ const developmentService = createDevelopmentService({
   performanceMonitoring: true,
   memoryTracking: true
 });
+
+// Initialize error handler service
+const errorHandler = new ErrorHandlerService(logger);
 
 // Application configuration following the design specification
 const APP_CONFIG: AppConfig = {
@@ -61,9 +66,43 @@ const initializeApp = async (): Promise<void> => {
   try {
     logger.info('App initialization started', 'MainProcess');
     
+    // Initialize error handling service first
+    await errorHandler.registerShutdownProcedure({
+      name: 'logger',
+      priority: 1,
+      timeout: 5000,
+      procedure: async () => {
+        await logger.shutdown();
+      },
+    });
+
+    await errorHandler.registerShutdownProcedure({
+      name: 'development-service',
+      priority: 2,
+      timeout: 3000,
+      procedure: async () => {
+        if (process.env.NODE_ENV === 'development') {
+          developmentService.shutdown();
+        }
+      },
+    });
+
+    await errorHandler.registerShutdownProcedure({
+      name: 'ipc-handlers',
+      priority: 3,
+      timeout: 5000,
+      procedure: async () => {
+        if (process.env.NODE_ENV !== 'test') {
+          cleanupIPCHandlers();
+          cleanupErrorHandlers();
+        }
+      },
+    });
+
     // Initialize secure IPC communication architecture
     if (process.env.NODE_ENV !== 'test') {
       initializeIPCHandlers();
+      initializeErrorHandlers(errorHandler);
       logger.info('Secure IPC communication system initialized', 'MainProcess');
     }
     
@@ -71,6 +110,13 @@ const initializeApp = async (): Promise<void> => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('Failed to initialize app services', 'MainProcess', { error: errorMessage });
+    
+    // Use error handler for initialization errors
+    await errorHandler.handleError(error instanceof Error ? error : new Error(errorMessage), {
+      operation: 'initialization',
+      component: 'MainProcess',
+    });
+    
     throw error;
   }
 };
@@ -233,28 +279,22 @@ const handleBeforeQuit = (event: Electron.Event): void => {
   // For now, we'll just log the event
 };
 
-const handleWillQuit = (event: Electron.Event): void => {
+const handleWillQuit = async (event: Electron.Event): Promise<void> => {
   logger.debug('Application will quit', 'AppLifecycle');
+  
+  // Use error handler's graceful shutdown
+  try {
+    await errorHandler.gracefulShutdown('Application Quit');
+  } catch (error) {
+    logger.error('Error during graceful shutdown', 'AppLifecycle', {
+      error: error instanceof Error ? error.message : error,
+    });
+  }
   
   // Final cleanup operations
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.removeAllListeners();
   }
-  
-  // Cleanup IPC handlers
-  if (process.env.NODE_ENV !== 'test') {
-    cleanupIPCHandlers();
-  }
-  
-  // Shutdown development service
-  if (process.env.NODE_ENV === 'development') {
-    developmentService.shutdown();
-  }
-  
-  // Shutdown logger
-  logger.shutdown().catch(error => {
-    console.error('Failed to shutdown logger:', error);
-  });
 };
 
 // Set up application event listeners
@@ -277,32 +317,8 @@ app.on('certificate-error', (event, webContents, url, error, certificate, callba
   }
 });
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception', 'ProcessError', { error: error.message, stack: error.stack });
-  
-  // In production, we might want to report this error
-  if (process.env.NODE_ENV === 'production') {
-    // TODO: Implement error reporting
-  }
-  
-  // Graceful shutdown
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.close();
-  }
-  
-  app.quit();
-});
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection', 'ProcessError', { reason: reason, promise: promise });
-  
-  // In production, we might want to report this error
-  if (process.env.NODE_ENV === 'production') {
-    // TODO: Implement error reporting
-  }
-});
+// Enhanced error handling is now managed by ErrorHandlerService
+// The service automatically handles uncaught exceptions and unhandled rejections
 
 // Security: Prevent new window creation from renderer
 app.on('web-contents-created', (_event, contents) => {
