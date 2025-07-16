@@ -6,6 +6,8 @@
 import { app, BrowserWindow, screen } from 'electron';
 import type { AppConfig } from '@/shared/types';
 import { initializeIPCHandlers, cleanupIPCHandlers } from './backend/handlers/index';
+import { createLogger } from './backend/services/logger-service';
+import { createDevelopmentService } from './backend/services/development-service';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -14,6 +16,22 @@ if (require('electron-squirrel-startup')) {
 
 // Keep a global reference of the window object
 let mainWindow: BrowserWindow | null = null;
+
+// Initialize logger service
+const logger = createLogger({
+  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+  development: {
+    enhanced: process.env.NODE_ENV === 'development',
+    stackTrace: process.env.NODE_ENV === 'development'
+  }
+});
+
+// Initialize development service
+const developmentService = createDevelopmentService({
+  enabled: process.env.NODE_ENV === 'development',
+  performanceMonitoring: true,
+  memoryTracking: true
+});
 
 // Application configuration following the design specification
 const APP_CONFIG: AppConfig = {
@@ -41,23 +59,18 @@ const APP_CONFIG: AppConfig = {
 // Application initialization with secure IPC communication
 const initializeApp = async (): Promise<void> => {
   try {
-    if (APP_CONFIG.development.debugLogging) {
-      console.log('🚀 App initialization started');
-    }
+    logger.info('App initialization started', 'MainProcess');
     
     // Initialize secure IPC communication architecture
     if (process.env.NODE_ENV !== 'test') {
       initializeIPCHandlers();
-      if (APP_CONFIG.development.debugLogging) {
-        console.log('🔒 Secure IPC communication system initialized');
-      }
+      logger.info('Secure IPC communication system initialized', 'MainProcess');
     }
     
-    if (APP_CONFIG.development.debugLogging) {
-      console.log('✅ App services initialized successfully');
-    }
+    logger.info('App services initialized successfully', 'MainProcess');
   } catch (error) {
-    console.error('💥 Failed to initialize app services:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Failed to initialize app services', 'MainProcess', { error: errorMessage });
     throw error;
   }
 };
@@ -117,45 +130,33 @@ const createWindow = async (): Promise<BrowserWindow> => {
         mainWindow.focus();
       }
       
-      if (APP_CONFIG.development.debugLogging) {
-        console.log('Main window is ready and shown');
-      }
+      logger.debug('Main window is ready and shown', 'WindowManager');
     }
   });
 
   // Basic window state management for Phase 1
   // (Advanced state persistence will be implemented in later tasks)
   mainWindow.on('resize', () => {
-    if (APP_CONFIG.development.debugLogging) {
-      console.log('Window resized');
-    }
+    logger.debug('Window resized', 'WindowManager');
   });
 
   mainWindow.on('move', () => {
-    if (APP_CONFIG.development.debugLogging) {
-      console.log('Window moved');
-    }
+    logger.debug('Window moved', 'WindowManager');
   });
 
   // Handle window closed
   mainWindow.on('closed', () => {
     mainWindow = null;
-    if (APP_CONFIG.development.debugLogging) {
-      console.log('Main window closed');
-    }
+    logger.debug('Main window closed', 'WindowManager');
   });
 
   // Handle window focus/blur for better UX
   mainWindow.on('focus', () => {
-    if (APP_CONFIG.development.debugLogging) {
-      console.log('Main window focused');
-    }
+    logger.debug('Main window focused', 'WindowManager');
   });
 
   mainWindow.on('blur', () => {
-    if (APP_CONFIG.development.debugLogging) {
-      console.log('Main window blurred');
-    }
+    logger.debug('Main window blurred', 'WindowManager');
   });
 
   // Load the app
@@ -167,11 +168,10 @@ const createWindow = async (): Promise<BrowserWindow> => {
       mainWindow.webContents.openDevTools();
     }
     
-    if (APP_CONFIG.development.debugLogging) {
-      console.log('Main window loaded successfully');
-    }
+    logger.debug('Main window loaded successfully', 'WindowManager');
   } catch (error) {
-    console.error('Failed to load main window:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Failed to load main window', 'WindowManager', { error: errorMessage });
     throw error;
   }
 
@@ -183,11 +183,15 @@ const handleAppReady = async (): Promise<void> => {
   try {
     await createWindow();
     
-    if (APP_CONFIG.development.debugLogging) {
-      console.log('Application ready and window created');
+    // Log system information in development mode
+    if (process.env.NODE_ENV === 'development') {
+      developmentService.logSystemInfo();
     }
+    
+    logger.info('Application ready and window created', 'AppLifecycle');
   } catch (error) {
-    console.error('Failed to create window on app ready:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Failed to create window on app ready', 'AppLifecycle', { error: errorMessage });
     
     // Show error dialog and quit
     const { dialog } = require('electron');
@@ -203,9 +207,7 @@ const handleAppReady = async (): Promise<void> => {
 const handleWindowAllClosed = (): void => {
   // On macOS, applications typically stay active until explicitly quit
   if (process.platform !== 'darwin') {
-    if (APP_CONFIG.development.debugLogging) {
-      console.log('All windows closed, quitting application');
-    }
+    logger.debug('All windows closed, quitting application', 'AppLifecycle');
     app.quit();
   }
 };
@@ -216,28 +218,23 @@ const handleActivate = async (): Promise<void> => {
     try {
       await createWindow();
       
-      if (APP_CONFIG.development.debugLogging) {
-        console.log('Window recreated on activate');
-      }
+      logger.debug('Window recreated on activate', 'AppLifecycle');
     } catch (error) {
-      console.error('Failed to recreate window on activate:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error('Failed to recreate window on activate', 'AppLifecycle', { error: errorMessage });
     }
   }
 };
 
 const handleBeforeQuit = (event: Electron.Event): void => {
-  if (APP_CONFIG.development.debugLogging) {
-    console.log('Application is about to quit');
-  }
+  logger.debug('Application is about to quit', 'AppLifecycle');
   
   // Perform cleanup operations here if needed
   // For now, we'll just log the event
 };
 
 const handleWillQuit = (event: Electron.Event): void => {
-  if (APP_CONFIG.development.debugLogging) {
-    console.log('Application will quit');
-  }
+  logger.debug('Application will quit', 'AppLifecycle');
   
   // Final cleanup operations
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -248,6 +245,16 @@ const handleWillQuit = (event: Electron.Event): void => {
   if (process.env.NODE_ENV !== 'test') {
     cleanupIPCHandlers();
   }
+  
+  // Shutdown development service
+  if (process.env.NODE_ENV === 'development') {
+    developmentService.shutdown();
+  }
+  
+  // Shutdown logger
+  logger.shutdown().catch(error => {
+    console.error('Failed to shutdown logger:', error);
+  });
 };
 
 // Set up application event listeners
@@ -259,9 +266,7 @@ app.on('will-quit', handleWillQuit);
 
 // Handle certificate errors in development
 app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
-  if (APP_CONFIG.development.debugLogging) {
-    console.warn('Certificate error:', error, 'for URL:', url);
-  }
+  logger.warn('Certificate error', 'Security', { error: error, url: url });
   
   // In development, we might want to ignore certificate errors for localhost
   if (process.env.NODE_ENV === 'development' && url.includes('localhost')) {
@@ -274,7 +279,7 @@ app.on('certificate-error', (event, webContents, url, error, certificate, callba
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
+  logger.error('Uncaught Exception', 'ProcessError', { error: error.message, stack: error.stack });
   
   // In production, we might want to report this error
   if (process.env.NODE_ENV === 'production') {
@@ -291,7 +296,7 @@ process.on('uncaughtException', (error) => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error('Unhandled Rejection', 'ProcessError', { reason: reason, promise: promise });
   
   // In production, we might want to report this error
   if (process.env.NODE_ENV === 'production') {
@@ -303,9 +308,7 @@ process.on('unhandledRejection', (reason, promise) => {
 app.on('web-contents-created', (_event, contents) => {
   // Handle external link attempts
   contents.setWindowOpenHandler(({ url }) => {
-    if (APP_CONFIG.development.debugLogging) {
-      console.warn('Blocked new window creation to:', url);
-    }
+    logger.warn('Blocked new window creation', 'Security', { url: url });
     return { action: 'deny' };
   });
   
@@ -318,13 +321,9 @@ app.on('web-contents-created', (_event, contents) => {
         parsedUrl.origin !== 'https://youtube.com') {
       navigationEvent.preventDefault();
       
-      if (APP_CONFIG.development.debugLogging) {
-        console.warn('Blocked navigation to:', navigationUrl);
-      }
+      logger.warn('Blocked navigation', 'Security', { url: navigationUrl });
     }
   });
 });
 
-if (APP_CONFIG.development.debugLogging) {
-  console.log('Main process initialized with configuration:', APP_CONFIG);
-}
+logger.debug('Main process initialized with configuration', 'MainProcess', { config: APP_CONFIG });

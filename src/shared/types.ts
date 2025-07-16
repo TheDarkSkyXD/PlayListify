@@ -246,3 +246,32 @@ export const IPC_CHANNELS = {
 
 // Type for IPC channel names
 export type IPCChannel = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS];
+
+// Logger types
+export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+
+export interface LogEntry {
+  timestamp: string;
+  level: LogLevel;
+  message: string;
+  context?: string;
+  data?: any;
+}
+
+export interface LoggerConfig {
+  level: LogLevel;
+  file: {
+    enabled: boolean;
+    path: string;
+    maxSize: number;
+    maxFiles: number;
+  };
+  console: {
+    enabled: boolean;
+    colorize: boolean;
+  };
+  development: {
+    enhanced: boolean;
+    stackTrace: boolean;
+  };
+}
