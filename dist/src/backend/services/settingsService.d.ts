@@ -1,62 +1,66 @@
-interface AppSettings {
-    theme: 'light' | 'dark';
-    downloadLocation: string;
-    videoQuality: 'best' | 'worst' | '720p' | '1080p';
-    maxConcurrentDownloads: number;
-    autoUpdatePlaylist: boolean;
-    notificationsEnabled: boolean;
-    windowSize: {
-        width: number;
-        height: number;
-    };
-    windowPosition: {
-        x: number;
-        y: number;
-    };
+import { UserSettings, ISettingsService, SettingsValidationResult, SettingsExportData } from '../../shared/types/settings-types';
+interface Logger {
+    info(message: string, meta?: any): void;
+    warn(message: string, meta?: any): void;
+    error(message: string, meta?: any): void;
+    debug(message: string, meta?: any): void;
 }
-export declare class SettingsService {
+export declare class SettingsService implements ISettingsService {
     private store;
-    constructor();
+    private logger;
+    constructor(logger?: Logger);
     /**
-     * Get a setting value by key
+     * Get a setting value by key with type safety
      */
-    get<K extends keyof AppSettings>(key: K): AppSettings[K];
+    get<K extends keyof UserSettings>(key: K): UserSettings[K];
     /**
-     * Set a setting value by key
+     * Set a setting value by key with validation
      */
-    set<K extends keyof AppSettings>(key: K, value: AppSettings[K]): void;
+    set<K extends keyof UserSettings>(key: K, value: UserSettings[K]): void;
     /**
      * Get all settings
      */
-    getAll(): AppSettings;
+    getAll(): UserSettings;
     /**
      * Reset all settings to defaults
      */
     reset(): void;
     /**
-     * Check if a setting has been customized (not default)
+     * Check if a setting exists (has been set)
      */
-    hasCustomValue<K extends keyof AppSettings>(key: K): boolean;
+    has(key: keyof UserSettings): boolean;
+    /**
+     * Delete a specific setting (revert to default)
+     */
+    delete(key: keyof UserSettings): void;
+    /**
+     * Validate all settings and return detailed results
+     */
+    validate(): SettingsValidationResult;
+    /**
+     * Sanitize settings by fixing invalid values
+     */
+    sanitize(): void;
+    /**
+     * Export settings with metadata
+     */
+    export(): SettingsExportData;
+    /**
+     * Import settings with validation
+     */
+    import(data: SettingsExportData): boolean;
     /**
      * Get the file path where settings are stored
      */
     getStorePath(): string;
     /**
-     * Initialize default download location if not set
+     * Initialize default settings and directories
      */
-    initializeDownloadLocation(): Promise<void>;
+    initializeDefaults(): Promise<void>;
     /**
-     * Validate and sanitize settings
+     * Validate a single setting value
      */
-    validateSettings(): boolean;
-    /**
-     * Export settings to JSON
-     */
-    exportSettings(): string;
-    /**
-     * Import settings from JSON
-     */
-    importSettings(jsonString: string): boolean;
+    private validateSingleSetting;
 }
 export declare const settingsService: SettingsService;
 export {};

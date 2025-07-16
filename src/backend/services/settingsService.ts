@@ -1,208 +1,400 @@
 import Store from 'electron-store';
+import { app } from 'electron';
+import * as path from 'path';
+import {
+  UserSettings,
+  ISettingsService,
+  SettingsValidationResult,
+  SettingsExportData,
+  SettingsError,
+  DEFAULT_USER_SETTINGS,
+  SETTINGS_SCHEMA,
+} from '../../shared/types/settings-types';
 
-interface AppSettings {
-  theme: 'light' | 'dark';
-  downloadLocation: string;
-  videoQuality: 'best' | 'worst' | '720p' | '1080p';
-  maxConcurrentDownloads: number;
-  autoUpdatePlaylist: boolean;
-  notificationsEnabled: boolean;
-  windowSize: {
-    width: number;
-    height: number;
-  };
-  windowPosition: {
-    x: number;
-    y: number;
-  };
+// Logger interface (will be implemented in task 10)
+interface Logger {
+  info(message: string, meta?: any): void;
+  warn(message: string, meta?: any): void;
+  error(message: string, meta?: any): void;
+  debug(message: string, meta?: any): void;
 }
 
-const defaultSettings: AppSettings = {
-  theme: 'light',
-  downloadLocation: '',
-  videoQuality: 'best',
-  maxConcurrentDownloads: 3,
-  autoUpdatePlaylist: true,
-  notificationsEnabled: true,
-  windowSize: {
-    width: 1200,
-    height: 800,
-  },
-  windowPosition: {
-    x: 100,
-    y: 100,
-  },
+// Simple console logger fallback
+const consoleLogger: Logger = {
+  info: (message, meta) => console.log(`[INFO] ${message}`, meta || ''),
+  warn: (message, meta) => console.warn(`[WARN] ${message}`, meta || ''),
+  error: (message, meta) => console.error(`[ERROR] ${message}`, meta || ''),
+  debug: (message, meta) => console.debug(`[DEBUG] ${message}`, meta || ''),
 };
 
-export class SettingsService {
-  private store: Store<AppSettings>;
+export class SettingsService implements ISettingsService {
+  private store: Store<UserSettings>;
+  private logger: Logger;
 
-  constructor() {
-    this.store = new Store<AppSettings>({
-      defaults: defaultSettings,
-      schema: {
-        theme: {
-          type: 'string',
-          enum: ['light', 'dark'],
-          default: 'light',
-        },
-        downloadLocation: {
-          type: 'string',
-          default: '',
-        },
-        videoQuality: {
-          type: 'string',
-          enum: ['best', 'worst', '720p', '1080p'],
-          default: 'best',
-        },
-        maxConcurrentDownloads: {
-          type: 'number',
-          minimum: 1,
-          maximum: 10,
-          default: 3,
-        },
-        autoUpdatePlaylist: {
-          type: 'boolean',
-          default: true,
-        },
-        notificationsEnabled: {
-          type: 'boolean',
-          default: true,
-        },
-        windowSize: {
-          type: 'object',
-          properties: {
-            width: { type: 'number', minimum: 800, default: 1200 },
-            height: { type: 'number', minimum: 600, default: 800 },
-          },
-          default: { width: 1200, height: 800 },
-        },
-        windowPosition: {
-          type: 'object',
-          properties: {
-            x: { type: 'number', default: 100 },
-            y: { type: 'number', default: 100 },
-          },
-          default: { x: 100, y: 100 },
-        },
-      },
-    });
+  constructor(logger?: Logger) {
+    this.logger = logger || consoleLogger;
+    
+    try {
+      this.store = new Store<UserSettings>({
+        defaults: DEFAULT_USER_SETTINGS,
+        schema: SETTINGS_SCHEMA,
+        name: 'user-settings',
+        cwd: path.join(app.getPath('userData'), 'config'),
+        fileExtension: 'json',
+        serialize: (value: any) => JSON.stringify(value, null, 2),
+        deserialize: JSON.parse,
+        clearInvalidConfig: true,
+      });
+
+      this.logger.info('SettingsService initialized successfully', {
+        storePath: (this.store as any).path,
+        storeSize: (this.store as any).size,
+      });
+    } catch (error) {
+      this.logger.error('Failed to initialize SettingsService', { error });
+      throw new SettingsError('Failed to initialize settings store', 'INIT_ERROR', error);
+    }
   }
 
   /**
-   * Get a setting value by key
+   * Get a setting value by key with type safety
    */
-  get<K extends keyof AppSettings>(key: K): AppSettings[K] {
-    return this.store.get(key);
+  get<K extends keyof UserSettings>(key: K): UserSettings[K] {
+    try {
+      const value = (this.store as any).get(key);
+      this.logger.debug(`Retrieved setting: ${String(key)}`, { value });
+      return value;
+    } catch (error) {
+      this.logger.error(`Failed to get setting: ${String(key)}`, { error });
+      throw new SettingsError(`Failed to get setting: ${String(key)}`, 'GET_ERROR', error);
+    }
   }
 
   /**
-   * Set a setting value by key
+   * Set a setting value by key with validation
    */
-  set<K extends keyof AppSettings>(key: K, value: AppSettings[K]): void {
-    this.store.set(key, value);
+  set<K extends keyof UserSettings>(key: K, value: UserSettings[K]): void {
+    try {
+      // Validate the value before setting
+      const validationResult = this.validateSingleSetting(key, value);
+      if (!validationResult.isValid) {
+        throw new SettingsError(
+          `Invalid value for setting ${String(key)}: ${validationResult.errors.join(', ')}`,
+          'VALIDATION_ERROR',
+          { key, value, errors: validationResult.errors }
+        );
+      }
+
+      (this.store as any).set(key, value);
+      this.logger.info(`Updated setting: ${String(key)}`, { value });
+    } catch (error) {
+      this.logger.error(`Failed to set setting: ${String(key)}`, { error, value });
+      if (error instanceof SettingsError) {
+        throw error;
+      }
+      throw new SettingsError(`Failed to set setting: ${String(key)}`, 'SET_ERROR', error);
+    }
   }
 
   /**
    * Get all settings
    */
-  getAll(): AppSettings {
-    return this.store.store;
+  getAll(): UserSettings {
+    try {
+      const settings = (this.store as any).store;
+      this.logger.debug('Retrieved all settings');
+      return settings;
+    } catch (error) {
+      this.logger.error('Failed to get all settings', { error });
+      throw new SettingsError('Failed to get all settings', 'GET_ALL_ERROR', error);
+    }
   }
 
   /**
    * Reset all settings to defaults
    */
   reset(): void {
-    this.store.clear();
+    try {
+      (this.store as any).clear();
+      this.logger.info('Reset all settings to defaults');
+    } catch (error) {
+      this.logger.error('Failed to reset settings', { error });
+      throw new SettingsError('Failed to reset settings', 'RESET_ERROR', error);
+    }
   }
 
   /**
-   * Check if a setting has been customized (not default)
+   * Check if a setting exists (has been set)
    */
-  hasCustomValue<K extends keyof AppSettings>(key: K): boolean {
-    return this.store.has(key);
+  has(key: keyof UserSettings): boolean {
+    try {
+      return (this.store as any).has(key);
+    } catch (error) {
+      this.logger.error(`Failed to check setting existence: ${String(key)}`, { error });
+      return false;
+    }
+  }
+
+  /**
+   * Delete a specific setting (revert to default)
+   */
+  delete(key: keyof UserSettings): void {
+    try {
+      (this.store as any).delete(key);
+      this.logger.info(`Deleted setting: ${String(key)}`);
+    } catch (error) {
+      this.logger.error(`Failed to delete setting: ${String(key)}`, { error });
+      throw new SettingsError(`Failed to delete setting: ${String(key)}`, 'DELETE_ERROR', error);
+    }
+  }
+
+  /**
+   * Validate all settings and return detailed results
+   */
+  validate(): SettingsValidationResult {
+    const result: SettingsValidationResult = {
+      isValid: true,
+      errors: [],
+      warnings: [],
+    };
+
+    try {
+      const settings = this.getAll();
+
+      // Validate each setting
+      Object.entries(settings).forEach(([key, value]) => {
+        const settingKey = key as keyof UserSettings;
+        const validation = this.validateSingleSetting(settingKey, value);
+        
+        if (!validation.isValid) {
+          result.isValid = false;
+          result.errors.push(...validation.errors.map(err => `${key}: ${err}`));
+        }
+        
+        if (validation.warnings) {
+          result.warnings.push(...validation.warnings.map(warn => `${key}: ${warn}`));
+        }
+      });
+
+      this.logger.debug('Settings validation completed', result);
+    } catch (error) {
+      result.isValid = false;
+      result.errors.push(`Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error('Settings validation failed', { error });
+    }
+
+    return result;
+  }
+
+  /**
+   * Sanitize settings by fixing invalid values
+   */
+  sanitize(): void {
+    try {
+      const settings = this.getAll();
+      let changesMade = false;
+
+      // Sanitize theme
+      if (!['light', 'dark', 'system'].includes(settings.theme)) {
+        (this.store as any).set('theme', 'light');
+        changesMade = true;
+      }
+
+      // Sanitize video quality
+      if (!['best', 'worst', '720p', '1080p'].includes(settings.videoQuality)) {
+        (this.store as any).set('videoQuality', 'best');
+        changesMade = true;
+      }
+
+      // Sanitize concurrent downloads
+      if (settings.maxConcurrentDownloads < 1 || settings.maxConcurrentDownloads > 10) {
+        (this.store as any).set('maxConcurrentDownloads', 3);
+        changesMade = true;
+      }
+
+      // Sanitize window size
+      if (settings.windowSize.width < 800 || settings.windowSize.height < 600) {
+        (this.store as any).set('windowSize', { width: 1200, height: 800 });
+        changesMade = true;
+      }
+
+      // Sanitize paths
+      if (settings.downloadLocation && !path.isAbsolute(settings.downloadLocation)) {
+        (this.store as any).set('downloadLocation', path.join(app.getPath('downloads'), 'Playlistify'));
+        changesMade = true;
+      }
+
+      if (changesMade) {
+        this.logger.info('Settings sanitized - invalid values corrected');
+      }
+    } catch (error) {
+      this.logger.error('Failed to sanitize settings', { error });
+      throw new SettingsError('Failed to sanitize settings', 'SANITIZE_ERROR', error);
+    }
+  }
+
+  /**
+   * Export settings with metadata
+   */
+  export(): SettingsExportData {
+    try {
+      const exportData: SettingsExportData = {
+        version: '1.0.0',
+        exportDate: new Date(),
+        settings: this.getAll(),
+      };
+
+      this.logger.info('Settings exported');
+      return exportData;
+    } catch (error) {
+      this.logger.error('Failed to export settings', { error });
+      throw new SettingsError('Failed to export settings', 'EXPORT_ERROR', error);
+    }
+  }
+
+  /**
+   * Import settings with validation
+   */
+  import(data: SettingsExportData): boolean {
+    try {
+      // Validate import data structure
+      if (!data.settings || typeof data.settings !== 'object') {
+        throw new SettingsError('Invalid import data structure', 'IMPORT_VALIDATION_ERROR');
+      }
+
+      // Import each valid setting
+      let importedCount = 0;
+      Object.entries(data.settings).forEach(([key, value]) => {
+        if (key in DEFAULT_USER_SETTINGS) {
+          try {
+            this.set(key as keyof UserSettings, value as any);
+            importedCount++;
+          } catch (error) {
+            this.logger.warn(`Failed to import setting: ${key}`, { error, value });
+          }
+        }
+      });
+
+      // Validate and sanitize after import
+      this.sanitize();
+      const validation = this.validate();
+
+      if (!validation.isValid) {
+        this.logger.warn('Settings import completed with validation errors', {
+          importedCount,
+          errors: validation.errors,
+        });
+      } else {
+        this.logger.info('Settings imported successfully', { importedCount });
+      }
+
+      return validation.isValid;
+    } catch (error) {
+      this.logger.error('Failed to import settings', { error });
+      throw new SettingsError('Failed to import settings', 'IMPORT_ERROR', error);
+    }
   }
 
   /**
    * Get the file path where settings are stored
    */
   getStorePath(): string {
-    return this.store.path;
+    return (this.store as any).path;
   }
 
   /**
-   * Initialize default download location if not set
+   * Initialize default settings and directories
    */
-  async initializeDownloadLocation(): Promise<void> {
-    if (!this.get('downloadLocation')) {
-      const { app } = require('electron');
-      const path = require('path');
-      const defaultPath = path.join(app.getPath('downloads'), 'PlayListify');
-      this.set('downloadLocation', defaultPath);
-    }
-  }
-
-  /**
-   * Validate and sanitize settings
-   */
-  validateSettings(): boolean {
+  async initializeDefaults(): Promise<void> {
     try {
-      const settings = this.getAll();
-      
-      // Validate theme
-      if (!['light', 'dark'].includes(settings.theme)) {
-        this.set('theme', 'light');
+      // Initialize download location if not set
+      if (!this.get('downloadLocation')) {
+        const defaultPath = path.join(app.getPath('downloads'), 'Playlistify');
+        this.set('downloadLocation', defaultPath);
       }
 
-      // Validate video quality
-      if (!['best', 'worst', '720p', '1080p'].includes(settings.videoQuality)) {
-        this.set('videoQuality', 'best');
+      // Initialize temp directory if not set
+      if (!this.get('tempDirectory')) {
+        const tempPath = path.join(app.getPath('userData'), 'temp');
+        this.set('tempDirectory', tempPath);
       }
 
-      // Validate concurrent downloads
-      if (settings.maxConcurrentDownloads < 1 || settings.maxConcurrentDownloads > 10) {
-        this.set('maxConcurrentDownloads', 3);
-      }
+      // Validate and sanitize all settings
+      this.sanitize();
 
-      // Validate window size
-      if (settings.windowSize.width < 800 || settings.windowSize.height < 600) {
-        this.set('windowSize', { width: 1200, height: 800 });
-      }
-
-      return true;
+      this.logger.info('Default settings initialized');
     } catch (error) {
-      console.error('Settings validation failed:', error);
-      return false;
+      this.logger.error('Failed to initialize default settings', { error });
+      throw new SettingsError('Failed to initialize default settings', 'INIT_DEFAULTS_ERROR', error);
     }
   }
 
   /**
-   * Export settings to JSON
+   * Validate a single setting value
    */
-  exportSettings(): string {
-    return JSON.stringify(this.getAll(), null, 2);
-  }
+  private validateSingleSetting(key: keyof UserSettings, value: any): { isValid: boolean; errors: string[]; warnings?: string[] } {
+    const result = { isValid: true, errors: [] as string[], warnings: [] as string[] };
 
-  /**
-   * Import settings from JSON
-   */
-  importSettings(jsonString: string): boolean {
     try {
-      const settings = JSON.parse(jsonString) as Partial<AppSettings>;
-      
-      // Validate each setting before importing
-      Object.keys(settings).forEach(key => {
-        if (key in defaultSettings) {
-          this.set(key as keyof AppSettings, settings[key as keyof AppSettings] as any);
-        }
-      });
+      switch (key) {
+        case 'theme':
+          if (!['light', 'dark', 'system'].includes(value)) {
+            result.isValid = false;
+            result.errors.push('Theme must be "light", "dark", or "system"');
+          }
+          break;
 
-      return this.validateSettings();
+        case 'language':
+          if (typeof value !== 'string' || value.length === 0) {
+            result.isValid = false;
+            result.errors.push('Language must be a non-empty string');
+          }
+          break;
+
+        case 'videoQuality':
+          if (!['best', 'worst', '720p', '1080p'].includes(value)) {
+            result.isValid = false;
+            result.errors.push('Video quality must be "best", "worst", "720p", or "1080p"');
+          }
+          break;
+
+        case 'maxConcurrentDownloads':
+          if (typeof value !== 'number' || value < 1 || value > 10) {
+            result.isValid = false;
+            result.errors.push('Max concurrent downloads must be a number between 1 and 10');
+          }
+          break;
+
+        case 'windowSize':
+          if (!value || typeof value !== 'object' || 
+              typeof value.width !== 'number' || typeof value.height !== 'number' ||
+              value.width < 800 || value.height < 600) {
+            result.isValid = false;
+            result.errors.push('Window size must have width >= 800 and height >= 600');
+          }
+          break;
+
+        case 'windowPosition':
+          if (!value || typeof value !== 'object' || 
+              typeof value.x !== 'number' || typeof value.y !== 'number') {
+            result.isValid = false;
+            result.errors.push('Window position must have numeric x and y coordinates');
+          }
+          break;
+
+        case 'downloadLocation':
+        case 'tempDirectory':
+          if (value && typeof value === 'string' && !path.isAbsolute(value)) {
+            result.warnings?.push('Path should be absolute');
+          }
+          break;
+      }
     } catch (error) {
-      console.error('Settings import failed:', error);
-      return false;
+      result.isValid = false;
+      result.errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+
+    return result;
   }
 }
 
