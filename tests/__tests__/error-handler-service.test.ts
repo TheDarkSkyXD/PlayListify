@@ -5,8 +5,8 @@
 
 import { ErrorHandlerService } from '../../src/backend/services/error-handler-service';
 import { LoggerService } from '../../src/backend/services/logger-service';
-import { BaseError, SystemError, NetworkError } from '@/shared/errors';
-import type { ErrorContext, RecoveryOptions } from '@/shared/types/error-types';
+import { BaseError, SystemError, NetworkError } from '../../src/shared/errors';
+import type { ErrorContext, RecoveryOptions } from '../../src/shared/types/error-types';
 
 // Mock Electron modules
 jest.mock('electron', () => ({

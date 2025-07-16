@@ -1,144 +1,185 @@
-﻿# Test Suite for Persistent Backend Task Management Service
+﻿# Testing Infrastructure
 
-This directory contains the comprehensive test suite for the **Persistent Backend Task Management Service** feature, written following Test-Driven Development (TDD) principles.
+This directory contains the comprehensive testing infrastructure for the Playlistify application.
+
+## Overview
+
+The testing infrastructure includes:
+
+- **Unit Tests**: Testing individual components and services
+- **Integration Tests**: Testing interactions between components
+- **Test Utilities**: Mocking and helper utilities for testing
+- **Coverage Reporting**: Code coverage analysis and quality gates
 
 ## Test Structure
 
-The test suite is organized into three main categories:
+```
+tests/
+├── __tests__/           # Core unit tests
+├── utils/               # Test utilities and helpers
+├── mocks/               # Mock implementations
+├── integration/         # Integration tests
+├── setup.ts             # Global test setup
+└── README.md           # This file
+```
 
-### 1. Unit Tests (	ests/services/)
-- **File**: ackground_task_service.test.ts
-- **Purpose**: Test the business logic of BackgroundTaskService in complete isolation
-- **Approach**: Uses mocked dependencies (London School TDD)
-- **Coverage**: Task creation, state transitions, parent/child logic, progress aggregation
+## Running Tests
 
-### 2. Integration Tests (	ests/integration/)
-- **File**: 	ask_management_integration.test.ts
-- **Purpose**: Verify interaction between service and repository layers
-- **Approach**: Uses real BackgroundTaskRepository with in-memory SQLite database
-- **Coverage**: Database schema, persistence, startup resume functionality
-
-### 3. Edge Case Tests (	ests/edge_cases/)
-- **File**: 	ask_management_edge_cases.test.ts
-- **Purpose**: Test system behavior under edge conditions and failure scenarios
-- **Approach**: Simulates invalid inputs, corrupted data, and system failures
-- **Coverage**: Data validation, error handling, resilience patterns
-
-## Running the Tests
-
-### Prerequisites
-`ash
-npm install
-`
-
-### Run All Tests
-`ash
+### All Tests
+```bash
 npm test
-`
+```
 
-### Run Specific Test Categories
-`ash
-# Unit tests only
+### Specific Test Patterns
+```bash
+# Run only unit tests
 npm run test:unit
 
-# Integration tests only
-npm run test:integration
-
-# Edge case tests only
-npm run test:edge-cases
-`
-
-### Run Tests in Watch Mode
-`ash
-npm run test:watch
-`
-
-### Generate Coverage Report
-`ash
+# Run with coverage
 npm run test:coverage
-`
 
-## Test Design Principles
+# Run specific test file
+npm test -- --testPathPattern="shared-errors.test.ts"
 
-### TDD Approach
-These tests are written **before** the implementation exists, following the Red-Green-Refactor cycle:
-1. **Red**: Tests fail initially (implementation doesn't exist)
-2. **Green**: Implement minimal code to make tests pass
-3. **Refactor**: Improve code while keeping tests green
+# Run tests in watch mode
+npm run test:watch
+```
 
-### London School TDD
-- **Unit tests** mock all dependencies to test behavior in isolation
-- **Integration tests** use real dependencies to test component interaction
-- Focus on **observable outcomes** rather than implementation details
+## Test Configuration
 
-### AI-Verifiable Success Criteria
-Each test case represents an AI-verifiable task with clear:
-- **Arrange**: Set up test conditions
-- **Act**: Execute the operation being tested
-- **Assert**: Verify expected outcomes
+### Jest Configuration
+- **Framework**: Jest with TypeScript support
+- **Environment**: Node.js environment for Electron testing
+- **Coverage**: 80% threshold for branches, functions, lines, and statements
+- **Timeout**: 10 seconds default timeout
+- **Mocking**: Comprehensive Electron API mocking
 
-## Test Cases Implemented
+### Key Features
+- **Electron Mocking**: Complete Electron API mock for testing
+- **IPC Testing**: Utilities for testing Inter-Process Communication
+- **Service Mocking**: Mock implementations for backend services
+- **React Testing**: Utilities for testing React components (future)
 
-### Unit Tests (UTC)
-- UTC-01: Create a Single Task
-- UTC-02: Create a Parent and Child Task
-- UTC-03: Update Task Status
-- UTC-04: Update Task Progress
-- UTC-05: Parent Progress Aggregation
-- UTC-06: Parent Status Aggregation (All Children Success)
-- UTC-07: Parent Status Aggregation (One Child Fails)
+## Test Utilities
 
-### Integration Tests (ITC)
-- ITC-01: Database Schema Creation
-- ITC-02: Create and Retrieve Task
-- ITC-03: Update and Retrieve Task
-- ITC-04: Resume Unfinished Tasks on Startup
+### IPC Testing (`tests/utils/ipc-test-utils.ts`)
+- `MockIPCMain`: Mock IPC main process
+- `MockIPCRenderer`: Mock IPC renderer process
+- `MockContextBridge`: Mock context bridge
+- `testIPCRoundTrip`: Helper for testing complete IPC communication
 
-### Edge Case Tests (ECT)
-- ECT-01: Invalid Data Inputs (null/empty titles, invalid progress)
-- ECT-02: Invalid State Transitions (terminal state modifications)
-- ECT-03: Circular Dependencies (parent-child cycles)
-- ECT-04: Database Connection Failures
-- ECT-05: File System Failures (read-only, disk full)
-- ECT-06: Data Corruption Scenarios
-- ECT-07: Resource Exhaustion (high volume operations)
-- ECT-08: Concurrent Access (race conditions)
+### Service Testing (`tests/utils/service-test-utils.ts`)
+- `createServiceTestEnvironment`: Set up test environment
+- `MockElectronStore`: Mock electron-store
+- `MockLogger`: Mock winston logger
+- `createTempTestDirectory`: Create temporary directories for testing
 
-## Expected Behavior
+### React Testing (`tests/utils/react-test-utils.tsx`)
+- `renderWithProviders`: Render components with all providers
+- `createTestQueryClient`: Create test React Query client
+- `mockAPIResponse`: Mock API responses for testing
 
-### Initial State
-**All tests should FAIL initially** because the implementation doesn't exist yet. This is the expected and desired behavior for TDD.
+## Mock Implementations
 
-### Implementation Phase
-As you implement the BackgroundTaskService, BackgroundTaskRepository, and related components, tests should gradually start passing.
+### Electron Mock (`tests/mocks/electron.ts`)
+Complete mock of Electron APIs including:
+- BrowserWindow
+- IPC (main and renderer)
+- App lifecycle
+- Dialog, Shell, Screen
+- Menu, Tray, Notification
+- Context Bridge
 
-### Completion Criteria
-The feature is complete when:
-1. All tests pass
-2. Code coverage meets project standards
-3. All edge cases are handled gracefully
-4. Performance requirements are met
+## Test Examples
 
-## Dependencies
+### Unit Test Example
+```typescript
+import { SystemError } from '../../src/shared/errors';
 
-The tests require these key dependencies:
-- **Jest**: Testing framework
-- **TypeScript**: Type safety and compilation
-- **better-sqlite3**: In-memory database for integration tests
-- **ts-jest**: TypeScript support for Jest
+describe('SystemError', () => {
+  it('should create error with correct properties', () => {
+    const error = new SystemError('Test message', 'TEST_CODE');
+    
+    expect(error.message).toBe('Test message');
+    expect(error.code).toBe('TEST_CODE');
+    expect(error.name).toBe('SystemError');
+    expect(error.recoverable).toBe(true);
+  });
+});
+```
 
-## Notes
+### IPC Test Example
+```typescript
+import { createIPCTestEnvironment } from '../utils/ipc-test-utils';
 
-- Tests use in-memory SQLite databases for speed and isolation
-- Mock implementations follow the same interface as real components
-- Error scenarios are thoroughly tested to ensure resilience
-- Performance tests verify the system can handle high-volume operations
+describe('IPC Communication', () => {
+  let ipcEnv: ReturnType<typeof createIPCTestEnvironment>;
 
-## Contributing
+  beforeEach(() => {
+    ipcEnv = createIPCTestEnvironment();
+  });
 
-When adding new test cases:
-1. Follow the existing naming convention (UTC/ITC/ECT-XX)
-2. Include clear documentation of the test purpose
-3. Use appropriate mocking strategies for the test type
-4. Ensure tests are deterministic and isolated
-5. Add performance assertions where relevant
+  it('should handle IPC round-trip', async () => {
+    const handler = jest.fn().mockResolvedValue('result');
+    ipcEnv.ipcMain.handle('test-channel', handler);
+    
+    const result = await ipcEnv.ipcMain.invokeHandler('test-channel', 'arg');
+    
+    expect(result).toBe('result');
+    expect(handler).toHaveBeenCalledWith('arg');
+  });
+});
+```
+
+## Coverage Requirements
+
+The testing infrastructure enforces minimum coverage thresholds:
+- **Branches**: 80%
+- **Functions**: 80%
+- **Lines**: 80%
+- **Statements**: 80%
+
+## Best Practices
+
+1. **Test Organization**: Group related tests in describe blocks
+2. **Setup/Teardown**: Use beforeEach/afterEach for test isolation
+3. **Mocking**: Use comprehensive mocks for external dependencies
+4. **Assertions**: Write clear, specific assertions
+5. **Error Testing**: Test both success and error scenarios
+6. **Async Testing**: Properly handle async operations with await
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Timeout Errors**: Increase timeout for long-running tests
+2. **Mock Issues**: Ensure mocks are properly reset between tests
+3. **Import Errors**: Check module path mappings in Jest config
+4. **Electron Errors**: Use provided Electron mocks instead of real APIs
+
+### Debug Tips
+
+1. Use `--verbose` flag for detailed test output
+2. Use `--no-coverage` to speed up test runs during development
+3. Use `--testPathPattern` to run specific tests
+4. Check test setup in `tests/setup.ts` for global configuration
+
+## Current Status
+
+✅ **Completed Features**:
+- Jest configuration with TypeScript support
+- Electron-specific testing environment
+- IPC communication test utilities
+- Service testing utilities and mocks
+- Basic unit tests for core services
+- Coverage reporting and quality gates
+
+🔄 **In Progress**:
+- React component testing utilities
+- End-to-end testing setup
+- Performance testing utilities
+
+📋 **Planned**:
+- Visual regression testing
+- Accessibility testing
+- Load testing for background services
