@@ -1,9 +1,0 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Dashboard = void 0;
-const jsx_runtime_1 = require("react/jsx-runtime");
-const Dashboard = () => {
-    return ((0, jsx_runtime_1.jsxs)("div", { className: "dashboard", children: [(0, jsx_runtime_1.jsxs)("div", { className: "dashboard-section", children: [(0, jsx_runtime_1.jsx)("h2", { children: "Recent Playlists" }), (0, jsx_runtime_1.jsx)("div", { className: "dashboard-items", children: (0, jsx_runtime_1.jsx)("div", { className: "dashboard-item", children: (0, jsx_runtime_1.jsx)("p", { children: "No recent playlists" }) }) })] }), (0, jsx_runtime_1.jsxs)("div", { className: "dashboard-section", children: [(0, jsx_runtime_1.jsx)("h2", { children: "Continue Watching" }), (0, jsx_runtime_1.jsx)("div", { className: "dashboard-items", children: (0, jsx_runtime_1.jsx)("div", { className: "dashboard-item", children: (0, jsx_runtime_1.jsx)("p", { children: "No recent activity" }) }) })] }), (0, jsx_runtime_1.jsxs)("div", { className: "dashboard-section", children: [(0, jsx_runtime_1.jsx)("h2", { children: "Statistics" }), (0, jsx_runtime_1.jsxs)("div", { className: "dashboard-items", children: [(0, jsx_runtime_1.jsx)("div", { className: "dashboard-item", children: (0, jsx_runtime_1.jsx)("p", { children: "Total Playlists: 0" }) }), (0, jsx_runtime_1.jsx)("div", { className: "dashboard-item", children: (0, jsx_runtime_1.jsx)("p", { children: "Total Videos: 0" }) }), (0, jsx_runtime_1.jsx)("div", { className: "dashboard-item", children: (0, jsx_runtime_1.jsx)("p", { children: "Downloaded: 0" }) })] })] })] }));
-};
-exports.Dashboard = Dashboard;
-//# sourceMappingURL=Dashboard.js.map

@@ -1,1 +1,0 @@
-{"version":3,"file":"Sidenavbar.d.ts","sourceRoot":"","sources":["../../../src/components/Sidenavbar.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAK,MAAM,OAAO,CAAC;AAE1B,MAAM,WAAW,eAAe;IAC9B,YAAY,EAAE,MAAM,CAAC;IACrB,aAAa,EAAE,CAAC,KAAK,EAAE,MAAM,KAAK,IAAI,CAAC;CACxC;AAED,eAAO,MAAM,UAAU,EAAE,KAAK,CAAC,EAAE,CAAC,eAAe,CA6BhD,CAAC"}

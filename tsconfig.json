@@ -56,7 +56,10 @@
       "@/handlers/*": ["src/handlers/*"],
       "@/repositories/*": ["src/repositories/*"],
       "@/adapters/*": ["src/adapters/*"],
-      "@/styles/*": ["src/styles/*"]
+      "@/styles/*": ["src/styles/*"],
+      "@/lib/*": ["src/lib/*"],
+      "@/frontend/*": ["src/frontend/*"],
+      "@/backend/*": ["src/backend/*"]
     },
     
     "typeRoots": ["./types", "./node_modules/@types"],
@@ -76,7 +79,13 @@
     "**/*.test.ts",
     "src/services/**/*",
     "src/handlers/**/*",
-    "src/repositories/**/*"
+    "src/repositories/**/*",
+    "src/backend/repositories/**/*",
+    "src/backend/services/**/*",
+    "src/frontend/components/features/**/*",
+    "src/frontend/components/examples/**/*",
+    "src/frontend/hooks/queries/**/*",
+    "tests/__tests__/**/*"
   ],
   "ts-node": {
     "esm": false,

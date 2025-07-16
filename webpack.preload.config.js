@@ -1,11 +1,13 @@
 const path = require('path');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 module.exports = {
   target: 'electron-preload',
   entry: './src/preload.ts',
-  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
-  devtool: process.env.NODE_ENV === 'production' ? 'source-map' : 'eval-source-map',
+  mode: isProduction ? 'production' : 'development',
+  devtool: isProduction ? 'source-map' : 'eval-source-map',
   
   module: {
     rules: require('./webpack.rules'),
@@ -24,6 +26,9 @@ module.exports = {
       '@/repositories': path.resolve(__dirname, 'src/repositories'),
       '@/adapters': path.resolve(__dirname, 'src/adapters'),
       '@/styles': path.resolve(__dirname, 'src/styles'),
+      '@/lib': path.resolve(__dirname, 'src/lib'),
+      '@/frontend': path.resolve(__dirname, 'src/frontend'),
+      '@/backend': path.resolve(__dirname, 'src/backend'),
     },
   },
   
@@ -35,18 +40,26 @@ module.exports = {
           semantic: true,
           syntactic: true,
         },
+        mode: 'write-references',
       },
       logger: {
         infrastructure: 'silent',
         issues: 'console',
         devServer: false,
       },
+      async: !isProduction, // Async in development for faster builds
     }),
   ],
   
   optimization: {
     nodeEnv: false, // Prevent webpack from setting NODE_ENV
-    minimize: process.env.NODE_ENV === 'production',
+    minimize: isProduction,
+    ...(isProduction && {
+      minimizer: [
+        // Use default minimizers
+        '...',
+      ],
+    }),
   },
   
   externals: {
@@ -54,10 +67,25 @@ module.exports = {
     'electron': 'commonjs electron',
   },
   
+  performance: {
+    hints: isProduction ? 'warning' : false,
+    maxEntrypointSize: 256000, // 256KB
+    maxAssetSize: 256000,
+  },
+  
   stats: {
     colors: true,
     modules: false,
     chunks: false,
     chunkModules: false,
+    timings: true,
+    builtAt: true,
+  },
+  
+  cache: {
+    type: 'filesystem',
+    buildDependencies: {
+      config: [__filename],
+    },
   },
 };

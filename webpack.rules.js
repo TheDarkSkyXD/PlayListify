@@ -16,7 +16,7 @@ module.exports = [
       },
     },
   },
-  // TypeScript and TSX files (primary loader)
+  // TypeScript and TSX files (primary loader with enhanced options)
   {
     test: /\.tsx?$/,
     exclude: /(node_modules|\.webpack)/,
@@ -26,9 +26,13 @@ module.exports = [
         transpileOnly: true,
         compilerOptions: {
           noEmit: false,
-          sourceMap: true,
+          sourceMap: process.env.NODE_ENV !== 'production',
+          declaration: false, // Disable for webpack builds
+          declarationMap: false,
         },
         configFile: 'tsconfig.json',
+        // Enable faster builds with thread-loader in development
+        happyPackMode: process.env.NODE_ENV !== 'production',
       },
     },
   },
@@ -46,9 +50,11 @@ module.exports = [
             },
             useBuiltIns: 'usage',
             corejs: 3,
+            modules: false, // Let webpack handle modules
           }],
           ['@babel/preset-react', {
             runtime: 'automatic',
+            development: process.env.NODE_ENV !== 'production',
           }],
           '@babel/preset-typescript',
         ],
@@ -58,28 +64,37 @@ module.exports = [
           '@babel/plugin-syntax-dynamic-import',
         ],
         cacheDirectory: true,
+        cacheCompression: false,
       },
     },
   },
-  // Images and assets
+  // Images and assets with optimized handling
   {
     test: /\.(png|jpe?g|gif|svg|ico)$/i,
-    type: 'asset/resource',
+    type: 'asset',
     generator: {
-      filename: 'assets/images/[name].[hash:8][ext]',
+      filename: 'assets/images/[name].[contenthash:8][ext]',
     },
     parser: {
       dataUrlCondition: {
-        maxSize: 8 * 1024, // 8kb
+        maxSize: 8 * 1024, // 8kb - inline smaller images
       },
     },
   },
-  // Fonts
+  // Fonts with optimized handling
   {
     test: /\.(woff|woff2|eot|ttf|otf)$/i,
     type: 'asset/resource',
     generator: {
-      filename: 'assets/fonts/[name].[hash:8][ext]',
+      filename: 'assets/fonts/[name].[contenthash:8][ext]',
+    },
+  },
+  // Audio and video files
+  {
+    test: /\.(mp3|mp4|wav|ogg|webm)$/i,
+    type: 'asset/resource',
+    generator: {
+      filename: 'assets/media/[name].[contenthash:8][ext]',
     },
   },
   // JSON files
@@ -87,7 +102,7 @@ module.exports = [
     test: /\.json$/,
     type: 'json',
   },
-  // Raw text files
+  // Raw text files and documentation
   {
     test: /\.(txt|md)$/i,
     type: 'asset/source',

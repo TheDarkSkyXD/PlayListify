@@ -87,10 +87,31 @@ module.exports = {
     {
       name: '@electron-forge/plugin-webpack',
       config: {
-        mainConfig: './webpack.main.simple.config.js',
-        devContentSecurityPolicy: "default-src 'self' 'unsafe-inline' data:; script-src 'self' 'unsafe-eval' 'unsafe-inline' data:",
+        // Use the enhanced webpack configurations
+        mainConfig: './webpack.main.config.js',
+        
+        // Enhanced development server configuration
+        devServer: {
+          liveReload: true,
+          hot: true,
+          overlay: {
+            errors: true,
+            warnings: false,
+          },
+        },
+        
+        // Development Content Security Policy for hot reloading
+        devContentSecurityPolicy: [
+          "default-src 'self' 'unsafe-inline' data:",
+          "script-src 'self' 'unsafe-eval' 'unsafe-inline' data:",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: https:",
+          "font-src 'self' data:",
+          "connect-src 'self' ws: wss:",
+        ].join('; '),
+        
         renderer: {
-          config: './webpack.renderer.simple.config.js',
+          config: './webpack.renderer.config.js',
           entryPoints: [
             {
               html: './src/index.html',
@@ -98,10 +119,15 @@ module.exports = {
               name: 'main_window',
               preload: {
                 js: './src/preload.ts',
+                config: './webpack.preload.config.js',
               },
             },
           ],
         },
+        
+        // Port configuration for development server
+        port: 3000,
+        loggerPort: 9000,
       },
     },
     // Fuses are used to enable/disable various Electron functionality
