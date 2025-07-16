@@ -5,7 +5,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
-const dependency_handlers_1 = require("./backend/handlers/dependency-handlers");
+const index_1 = require("./backend/handlers/index");
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
     electron_1.app.quit();
@@ -34,74 +34,28 @@ const APP_CONFIG = {
         debugLogging: process.env.NODE_ENV === 'development',
     },
 };
-// Basic initialization for Phase 1 (services will be implemented in later tasks)
+// Application initialization with secure IPC communication
 const initializeApp = async () => {
     try {
         if (APP_CONFIG.development.debugLogging) {
-            console.log('App initialization started');
+            console.log('🚀 App initialization started');
         }
-        // Initialize dependency management system
+        // Initialize secure IPC communication architecture
         if (process.env.NODE_ENV !== 'test') {
-            (0, dependency_handlers_1.initializeDependencyHandlers)();
+            (0, index_1.initializeIPCHandlers)();
             if (APP_CONFIG.development.debugLogging) {
-                console.log('Dependency management system initialized');
+                console.log('🔒 Secure IPC communication system initialized');
             }
         }
         if (APP_CONFIG.development.debugLogging) {
-            console.log('App services initialized successfully');
+            console.log('✅ App services initialized successfully');
         }
     }
     catch (error) {
-        console.error('Failed to initialize app services:', error);
+        console.error('💥 Failed to initialize app services:', error);
         throw error;
     }
 };
-// Basic IPC handlers for Phase 1 (will be expanded in later tasks)
-if (process.env.NODE_ENV !== 'test') {
-    // Basic app handlers
-    electron_1.ipcMain.handle('app:getVersion', () => {
-        return electron_1.app.getVersion();
-    });
-    electron_1.ipcMain.handle('app:quit', () => {
-        electron_1.app.quit();
-    });
-    electron_1.ipcMain.handle('app:minimize', () => {
-        if (mainWindow) {
-            mainWindow.minimize();
-        }
-    });
-    electron_1.ipcMain.handle('app:maximize', () => {
-        if (mainWindow) {
-            if (mainWindow.isMaximized()) {
-                mainWindow.unmaximize();
-            }
-            else {
-                mainWindow.maximize();
-            }
-        }
-    });
-    electron_1.ipcMain.handle('app:isMaximized', () => {
-        return mainWindow ? mainWindow.isMaximized() : false;
-    });
-    electron_1.ipcMain.handle('app:close', () => {
-        if (mainWindow) {
-            mainWindow.close();
-        }
-    });
-    // Legacy handlers for backward compatibility (will be implemented in later tasks)
-    electron_1.ipcMain.handle('getPlaylists', () => {
-        return [{ id: '1', title: 'Sample Playlist' }];
-    });
-    electron_1.ipcMain.handle('getPlaylistDetails', (_event, playlistId) => {
-        return { error: 'Not implemented yet - will be added in later tasks' };
-    });
-    electron_1.ipcMain.handle('playlist:getMetadata', (_event, url) => {
-        return { error: 'Not implemented yet - will be added in later tasks' };
-    });
-    electron_1.ipcMain.handle('import:start', (_event, url) => {
-        return { error: 'Not implemented yet - will be added in later tasks' };
-    });
-}
 const createWindow = async () => {
     // Initialize app services first
     await initializeApp();
@@ -255,9 +209,9 @@ const handleWillQuit = (event) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.removeAllListeners();
     }
-    // Cleanup dependency handlers
+    // Cleanup IPC handlers
     if (process.env.NODE_ENV !== 'test') {
-        (0, dependency_handlers_1.cleanupDependencyHandlers)();
+        (0, index_1.cleanupIPCHandlers)();
     }
 };
 // Set up application event listeners

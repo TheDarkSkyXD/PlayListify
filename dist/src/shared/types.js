@@ -1,7 +1,7 @@
 "use strict";
 /**
- * Shared TypeScript interfaces for IPC communication between main and renderer processes
- * This file defines the secure API surface exposed through the preload script
+ * Shared TypeScript interfaces for secure IPC communication between main and renderer processes
+ * This file defines the complete API surface exposed through the preload script with proper error handling
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.IPC_CHANNELS = void 0;

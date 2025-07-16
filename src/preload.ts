@@ -1,161 +1,174 @@
 /**
- * Preload script for secure IPC communication between main and renderer processes
- * This script runs in a sandboxed environment with access to both Node.js APIs and the DOM
+ * Secure preload script for IPC communication between main and renderer processes
+ * This script creates a controlled API surface with proper security measures and error handling
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ElectronAPI, IPC_CHANNELS } from '@/shared/types';
+import type { ElectronAPI } from '@/shared/types';
 
-// Security: Validate that we're running in the correct context
+// Security validation: Ensure proper context isolation
 if (!process.contextIsolated) {
-  throw new Error('Context isolation must be enabled in the BrowserWindow');
+  throw new Error('❌ Context isolation must be enabled for security');
 }
 
-// Note: process.nodeIntegration is not available in preload context
-// The security is enforced by the main process configuration
+// Security validation: Ensure node integration is disabled
+if (process.env.NODE_ENV !== 'test' && (globalThis as any).require) {
+  throw new Error('❌ Node integration must be disabled for security');
+}
 
-// Create the secure API surface
+/**
+ * Create a secure wrapper for IPC invoke calls with error handling
+ */
+function createSecureInvoke<T extends any[], R>(channel: string) {
+  return async (...args: T): Promise<R> => {
+    try {
+      const response = await ipcRenderer.invoke(channel, ...args);
+      
+      // Handle standardized IPC responses
+      if (response && typeof response === 'object' && 'success' in response) {
+        if (response.success) {
+          return response.data;
+        } else {
+          throw new Error(response.error || 'Unknown IPC error');
+        }
+      }
+      
+      // Handle legacy responses
+      return response;
+    } catch (error) {
+      console.error(`IPC Error on channel ${channel}:`, error);
+      throw error;
+    }
+  };
+}
+
+/**
+ * Create a secure wrapper for IPC event listeners with cleanup
+ */
+function createSecureListener<T extends any[]>(channel: string) {
+  return (callback: (event: Electron.IpcRendererEvent, ...args: T) => void) => {
+    const wrappedCallback = (event: Electron.IpcRendererEvent, ...args: T) => {
+      try {
+        callback(event, ...args);
+      } catch (error) {
+        console.error(`Error in IPC listener for ${channel}:`, error);
+      }
+    };
+    
+    ipcRenderer.on(channel, wrappedCallback);
+    
+    // Return cleanup function
+    return () => {
+      ipcRenderer.removeListener(channel, wrappedCallback);
+    };
+  };
+}
+
+// Create the secure API surface with proper error handling
 const electronAPI: ElectronAPI = {
   // Application operations
   app: {
-    getVersion: () => ipcRenderer.invoke('app:getVersion'),
-    quit: () => ipcRenderer.invoke('app:quit'),
-    minimize: () => ipcRenderer.invoke('app:minimize'),
-    maximize: () => ipcRenderer.invoke('app:maximize'),
-    isMaximized: () => ipcRenderer.invoke('app:isMaximized'),
-    unmaximize: () => ipcRenderer.invoke('app:unmaximize'),
-    close: () => ipcRenderer.invoke('app:close'),
+    getVersion: createSecureInvoke<[], string>('app:getVersion'),
+    quit: createSecureInvoke<[], void>('app:quit'),
+    minimize: createSecureInvoke<[], void>('app:minimize'),
+    maximize: createSecureInvoke<[], void>('app:maximize'),
+    isMaximized: createSecureInvoke<[], boolean>('app:isMaximized'),
+    unmaximize: createSecureInvoke<[], void>('app:unmaximize'),
+    close: createSecureInvoke<[], void>('app:close'),
+    showErrorDialog: createSecureInvoke<[string, string], void>('app:showErrorDialog'),
+    showMessageDialog: createSecureInvoke<[Electron.MessageBoxOptions], Electron.MessageBoxReturnValue>('app:showMessageDialog'),
+    selectDirectory: createSecureInvoke<[Electron.OpenDialogOptions?], string | null>('app:selectDirectory'),
+    selectFile: createSecureInvoke<[Electron.OpenDialogOptions?], string | null>('app:selectFile'),
+    saveFile: createSecureInvoke<[Electron.SaveDialogOptions?], string | null>('app:saveFile'),
   },
 
   // File system operations
   fs: {
-    exists: (path: string) => ipcRenderer.invoke('fs:exists', path),
-    readJson: (path: string) => ipcRenderer.invoke('fs:readJson', path),
-    writeJson: (path: string, data: any) => ipcRenderer.invoke('fs:writeJson', path, data),
-    readText: (path: string, encoding?: BufferEncoding) => ipcRenderer.invoke('fs:readText', path, encoding),
-    writeText: (path: string, content: string, encoding?: BufferEncoding) => ipcRenderer.invoke('fs:writeText', path, content, encoding),
-    delete: (path: string) => ipcRenderer.invoke('fs:delete', path),
-    copy: (src: string, dest: string) => ipcRenderer.invoke('fs:copy', src, dest),
-    move: (src: string, dest: string) => ipcRenderer.invoke('fs:move', src, dest),
-    getStats: (path: string) => ipcRenderer.invoke('fs:getStats', path),
-    listFiles: (dirPath: string) => ipcRenderer.invoke('fs:listFiles', dirPath),
-    listDirectories: (dirPath: string) => ipcRenderer.invoke('fs:listDirectories', dirPath),
-    ensureDirectory: (dirPath: string) => ipcRenderer.invoke('fs:ensureDirectory', dirPath),
-    getSize: (path: string) => ipcRenderer.invoke('fs:getSize', path),
-    formatSize: (bytes: number) => ipcRenderer.invoke('fs:formatSize', bytes),
-    sanitizeFilename: (filename: string) => ipcRenderer.invoke('fs:sanitizeFilename', filename),
-    createUniqueFilename: (path: string) => ipcRenderer.invoke('fs:createUniqueFilename', path),
-    getAppPaths: () => ipcRenderer.invoke('fs:getAppPaths'),
-    initializeDirectories: () => ipcRenderer.invoke('fs:initializeDirectories'),
-    cleanupTempFiles: () => ipcRenderer.invoke('fs:cleanupTempFiles'),
-    selectDirectory: () => ipcRenderer.invoke('fs:selectDirectory'),
+    exists: createSecureInvoke<[string], boolean>('fs:exists'),
+    readJson: createSecureInvoke<[string], any>('fs:readJson'),
+    writeJson: createSecureInvoke<[string, any], void>('fs:writeJson'),
+    readText: createSecureInvoke<[string, BufferEncoding?], string>('fs:readText'),
+    writeText: createSecureInvoke<[string, string, BufferEncoding?], void>('fs:writeText'),
+    delete: createSecureInvoke<[string], void>('fs:delete'),
+    copy: createSecureInvoke<[string, string], void>('fs:copy'),
+    move: createSecureInvoke<[string, string], void>('fs:move'),
+    getStats: createSecureInvoke<[string], any>('fs:getStats'),
+    listFiles: createSecureInvoke<[string], string[]>('fs:listFiles'),
+    listDirectories: createSecureInvoke<[string], string[]>('fs:listDirectories'),
+    ensureDirectory: createSecureInvoke<[string], void>('fs:ensureDirectory'),
+    getSize: createSecureInvoke<[string], number>('fs:getSize'),
+    formatSize: createSecureInvoke<[number], string>('fs:formatSize'),
+    sanitizeFilename: createSecureInvoke<[string], string>('fs:sanitizeFilename'),
+    createUniqueFilename: createSecureInvoke<[string], string>('fs:createUniqueFilename'),
+    getAppPaths: createSecureInvoke<[], any>('fs:getAppPaths'),
+    initializeDirectories: createSecureInvoke<[], void>('fs:initializeDirectories'),
+    cleanupTempFiles: createSecureInvoke<[], void>('fs:cleanupTempFiles'),
+    selectDirectory: createSecureInvoke<[], string | null>('fs:selectDirectory'),
   },
 
   // Settings management
   settings: {
-    get: <T>(key: string) => ipcRenderer.invoke('settings:get', key) as Promise<T>,
-    set: <T>(key: string, value: T) => ipcRenderer.invoke('settings:set', key, value),
-    getAll: () => ipcRenderer.invoke('settings:getAll'),
-    reset: () => ipcRenderer.invoke('settings:reset'),
-    hasCustomValue: (key: string) => ipcRenderer.invoke('settings:hasCustomValue', key),
-    getStorePath: () => ipcRenderer.invoke('settings:getStorePath'),
-    validate: () => ipcRenderer.invoke('settings:validate'),
-    export: () => ipcRenderer.invoke('settings:export'),
-    import: (jsonString: string) => ipcRenderer.invoke('settings:import', jsonString),
-    initializeDownloadLocation: () => ipcRenderer.invoke('settings:initializeDownloadLocation'),
+    get: <T>(key: string) => createSecureInvoke<[string], T>('settings:get')(key),
+    set: <T>(key: string, value: T) => createSecureInvoke<[string, T], void>('settings:set')(key, value),
+    getAll: createSecureInvoke<[], any>('settings:getAll'),
+    reset: createSecureInvoke<[], void>('settings:reset'),
+    hasCustomValue: createSecureInvoke<[string], boolean>('settings:hasCustomValue'),
+    getStorePath: createSecureInvoke<[], string>('settings:getStorePath'),
+    validate: createSecureInvoke<[], boolean>('settings:validate'),
+    export: createSecureInvoke<[], string>('settings:export'),
+    import: createSecureInvoke<[string], boolean>('settings:import'),
+    initializeDownloadLocation: createSecureInvoke<[], void>('settings:initializeDownloadLocation'),
   },
 
-  // Playlist operations (for future implementation)
+  // Playlist operations (placeholder implementations for future tasks)
   playlist: {
-    getAll: (options?: any) => ipcRenderer.invoke('playlist:getAll', options),
-    getById: (playlistId: number) => ipcRenderer.invoke('playlist:getById', playlistId),
-    create: (input: any) => ipcRenderer.invoke('playlist:create', input),
-    update: (playlistId: number, updates: any) => ipcRenderer.invoke('playlist:update', playlistId, updates),
-    delete: (playlistId: number) => ipcRenderer.invoke('playlist:delete', playlistId),
-    searchVideos: (options: any) => ipcRenderer.invoke('playlist:searchVideos', options),
-    addVideo: (playlistId: number, videoId: string) => ipcRenderer.invoke('playlist:addVideo', playlistId, videoId),
-    removeVideo: (playlistId: number, videoId: string) => ipcRenderer.invoke('playlist:removeVideo', playlistId, videoId),
-    reorderVideos: (playlistId: number, videoOrders: any[]) => ipcRenderer.invoke('playlist:reorderVideos', playlistId, videoOrders),
-    getStats: (playlistId: number) => ipcRenderer.invoke('playlist:getStats', playlistId),
+    getAll: createSecureInvoke<[any?], any[]>('playlist:getAll'),
+    getById: createSecureInvoke<[number], any>('playlist:getById'),
+    create: createSecureInvoke<[any], any>('playlist:create'),
+    update: createSecureInvoke<[number, any], any>('playlist:update'),
+    delete: createSecureInvoke<[number], void>('playlist:delete'),
+    searchVideos: createSecureInvoke<[any], any[]>('playlist:searchVideos'),
+    addVideo: createSecureInvoke<[number, string], void>('playlist:addVideo'),
+    removeVideo: createSecureInvoke<[number, string], void>('playlist:removeVideo'),
+    reorderVideos: createSecureInvoke<[number, any[]], void>('playlist:reorderVideos'),
+    getStats: createSecureInvoke<[number], any>('playlist:getStats'),
   },
 
-  // YouTube operations (for future implementation)
+  // YouTube operations (placeholder implementations for future tasks)
   youtube: {
-    getPlaylistMetadata: (url: string) => ipcRenderer.invoke('youtube:getPlaylistMetadata', url),
-    importPlaylist: (url: string) => ipcRenderer.invoke('youtube:importPlaylist', url),
-    getVideoQualities: (videoId: string) => ipcRenderer.invoke('youtube:getVideoQualities', videoId),
-    checkAvailability: () => ipcRenderer.invoke('youtube:checkAvailability'),
-    updateYtDlp: () => ipcRenderer.invoke('youtube:updateYtDlp'),
-    validateUrl: (url: string) => ipcRenderer.invoke('youtube:validateUrl', url),
-    onImportProgress: (callback: (event: any, data: any) => void) => {
-      const wrappedCallback = (_event: Electron.IpcRendererEvent, data: any) => callback(_event, data);
-      ipcRenderer.on('youtube:importProgress', wrappedCallback);
-      
-      // Return cleanup function
-      return () => ipcRenderer.removeListener('youtube:importProgress', wrappedCallback);
-    },
+    getPlaylistMetadata: createSecureInvoke<[string], any>('youtube:getPlaylistMetadata'),
+    importPlaylist: createSecureInvoke<[string], any>('youtube:importPlaylist'),
+    getVideoQualities: createSecureInvoke<[string], string[]>('youtube:getVideoQualities'),
+    checkAvailability: createSecureInvoke<[], any>('youtube:checkAvailability'),
+    updateYtDlp: createSecureInvoke<[], any>('youtube:updateYtDlp'),
+    validateUrl: createSecureInvoke<[string], any>('youtube:validateUrl'),
+    onImportProgress: createSecureListener<[any]>('youtube:importProgress'),
   },
 
   // Dependency management
   dependency: {
-    checkStatus: () => ipcRenderer.invoke('dependency:checkStatus'),
-    getStatus: () => ipcRenderer.invoke('dependency:getStatus'),
-    install: (dependencyName: 'ytdlp' | 'ffmpeg') => ipcRenderer.invoke('dependency:install', dependencyName),
-    validate: (dependencyName: 'ytdlp' | 'ffmpeg') => ipcRenderer.invoke('dependency:validate', dependencyName),
-    getVersion: (dependencyName: 'ytdlp' | 'ffmpeg') => ipcRenderer.invoke('dependency:getVersion', dependencyName),
-    getPath: (dependencyName: 'ytdlp' | 'ffmpeg') => ipcRenderer.invoke('dependency:getPath', dependencyName),
-    cleanup: () => ipcRenderer.invoke('dependency:cleanup'),
-    areAllReady: () => ipcRenderer.invoke('dependency:areAllReady'),
-    isInitialized: () => ipcRenderer.invoke('dependency:isInitialized'),
-    onStatusUpdated: (callback: (event: any, status: any) => void) => {
-      const wrappedCallback = (_event: Electron.IpcRendererEvent, status: any) => callback(_event, status);
-      ipcRenderer.on('dependency:statusUpdated', wrappedCallback);
-      
-      // Return cleanup function
-      return () => ipcRenderer.removeListener('dependency:statusUpdated', wrappedCallback);
-    },
-    onDownloadProgress: (callback: (event: any, progress: any) => void) => {
-      const wrappedCallback = (_event: Electron.IpcRendererEvent, progress: any) => callback(_event, progress);
-      ipcRenderer.on('dependency:downloadProgress', wrappedCallback);
-      
-      // Return cleanup function
-      return () => ipcRenderer.removeListener('dependency:downloadProgress', wrappedCallback);
-    },
-    onInstallStarted: (callback: (event: any, dependency: string) => void) => {
-      const wrappedCallback = (_event: Electron.IpcRendererEvent, dependency: string) => callback(_event, dependency);
-      ipcRenderer.on('dependency:installStarted', wrappedCallback);
-      
-      // Return cleanup function
-      return () => ipcRenderer.removeListener('dependency:installStarted', wrappedCallback);
-    },
-    onInstallCompleted: (callback: (event: any, dependency: string) => void) => {
-      const wrappedCallback = (_event: Electron.IpcRendererEvent, dependency: string) => callback(_event, dependency);
-      ipcRenderer.on('dependency:installCompleted', wrappedCallback);
-      
-      // Return cleanup function
-      return () => ipcRenderer.removeListener('dependency:installCompleted', wrappedCallback);
-    },
-    onInstallFailed: (callback: (event: any, data: any) => void) => {
-      const wrappedCallback = (_event: Electron.IpcRendererEvent, data: any) => callback(_event, data);
-      ipcRenderer.on('dependency:installFailed', wrappedCallback);
-      
-      // Return cleanup function
-      return () => ipcRenderer.removeListener('dependency:installFailed', wrappedCallback);
-    },
+    checkStatus: createSecureInvoke<[], any>('dependency:checkStatus'),
+    getStatus: createSecureInvoke<[], any>('dependency:getStatus'),
+    install: createSecureInvoke<['ytdlp' | 'ffmpeg'], any>('dependency:install'),
+    validate: createSecureInvoke<['ytdlp' | 'ffmpeg'], boolean>('dependency:validate'),
+    getVersion: createSecureInvoke<['ytdlp' | 'ffmpeg'], string | null>('dependency:getVersion'),
+    getPath: createSecureInvoke<['ytdlp' | 'ffmpeg'], string>('dependency:getPath'),
+    cleanup: createSecureInvoke<[], any>('dependency:cleanup'),
+    areAllReady: createSecureInvoke<[], boolean>('dependency:areAllReady'),
+    isInitialized: createSecureInvoke<[], boolean>('dependency:isInitialized'),
+    onStatusUpdated: createSecureListener<[any]>('dependency:statusUpdated'),
+    onDownloadProgress: createSecureListener<[any]>('dependency:downloadProgress'),
+    onInstallStarted: createSecureListener<[string]>('dependency:installStarted'),
+    onInstallCompleted: createSecureListener<[string]>('dependency:installCompleted'),
+    onInstallFailed: createSecureListener<[any]>('dependency:installFailed'),
   },
 
   // Legacy methods for backward compatibility
-  getPlaylistMetadata: (url: string) => ipcRenderer.invoke('playlist:getMetadata', url),
-  startImport: (url: string) => ipcRenderer.invoke('import:start', url),
-  onTaskUpdate: (callback: (event: any, data: any) => void) => {
-    const wrappedCallback = (_event: Electron.IpcRendererEvent, data: any) => callback(_event, data);
-    ipcRenderer.on('task:update', wrappedCallback);
-    
-    // Return cleanup function
-    return () => ipcRenderer.removeListener('task:update', wrappedCallback);
-  },
-  getPlaylistDetails: (playlistId: string) => ipcRenderer.invoke('getPlaylistDetails', playlistId),
-  getPlaylists: () => ipcRenderer.invoke('getPlaylists'),
+  getPlaylistMetadata: createSecureInvoke<[string], any>('playlist:getMetadata'),
+  startImport: createSecureInvoke<[string], any>('import:start'),
+  onTaskUpdate: createSecureListener<[any]>('task:update'),
+  getPlaylistDetails: createSecureInvoke<[string], any>('getPlaylistDetails'),
+  getPlaylists: createSecureInvoke<[], any[]>('getPlaylists'),
 };
 
 // Security: Only expose the API through contextBridge

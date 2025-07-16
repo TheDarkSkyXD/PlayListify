@@ -1,2 +1,2 @@
-export declare const registerPlaylistHandlers: () => void;
+export declare function registerPlaylistHandlers(): void;
 //# sourceMappingURL=playlist-handlers.d.ts.map

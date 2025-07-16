@@ -1,346 +1,158 @@
-import { ipcMain, IpcMainInvokeEvent } from 'electron';
-import { FileUtils } from '../utils/fileUtils';
+import { ipcMain, dialog, BrowserWindow } from 'electron';
 import * as path from 'path';
+import { createIPCHandler } from '../index';
+import { FileSystemService } from '../../services/file-system-service';
 
-export const registerFileHandlers = (): void => {
+// Initialize file system service
+const fileSystemService = new FileSystemService();
+
+export function registerFileHandlers(): void {
   // Check if file exists
-  ipcMain.handle('file:exists', async (event: IpcMainInvokeEvent, filePath: string) => {
-    try {
-      // Validate path for security
-      const appDataPath = FileUtils.getAppDataPath();
-      const downloadsPath = FileUtils.getDownloadsPath();
-      
-      if (!FileUtils.validatePath(filePath, appDataPath) && 
-          !FileUtils.validatePath(filePath, downloadsPath)) {
-        throw new Error('Path validation failed - access denied');
-      }
-
-      const exists = await FileUtils.exists(filePath);
-      return { success: true, data: exists };
-    } catch (error) {
-      console.error('File exists error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  ipcMain.handle('fs:exists', createIPCHandler(async (filePath: string) => {
+    return await fileSystemService.exists(filePath);
+  }));
 
   // Read JSON file
-  ipcMain.handle('file:readJson', async (event: IpcMainInvokeEvent, filePath: string) => {
-    try {
-      // Validate path for security
-      const appDataPath = FileUtils.getAppDataPath();
-      if (!FileUtils.validatePath(filePath, appDataPath)) {
-        throw new Error('Path validation failed - access denied');
-      }
-
-      const data = await FileUtils.readJson(filePath);
-      return { success: true, data };
-    } catch (error) {
-      console.error('File readJson error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  ipcMain.handle('fs:readJson', createIPCHandler(async (filePath: string) => {
+    return await fileSystemService.readJson(filePath);
+  }));
 
   // Write JSON file
-  ipcMain.handle('file:writeJson', async (event: IpcMainInvokeEvent, filePath: string, data: any) => {
-    try {
-      // Validate path for security
-      const appDataPath = FileUtils.getAppDataPath();
-      if (!FileUtils.validatePath(filePath, appDataPath)) {
-        throw new Error('Path validation failed - access denied');
-      }
-
-      await FileUtils.writeJson(filePath, data);
-      return { success: true };
-    } catch (error) {
-      console.error('File writeJson error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  ipcMain.handle('fs:writeJson', createIPCHandler(async (filePath: string, data: any) => {
+    await fileSystemService.writeJson(filePath, data);
+    return { success: true };
+  }));
 
   // Read text file
-  ipcMain.handle('file:readText', async (event: IpcMainInvokeEvent, filePath: string, encoding: BufferEncoding = 'utf-8') => {
-    try {
-      // Validate path for security
-      const appDataPath = FileUtils.getAppDataPath();
-      const downloadsPath = FileUtils.getDownloadsPath();
-      
-      if (!FileUtils.validatePath(filePath, appDataPath) && 
-          !FileUtils.validatePath(filePath, downloadsPath)) {
-        throw new Error('Path validation failed - access denied');
-      }
-
-      const content = await FileUtils.readText(filePath, encoding);
-      return { success: true, data: content };
-    } catch (error) {
-      console.error('File readText error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  ipcMain.handle('fs:readText', createIPCHandler(async (filePath: string, encoding?: BufferEncoding) => {
+    return await fileSystemService.readFile(filePath, encoding);
+  }));
 
   // Write text file
-  ipcMain.handle('file:writeText', async (event: IpcMainInvokeEvent, filePath: string, content: string, encoding: BufferEncoding = 'utf-8') => {
-    try {
-      // Validate path for security
-      const appDataPath = FileUtils.getAppDataPath();
-      if (!FileUtils.validatePath(filePath, appDataPath)) {
-        throw new Error('Path validation failed - access denied');
-      }
-
-      await FileUtils.writeText(filePath, content, encoding);
-      return { success: true };
-    } catch (error) {
-      console.error('File writeText error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  ipcMain.handle('fs:writeText', createIPCHandler(async (filePath: string, content: string, encoding?: BufferEncoding) => {
+    await fileSystemService.writeFile(filePath, content, encoding);
+    return { success: true };
+  }));
 
   // Delete file
-  ipcMain.handle('file:delete', async (event: IpcMainInvokeEvent, filePath: string) => {
-    try {
-      // Validate path for security
-      const appDataPath = FileUtils.getAppDataPath();
-      const downloadsPath = FileUtils.getDownloadsPath();
-      
-      if (!FileUtils.validatePath(filePath, appDataPath) && 
-          !FileUtils.validatePath(filePath, downloadsPath)) {
-        throw new Error('Path validation failed - access denied');
-      }
-
-      await FileUtils.deleteFile(filePath);
-      return { success: true };
-    } catch (error) {
-      console.error('File delete error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  ipcMain.handle('fs:delete', createIPCHandler(async (filePath: string) => {
+    await fileSystemService.deleteFile(filePath);
+    return { success: true };
+  }));
 
   // Copy file
-  ipcMain.handle('file:copy', async (event: IpcMainInvokeEvent, src: string, dest: string) => {
-    try {
-      // Validate paths for security
-      const appDataPath = FileUtils.getAppDataPath();
-      const downloadsPath = FileUtils.getDownloadsPath();
-      
-      if ((!FileUtils.validatePath(src, appDataPath) && !FileUtils.validatePath(src, downloadsPath)) ||
-          (!FileUtils.validatePath(dest, appDataPath) && !FileUtils.validatePath(dest, downloadsPath))) {
-        throw new Error('Path validation failed - access denied');
-      }
-
-      await FileUtils.copyFile(src, dest);
-      return { success: true };
-    } catch (error) {
-      console.error('File copy error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  ipcMain.handle('fs:copy', createIPCHandler(async (src: string, dest: string) => {
+    await fileSystemService.copyFile(src, dest);
+    return { success: true };
+  }));
 
   // Move file
-  ipcMain.handle('file:move', async (event: IpcMainInvokeEvent, src: string, dest: string) => {
-    try {
-      // Validate paths for security
-      const appDataPath = FileUtils.getAppDataPath();
-      const downloadsPath = FileUtils.getDownloadsPath();
-      
-      if ((!FileUtils.validatePath(src, appDataPath) && !FileUtils.validatePath(src, downloadsPath)) ||
-          (!FileUtils.validatePath(dest, appDataPath) && !FileUtils.validatePath(dest, downloadsPath))) {
-        throw new Error('Path validation failed - access denied');
-      }
-
-      await FileUtils.moveFile(src, dest);
-      return { success: true };
-    } catch (error) {
-      console.error('File move error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  ipcMain.handle('fs:move', createIPCHandler(async (src: string, dest: string) => {
+    await fileSystemService.moveFile(src, dest);
+    return { success: true };
+  }));
 
   // Get file stats
-  ipcMain.handle('file:getStats', async (event: IpcMainInvokeEvent, filePath: string) => {
-    try {
-      // Validate path for security
-      const appDataPath = FileUtils.getAppDataPath();
-      const downloadsPath = FileUtils.getDownloadsPath();
-      
-      if (!FileUtils.validatePath(filePath, appDataPath) && 
-          !FileUtils.validatePath(filePath, downloadsPath)) {
-        throw new Error('Path validation failed - access denied');
-      }
+  ipcMain.handle('fs:getStats', createIPCHandler(async (filePath: string) => {
+    const stats = await fileSystemService.getStats(filePath);
+    return {
+      size: stats.size,
+      isFile: stats.isFile,
+      isDirectory: stats.isDirectory,
+      mtime: stats.modifiedAt,
+      ctime: stats.createdAt,
+      atime: stats.accessedAt
+    };
+  }));
 
-      const stats = await FileUtils.getStats(filePath);
-      return { success: true, data: {
-        size: stats.size,
-        isFile: stats.isFile(),
-        isDirectory: stats.isDirectory(),
-        mtime: stats.mtime,
-        ctime: stats.ctime,
-        atime: stats.atime
-      }};
-    } catch (error) {
-      console.error('File getStats error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  // List files in directory (using listDirectory method)
+  ipcMain.handle('fs:listFiles', createIPCHandler(async (dirPath: string) => {
+    const dirStructure = await fileSystemService.listDirectory(dirPath);
+    return dirStructure.files;
+  }));
 
-  // List files in directory
-  ipcMain.handle('file:listFiles', async (event: IpcMainInvokeEvent, dirPath: string) => {
-    try {
-      // Validate path for security
-      const appDataPath = FileUtils.getAppDataPath();
-      const downloadsPath = FileUtils.getDownloadsPath();
-      
-      if (!FileUtils.validatePath(dirPath, appDataPath) && 
-          !FileUtils.validatePath(dirPath, downloadsPath)) {
-        throw new Error('Path validation failed - access denied');
-      }
-
-      const files = await FileUtils.listFiles(dirPath);
-      return { success: true, data: files };
-    } catch (error) {
-      console.error('File listFiles error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
-
-  // List directories
-  ipcMain.handle('file:listDirectories', async (event: IpcMainInvokeEvent, dirPath: string) => {
-    try {
-      // Validate path for security
-      const appDataPath = FileUtils.getAppDataPath();
-      const downloadsPath = FileUtils.getDownloadsPath();
-      
-      if (!FileUtils.validatePath(dirPath, appDataPath) && 
-          !FileUtils.validatePath(dirPath, downloadsPath)) {
-        throw new Error('Path validation failed - access denied');
-      }
-
-      const directories = await FileUtils.listDirectories(dirPath);
-      return { success: true, data: directories };
-    } catch (error) {
-      console.error('File listDirectories error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  // List directories (using listDirectory method)
+  ipcMain.handle('fs:listDirectories', createIPCHandler(async (dirPath: string) => {
+    const dirStructure = await fileSystemService.listDirectory(dirPath);
+    return dirStructure.directories;
+  }));
 
   // Ensure directory exists
-  ipcMain.handle('file:ensureDirectory', async (event: IpcMainInvokeEvent, dirPath: string) => {
-    try {
-      // Validate path for security
-      const appDataPath = FileUtils.getAppDataPath();
-      const downloadsPath = FileUtils.getDownloadsPath();
-      
-      if (!FileUtils.validatePath(dirPath, appDataPath) && 
-          !FileUtils.validatePath(dirPath, downloadsPath)) {
-        throw new Error('Path validation failed - access denied');
-      }
-
-      await FileUtils.ensureDirectory(dirPath);
-      return { success: true };
-    } catch (error) {
-      console.error('File ensureDirectory error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  ipcMain.handle('fs:ensureDirectory', createIPCHandler(async (dirPath: string) => {
+    await fileSystemService.ensureDirectory(dirPath);
+    return { success: true };
+  }));
 
   // Get file size
-  ipcMain.handle('file:getSize', async (event: IpcMainInvokeEvent, filePath: string) => {
-    try {
-      // Validate path for security
-      const appDataPath = FileUtils.getAppDataPath();
-      const downloadsPath = FileUtils.getDownloadsPath();
-      
-      if (!FileUtils.validatePath(filePath, appDataPath) && 
-          !FileUtils.validatePath(filePath, downloadsPath)) {
-        throw new Error('Path validation failed - access denied');
-      }
+  ipcMain.handle('fs:getSize', createIPCHandler(async (filePath: string) => {
+    return await fileSystemService.getSize(filePath);
+  }));
 
-      const size = await FileUtils.getFileSize(filePath);
-      return { success: true, data: size };
-    } catch (error) {
-      console.error('File getSize error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  // Format file size (utility method - implement inline)
+  ipcMain.handle('fs:formatSize', createIPCHandler(async (bytes: number) => {
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
     }
-  });
+    
+    return `${size.toFixed(2)} ${units[unitIndex]}`;
+  }));
 
-  // Format file size
-  ipcMain.handle('file:formatSize', async (event: IpcMainInvokeEvent, bytes: number) => {
-    try {
-      const formatted = FileUtils.formatFileSize(bytes);
-      return { success: true, data: formatted };
-    } catch (error) {
-      console.error('File formatSize error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  // Sanitize filename (using sanitizePath method)
+  ipcMain.handle('fs:sanitizeFilename', createIPCHandler(async (filename: string) => {
+    return fileSystemService.sanitizePath(filename);
+  }));
+
+  // Create unique filename (implement inline)
+  ipcMain.handle('fs:createUniqueFilename', createIPCHandler(async (filePath: string) => {
+    let counter = 1;
+    let uniquePath = filePath;
+    
+    while (await fileSystemService.exists(uniquePath)) {
+      const ext = path.extname(filePath);
+      const base = path.basename(filePath, ext);
+      const dir = path.dirname(filePath);
+      uniquePath = path.join(dir, `${base}_${counter}${ext}`);
+      counter++;
     }
-  });
-
-  // Sanitize filename
-  ipcMain.handle('file:sanitizeFilename', async (event: IpcMainInvokeEvent, filename: string) => {
-    try {
-      const sanitized = FileUtils.sanitizeFilename(filename);
-      return { success: true, data: sanitized };
-    } catch (error) {
-      console.error('File sanitizeFilename error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
-
-  // Create unique filename
-  ipcMain.handle('file:createUniqueFilename', async (event: IpcMainInvokeEvent, filePath: string) => {
-    try {
-      // Validate path for security
-      const appDataPath = FileUtils.getAppDataPath();
-      const downloadsPath = FileUtils.getDownloadsPath();
-      
-      if (!FileUtils.validatePath(filePath, appDataPath) && 
-          !FileUtils.validatePath(filePath, downloadsPath)) {
-        throw new Error('Path validation failed - access denied');
-      }
-
-      const uniqueName = await FileUtils.createUniqueFilename(filePath);
-      return { success: true, data: uniqueName };
-    } catch (error) {
-      console.error('File createUniqueFilename error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+    
+    return uniquePath;
+  }));
 
   // Get application paths
-  ipcMain.handle('file:getAppPaths', async (event: IpcMainInvokeEvent) => {
-    try {
-      const paths = {
-        appData: FileUtils.getAppDataPath(),
-        downloads: FileUtils.getDownloadsPath(),
-        logs: FileUtils.getLogsPath(),
-        binaries: FileUtils.getBinariesPath(),
-        cache: FileUtils.getCachePath(),
-      };
-      return { success: true, data: paths };
-    } catch (error) {
-      console.error('File getAppPaths error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  ipcMain.handle('fs:getAppPaths', createIPCHandler(async () => {
+    return fileSystemService.getAppDirectories();
+  }));
 
   // Initialize directories
-  ipcMain.handle('file:initializeDirectories', async (event: IpcMainInvokeEvent) => {
-    try {
-      await FileUtils.initializeDirectories();
-      return { success: true };
-    } catch (error) {
-      console.error('File initializeDirectories error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  ipcMain.handle('fs:initializeDirectories', createIPCHandler(async () => {
+    await fileSystemService.initializeAppDirectories();
+    return { success: true };
+  }));
 
   // Cleanup temp files
-  ipcMain.handle('file:cleanupTempFiles', async (event: IpcMainInvokeEvent) => {
-    try {
-      await FileUtils.cleanupTempFiles();
-      return { success: true };
-    } catch (error) {
-      console.error('File cleanupTempFiles error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
+  ipcMain.handle('fs:cleanupTempFiles', createIPCHandler(async () => {
+    await fileSystemService.cleanupTempFiles();
+    return { success: true };
+  }));
 
-  console.log('File IPC handlers registered');
+  // Select directory dialog
+  ipcMain.handle('fs:selectDirectory', createIPCHandler(async () => {
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    const result = await dialog.showOpenDialog(focusedWindow || new BrowserWindow(), {
+      properties: ['openDirectory'],
+    });
+    
+    if (result.canceled || result.filePaths.length === 0) {
+      return null;
+    }
+    
+    return result.filePaths[0];
+  }));
+
+  console.log('✅ File system IPC handlers registered');
 };

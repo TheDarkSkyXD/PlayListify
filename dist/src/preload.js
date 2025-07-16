@@ -1,145 +1,162 @@
 "use strict";
 /**
- * Preload script for secure IPC communication between main and renderer processes
- * This script runs in a sandboxed environment with access to both Node.js APIs and the DOM
+ * Secure preload script for IPC communication between main and renderer processes
+ * This script creates a controlled API surface with proper security measures and error handling
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
-// Security: Validate that we're running in the correct context
+// Security validation: Ensure proper context isolation
 if (!process.contextIsolated) {
-    throw new Error('Context isolation must be enabled in the BrowserWindow');
+    throw new Error('❌ Context isolation must be enabled for security');
 }
-// Note: process.nodeIntegration is not available in preload context
-// The security is enforced by the main process configuration
-// Create the secure API surface
+// Security validation: Ensure node integration is disabled
+if (process.env.NODE_ENV !== 'test' && globalThis.require) {
+    throw new Error('❌ Node integration must be disabled for security');
+}
+/**
+ * Create a secure wrapper for IPC invoke calls with error handling
+ */
+function createSecureInvoke(channel) {
+    return async (...args) => {
+        try {
+            const response = await electron_1.ipcRenderer.invoke(channel, ...args);
+            // Handle standardized IPC responses
+            if (response && typeof response === 'object' && 'success' in response) {
+                if (response.success) {
+                    return response.data;
+                }
+                else {
+                    throw new Error(response.error || 'Unknown IPC error');
+                }
+            }
+            // Handle legacy responses
+            return response;
+        }
+        catch (error) {
+            console.error(`IPC Error on channel ${channel}:`, error);
+            throw error;
+        }
+    };
+}
+/**
+ * Create a secure wrapper for IPC event listeners with cleanup
+ */
+function createSecureListener(channel) {
+    return (callback) => {
+        const wrappedCallback = (event, ...args) => {
+            try {
+                callback(event, ...args);
+            }
+            catch (error) {
+                console.error(`Error in IPC listener for ${channel}:`, error);
+            }
+        };
+        electron_1.ipcRenderer.on(channel, wrappedCallback);
+        // Return cleanup function
+        return () => {
+            electron_1.ipcRenderer.removeListener(channel, wrappedCallback);
+        };
+    };
+}
+// Create the secure API surface with proper error handling
 const electronAPI = {
     // Application operations
     app: {
-        getVersion: () => electron_1.ipcRenderer.invoke('app:getVersion'),
-        quit: () => electron_1.ipcRenderer.invoke('app:quit'),
-        minimize: () => electron_1.ipcRenderer.invoke('app:minimize'),
-        maximize: () => electron_1.ipcRenderer.invoke('app:maximize'),
-        isMaximized: () => electron_1.ipcRenderer.invoke('app:isMaximized'),
-        unmaximize: () => electron_1.ipcRenderer.invoke('app:unmaximize'),
-        close: () => electron_1.ipcRenderer.invoke('app:close'),
+        getVersion: createSecureInvoke('app:getVersion'),
+        quit: createSecureInvoke('app:quit'),
+        minimize: createSecureInvoke('app:minimize'),
+        maximize: createSecureInvoke('app:maximize'),
+        isMaximized: createSecureInvoke('app:isMaximized'),
+        unmaximize: createSecureInvoke('app:unmaximize'),
+        close: createSecureInvoke('app:close'),
+        showErrorDialog: createSecureInvoke('app:showErrorDialog'),
+        showMessageDialog: createSecureInvoke('app:showMessageDialog'),
+        selectDirectory: createSecureInvoke('app:selectDirectory'),
+        selectFile: createSecureInvoke('app:selectFile'),
+        saveFile: createSecureInvoke('app:saveFile'),
     },
     // File system operations
     fs: {
-        exists: (path) => electron_1.ipcRenderer.invoke('fs:exists', path),
-        readJson: (path) => electron_1.ipcRenderer.invoke('fs:readJson', path),
-        writeJson: (path, data) => electron_1.ipcRenderer.invoke('fs:writeJson', path, data),
-        readText: (path, encoding) => electron_1.ipcRenderer.invoke('fs:readText', path, encoding),
-        writeText: (path, content, encoding) => electron_1.ipcRenderer.invoke('fs:writeText', path, content, encoding),
-        delete: (path) => electron_1.ipcRenderer.invoke('fs:delete', path),
-        copy: (src, dest) => electron_1.ipcRenderer.invoke('fs:copy', src, dest),
-        move: (src, dest) => electron_1.ipcRenderer.invoke('fs:move', src, dest),
-        getStats: (path) => electron_1.ipcRenderer.invoke('fs:getStats', path),
-        listFiles: (dirPath) => electron_1.ipcRenderer.invoke('fs:listFiles', dirPath),
-        listDirectories: (dirPath) => electron_1.ipcRenderer.invoke('fs:listDirectories', dirPath),
-        ensureDirectory: (dirPath) => electron_1.ipcRenderer.invoke('fs:ensureDirectory', dirPath),
-        getSize: (path) => electron_1.ipcRenderer.invoke('fs:getSize', path),
-        formatSize: (bytes) => electron_1.ipcRenderer.invoke('fs:formatSize', bytes),
-        sanitizeFilename: (filename) => electron_1.ipcRenderer.invoke('fs:sanitizeFilename', filename),
-        createUniqueFilename: (path) => electron_1.ipcRenderer.invoke('fs:createUniqueFilename', path),
-        getAppPaths: () => electron_1.ipcRenderer.invoke('fs:getAppPaths'),
-        initializeDirectories: () => electron_1.ipcRenderer.invoke('fs:initializeDirectories'),
-        cleanupTempFiles: () => electron_1.ipcRenderer.invoke('fs:cleanupTempFiles'),
-        selectDirectory: () => electron_1.ipcRenderer.invoke('fs:selectDirectory'),
+        exists: createSecureInvoke('fs:exists'),
+        readJson: createSecureInvoke('fs:readJson'),
+        writeJson: createSecureInvoke('fs:writeJson'),
+        readText: createSecureInvoke('fs:readText'),
+        writeText: createSecureInvoke('fs:writeText'),
+        delete: createSecureInvoke('fs:delete'),
+        copy: createSecureInvoke('fs:copy'),
+        move: createSecureInvoke('fs:move'),
+        getStats: createSecureInvoke('fs:getStats'),
+        listFiles: createSecureInvoke('fs:listFiles'),
+        listDirectories: createSecureInvoke('fs:listDirectories'),
+        ensureDirectory: createSecureInvoke('fs:ensureDirectory'),
+        getSize: createSecureInvoke('fs:getSize'),
+        formatSize: createSecureInvoke('fs:formatSize'),
+        sanitizeFilename: createSecureInvoke('fs:sanitizeFilename'),
+        createUniqueFilename: createSecureInvoke('fs:createUniqueFilename'),
+        getAppPaths: createSecureInvoke('fs:getAppPaths'),
+        initializeDirectories: createSecureInvoke('fs:initializeDirectories'),
+        cleanupTempFiles: createSecureInvoke('fs:cleanupTempFiles'),
+        selectDirectory: createSecureInvoke('fs:selectDirectory'),
     },
     // Settings management
     settings: {
-        get: (key) => electron_1.ipcRenderer.invoke('settings:get', key),
-        set: (key, value) => electron_1.ipcRenderer.invoke('settings:set', key, value),
-        getAll: () => electron_1.ipcRenderer.invoke('settings:getAll'),
-        reset: () => electron_1.ipcRenderer.invoke('settings:reset'),
-        hasCustomValue: (key) => electron_1.ipcRenderer.invoke('settings:hasCustomValue', key),
-        getStorePath: () => electron_1.ipcRenderer.invoke('settings:getStorePath'),
-        validate: () => electron_1.ipcRenderer.invoke('settings:validate'),
-        export: () => electron_1.ipcRenderer.invoke('settings:export'),
-        import: (jsonString) => electron_1.ipcRenderer.invoke('settings:import', jsonString),
-        initializeDownloadLocation: () => electron_1.ipcRenderer.invoke('settings:initializeDownloadLocation'),
+        get: (key) => createSecureInvoke('settings:get')(key),
+        set: (key, value) => createSecureInvoke('settings:set')(key, value),
+        getAll: createSecureInvoke('settings:getAll'),
+        reset: createSecureInvoke('settings:reset'),
+        hasCustomValue: createSecureInvoke('settings:hasCustomValue'),
+        getStorePath: createSecureInvoke('settings:getStorePath'),
+        validate: createSecureInvoke('settings:validate'),
+        export: createSecureInvoke('settings:export'),
+        import: createSecureInvoke('settings:import'),
+        initializeDownloadLocation: createSecureInvoke('settings:initializeDownloadLocation'),
     },
-    // Playlist operations (for future implementation)
+    // Playlist operations (placeholder implementations for future tasks)
     playlist: {
-        getAll: (options) => electron_1.ipcRenderer.invoke('playlist:getAll', options),
-        getById: (playlistId) => electron_1.ipcRenderer.invoke('playlist:getById', playlistId),
-        create: (input) => electron_1.ipcRenderer.invoke('playlist:create', input),
-        update: (playlistId, updates) => electron_1.ipcRenderer.invoke('playlist:update', playlistId, updates),
-        delete: (playlistId) => electron_1.ipcRenderer.invoke('playlist:delete', playlistId),
-        searchVideos: (options) => electron_1.ipcRenderer.invoke('playlist:searchVideos', options),
-        addVideo: (playlistId, videoId) => electron_1.ipcRenderer.invoke('playlist:addVideo', playlistId, videoId),
-        removeVideo: (playlistId, videoId) => electron_1.ipcRenderer.invoke('playlist:removeVideo', playlistId, videoId),
-        reorderVideos: (playlistId, videoOrders) => electron_1.ipcRenderer.invoke('playlist:reorderVideos', playlistId, videoOrders),
-        getStats: (playlistId) => electron_1.ipcRenderer.invoke('playlist:getStats', playlistId),
+        getAll: createSecureInvoke('playlist:getAll'),
+        getById: createSecureInvoke('playlist:getById'),
+        create: createSecureInvoke('playlist:create'),
+        update: createSecureInvoke('playlist:update'),
+        delete: createSecureInvoke('playlist:delete'),
+        searchVideos: createSecureInvoke('playlist:searchVideos'),
+        addVideo: createSecureInvoke('playlist:addVideo'),
+        removeVideo: createSecureInvoke('playlist:removeVideo'),
+        reorderVideos: createSecureInvoke('playlist:reorderVideos'),
+        getStats: createSecureInvoke('playlist:getStats'),
     },
-    // YouTube operations (for future implementation)
+    // YouTube operations (placeholder implementations for future tasks)
     youtube: {
-        getPlaylistMetadata: (url) => electron_1.ipcRenderer.invoke('youtube:getPlaylistMetadata', url),
-        importPlaylist: (url) => electron_1.ipcRenderer.invoke('youtube:importPlaylist', url),
-        getVideoQualities: (videoId) => electron_1.ipcRenderer.invoke('youtube:getVideoQualities', videoId),
-        checkAvailability: () => electron_1.ipcRenderer.invoke('youtube:checkAvailability'),
-        updateYtDlp: () => electron_1.ipcRenderer.invoke('youtube:updateYtDlp'),
-        validateUrl: (url) => electron_1.ipcRenderer.invoke('youtube:validateUrl', url),
-        onImportProgress: (callback) => {
-            const wrappedCallback = (_event, data) => callback(_event, data);
-            electron_1.ipcRenderer.on('youtube:importProgress', wrappedCallback);
-            // Return cleanup function
-            return () => electron_1.ipcRenderer.removeListener('youtube:importProgress', wrappedCallback);
-        },
+        getPlaylistMetadata: createSecureInvoke('youtube:getPlaylistMetadata'),
+        importPlaylist: createSecureInvoke('youtube:importPlaylist'),
+        getVideoQualities: createSecureInvoke('youtube:getVideoQualities'),
+        checkAvailability: createSecureInvoke('youtube:checkAvailability'),
+        updateYtDlp: createSecureInvoke('youtube:updateYtDlp'),
+        validateUrl: createSecureInvoke('youtube:validateUrl'),
+        onImportProgress: createSecureListener('youtube:importProgress'),
     },
     // Dependency management
     dependency: {
-        checkStatus: () => electron_1.ipcRenderer.invoke('dependency:checkStatus'),
-        getStatus: () => electron_1.ipcRenderer.invoke('dependency:getStatus'),
-        install: (dependencyName) => electron_1.ipcRenderer.invoke('dependency:install', dependencyName),
-        validate: (dependencyName) => electron_1.ipcRenderer.invoke('dependency:validate', dependencyName),
-        getVersion: (dependencyName) => electron_1.ipcRenderer.invoke('dependency:getVersion', dependencyName),
-        getPath: (dependencyName) => electron_1.ipcRenderer.invoke('dependency:getPath', dependencyName),
-        cleanup: () => electron_1.ipcRenderer.invoke('dependency:cleanup'),
-        areAllReady: () => electron_1.ipcRenderer.invoke('dependency:areAllReady'),
-        isInitialized: () => electron_1.ipcRenderer.invoke('dependency:isInitialized'),
-        onStatusUpdated: (callback) => {
-            const wrappedCallback = (_event, status) => callback(_event, status);
-            electron_1.ipcRenderer.on('dependency:statusUpdated', wrappedCallback);
-            // Return cleanup function
-            return () => electron_1.ipcRenderer.removeListener('dependency:statusUpdated', wrappedCallback);
-        },
-        onDownloadProgress: (callback) => {
-            const wrappedCallback = (_event, progress) => callback(_event, progress);
-            electron_1.ipcRenderer.on('dependency:downloadProgress', wrappedCallback);
-            // Return cleanup function
-            return () => electron_1.ipcRenderer.removeListener('dependency:downloadProgress', wrappedCallback);
-        },
-        onInstallStarted: (callback) => {
-            const wrappedCallback = (_event, dependency) => callback(_event, dependency);
-            electron_1.ipcRenderer.on('dependency:installStarted', wrappedCallback);
-            // Return cleanup function
-            return () => electron_1.ipcRenderer.removeListener('dependency:installStarted', wrappedCallback);
-        },
-        onInstallCompleted: (callback) => {
-            const wrappedCallback = (_event, dependency) => callback(_event, dependency);
-            electron_1.ipcRenderer.on('dependency:installCompleted', wrappedCallback);
-            // Return cleanup function
-            return () => electron_1.ipcRenderer.removeListener('dependency:installCompleted', wrappedCallback);
-        },
-        onInstallFailed: (callback) => {
-            const wrappedCallback = (_event, data) => callback(_event, data);
-            electron_1.ipcRenderer.on('dependency:installFailed', wrappedCallback);
-            // Return cleanup function
-            return () => electron_1.ipcRenderer.removeListener('dependency:installFailed', wrappedCallback);
-        },
+        checkStatus: createSecureInvoke('dependency:checkStatus'),
+        getStatus: createSecureInvoke('dependency:getStatus'),
+        install: createSecureInvoke('dependency:install'),
+        validate: createSecureInvoke('dependency:validate'),
+        getVersion: createSecureInvoke('dependency:getVersion'),
+        getPath: createSecureInvoke('dependency:getPath'),
+        cleanup: createSecureInvoke('dependency:cleanup'),
+        areAllReady: createSecureInvoke('dependency:areAllReady'),
+        isInitialized: createSecureInvoke('dependency:isInitialized'),
+        onStatusUpdated: createSecureListener('dependency:statusUpdated'),
+        onDownloadProgress: createSecureListener('dependency:downloadProgress'),
+        onInstallStarted: createSecureListener('dependency:installStarted'),
+        onInstallCompleted: createSecureListener('dependency:installCompleted'),
+        onInstallFailed: createSecureListener('dependency:installFailed'),
     },
     // Legacy methods for backward compatibility
-    getPlaylistMetadata: (url) => electron_1.ipcRenderer.invoke('playlist:getMetadata', url),
-    startImport: (url) => electron_1.ipcRenderer.invoke('import:start', url),
-    onTaskUpdate: (callback) => {
-        const wrappedCallback = (_event, data) => callback(_event, data);
-        electron_1.ipcRenderer.on('task:update', wrappedCallback);
-        // Return cleanup function
-        return () => electron_1.ipcRenderer.removeListener('task:update', wrappedCallback);
-    },
-    getPlaylistDetails: (playlistId) => electron_1.ipcRenderer.invoke('getPlaylistDetails', playlistId),
-    getPlaylists: () => electron_1.ipcRenderer.invoke('getPlaylists'),
+    getPlaylistMetadata: createSecureInvoke('playlist:getMetadata'),
+    startImport: createSecureInvoke('import:start'),
+    onTaskUpdate: createSecureListener('task:update'),
+    getPlaylistDetails: createSecureInvoke('getPlaylistDetails'),
+    getPlaylists: createSecureInvoke('getPlaylists'),
 };
 // Security: Only expose the API through contextBridge
 try {

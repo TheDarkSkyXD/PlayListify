@@ -1,7 +1,15 @@
 /**
- * Shared TypeScript interfaces for IPC communication between main and renderer processes
- * This file defines the secure API surface exposed through the preload script
+ * Shared TypeScript interfaces for secure IPC communication between main and renderer processes
+ * This file defines the complete API surface exposed through the preload script with proper error handling
  */
+
+// Standard IPC response wrapper for all operations
+export interface IPCResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  timestamp: string;
+}
 
 // Application operations interface
 export interface AppAPI {
@@ -12,6 +20,11 @@ export interface AppAPI {
   isMaximized(): Promise<boolean>;
   unmaximize(): Promise<void>;
   close(): Promise<void>;
+  showErrorDialog(title: string, content: string): Promise<void>;
+  showMessageDialog(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue>;
+  selectDirectory(options?: Electron.OpenDialogOptions): Promise<string | null>;
+  selectFile(options?: Electron.OpenDialogOptions): Promise<string | null>;
+  saveFile(options?: Electron.SaveDialogOptions): Promise<string | null>;
 }
 
 // File system operations interface

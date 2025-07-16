@@ -31,7 +31,7 @@ const DANGEROUS_PATTERNS = [
     /&/, // Background process
 ];
 // Invalid filename characters (Windows + additional safety)
-const INVALID_FILENAME_CHARS = /[<>:"|?*\x00-\x1f]/;
+const INVALID_FILENAME_CHARS = /[<>:"|?*\x00-\x1f]/g;
 // Reserved Windows filenames
 const RESERVED_NAMES = [
     'CON', 'PRN', 'AUX', 'NUL',
