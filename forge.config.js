@@ -94,9 +94,11 @@ module.exports = {
         devServer: {
           liveReload: true,
           hot: true,
-          overlay: {
-            errors: true,
-            warnings: false,
+          client: {
+            overlay: {
+              errors: true,
+              warnings: false,
+            },
           },
         },
         

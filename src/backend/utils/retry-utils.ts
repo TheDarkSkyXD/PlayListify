@@ -3,19 +3,24 @@
  * Provides retry logic, exponential backoff, and circuit breaker functionality
  */
 
-import type { 
-  RetryConfig, 
+import {
+  ApplicationError,
+  BaseError,
+  NetworkError,
+  TimeoutError,
+} from '@/shared/errors';
+import type {
   CircuitBreakerConfig,
-  ErrorCategory 
+  ErrorCategory,
+  RetryConfig,
 } from '@/shared/types/error-types';
-import { BaseError, NetworkError, TimeoutError } from '@/shared/errors';
 
 /**
  * Retry a function with exponential backoff
  */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  config: Partial<RetryConfig> = {}
+  config: Partial<RetryConfig> = {},
 ): Promise<T> {
   const {
     maxAttempts = 3,
@@ -27,37 +32,37 @@ export async function retryWithBackoff<T>(
   } = config;
 
   let lastError: Error;
-  
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      
+
       // Check if we should retry this error
       if (!retryCondition(lastError)) {
         throw lastError;
       }
-      
+
       // Don't wait after the last attempt
       if (attempt === maxAttempts) {
         break;
       }
-      
+
       // Calculate delay
-      let delay = exponentialBackoff 
+      let delay = exponentialBackoff
         ? Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay)
         : baseDelay;
-      
+
       // Add jitter to prevent thundering herd
       if (jitter) {
         delay = delay * (0.5 + Math.random() * 0.5);
       }
-      
+
       await sleep(delay);
     }
   }
-  
+
   throw lastError!;
 }
 
@@ -66,7 +71,7 @@ export async function retryWithBackoff<T>(
  */
 export function isRetryableError(error: Error): boolean {
   const message = error.message.toLowerCase();
-  
+
   // Network errors are usually retryable
   if (
     message.includes('enotfound') ||
@@ -79,7 +84,7 @@ export function isRetryableError(error: Error): boolean {
   ) {
     return true;
   }
-  
+
   // File system errors that might be temporary
   if (
     message.includes('ebusy') ||
@@ -88,7 +93,7 @@ export function isRetryableError(error: Error): boolean {
   ) {
     return true;
   }
-  
+
   // Database connection errors
   if (
     message.includes('database is locked') ||
@@ -96,13 +101,13 @@ export function isRetryableError(error: Error): boolean {
   ) {
     return true;
   }
-  
+
   // HTTP status codes that are retryable
   if (error instanceof BaseError && error.details?.status) {
     const status = error.details.status;
     return status >= 500 || status === 429 || status === 408;
   }
-  
+
   return false;
 }
 
@@ -134,25 +139,29 @@ export class CircuitBreaker {
       if (Date.now() - this.lastFailureTime > this.config.resetTimeout) {
         this.state = 'half-open';
       } else {
-        throw new BaseError(
+        throw new ApplicationError(
           'Circuit breaker is open',
           'CIRCUIT_BREAKER_OPEN',
           {
             recoverable: true,
-            userMessage: 'Service is temporarily unavailable. Please try again later.',
-            suggestions: ['Wait a moment and try again', 'Check your connection'],
-          }
+            userMessage:
+              'Service is temporarily unavailable. Please try again later.',
+            suggestions: [
+              'Wait a moment and try again',
+              'Check your connection',
+            ],
+          },
         );
       }
     }
 
     try {
       const result = await fn();
-      
+
       if (this.state === 'half-open') {
         this.reset();
       }
-      
+
       return result;
     } catch (error) {
       this.recordFailure();
@@ -163,7 +172,7 @@ export class CircuitBreaker {
   private recordFailure(): void {
     this.failures++;
     this.lastFailureTime = Date.now();
-    
+
     if (this.failures >= this.config.failureThreshold) {
       this.state = 'open';
     }
@@ -190,13 +199,15 @@ export class CircuitBreaker {
 export function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
-  errorMessage = 'Operation timed out'
+  errorMessage = 'Operation timed out',
 ): Promise<T> {
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => {
-      reject(new TimeoutError(errorMessage, {
-        details: { timeout: timeoutMs },
-      }));
+      reject(
+        new TimeoutError(errorMessage, {
+          details: { timeout: timeoutMs },
+        }),
+      );
     }, timeoutMs);
   });
 
@@ -213,13 +224,9 @@ export async function retryBatch<T, R>(
     concurrency?: number;
     retryConfig?: Partial<RetryConfig>;
     onProgress?: (completed: number, total: number, failures: number) => void;
-  } = {}
+  } = {},
 ): Promise<Array<{ item: T; result?: R; error?: Error }>> {
-  const {
-    concurrency = 3,
-    retryConfig = {},
-    onProgress,
-  } = options;
+  const { concurrency = 3, retryConfig = {}, onProgress } = options;
 
   const results: Array<{ item: T; result?: R; error?: Error }> = [];
   let completed = 0;
@@ -228,24 +235,27 @@ export async function retryBatch<T, R>(
   // Process items in batches
   for (let i = 0; i < items.length; i += concurrency) {
     const batch = items.slice(i, i + concurrency);
-    
-    const batchPromises = batch.map(async (item) => {
+
+    const batchPromises = batch.map(async item => {
       try {
         const result = await retryWithBackoff(
           () => operation(item),
-          retryConfig
+          retryConfig,
         );
-        
+
         completed++;
         if (onProgress) onProgress(completed, items.length, failures);
-        
+
         return { item, result };
       } catch (error) {
         failures++;
         completed++;
         if (onProgress) onProgress(completed, items.length, failures);
-        
-        return { item, error: error instanceof Error ? error : new Error(String(error)) };
+
+        return {
+          item,
+          error: error instanceof Error ? error : new Error(String(error)),
+        };
       }
     });
 
@@ -261,27 +271,27 @@ export async function retryBatch<T, R>(
  */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
-  waitMs: number
+  waitMs: number,
 ): T & { cancel: () => void } {
   let timeoutId: NodeJS.Timeout | null = null;
-  
+
   const debounced = ((...args: Parameters<T>) => {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
-    
+
     timeoutId = setTimeout(() => {
       func(...args);
     }, waitMs);
   }) as T & { cancel: () => void };
-  
+
   debounced.cancel = () => {
     if (timeoutId) {
       clearTimeout(timeoutId);
       timeoutId = null;
     }
   };
-  
+
   return debounced;
 }
 
@@ -290,15 +300,15 @@ export function debounce<T extends (...args: any[]) => any>(
  */
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
-  limitMs: number
+  limitMs: number,
 ): T & { cancel: () => void } {
   let lastCallTime = 0;
   let timeoutId: NodeJS.Timeout | null = null;
-  
+
   const throttled = ((...args: Parameters<T>) => {
     const now = Date.now();
     const timeSinceLastCall = now - lastCallTime;
-    
+
     if (timeSinceLastCall >= limitMs) {
       lastCallTime = now;
       func(...args);
@@ -306,21 +316,21 @@ export function throttle<T extends (...args: any[]) => any>(
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-      
+
       timeoutId = setTimeout(() => {
         lastCallTime = Date.now();
         func(...args);
       }, limitMs - timeSinceLastCall);
     }
   }) as T & { cancel: () => void };
-  
+
   throttled.cancel = () => {
     if (timeoutId) {
       clearTimeout(timeoutId);
       timeoutId = null;
     }
   };
-  
+
   return throttled;
 }
 
@@ -334,7 +344,9 @@ export function sleep(ms: number): Promise<void> {
 /**
  * Create a retry policy based on error category
  */
-export function createRetryPolicy(category: ErrorCategory): Partial<RetryConfig> {
+export function createRetryPolicy(
+  category: ErrorCategory,
+): Partial<RetryConfig> {
   switch (category) {
     case 'network':
       return {
@@ -344,7 +356,7 @@ export function createRetryPolicy(category: ErrorCategory): Partial<RetryConfig>
         exponentialBackoff: true,
         jitter: true,
       };
-    
+
     case 'filesystem':
       return {
         maxAttempts: 3,
@@ -353,7 +365,7 @@ export function createRetryPolicy(category: ErrorCategory): Partial<RetryConfig>
         exponentialBackoff: true,
         jitter: false,
       };
-    
+
     case 'database':
       return {
         maxAttempts: 3,
@@ -362,7 +374,7 @@ export function createRetryPolicy(category: ErrorCategory): Partial<RetryConfig>
         exponentialBackoff: true,
         jitter: true,
       };
-    
+
     case 'dependency':
       return {
         maxAttempts: 2,
@@ -371,7 +383,7 @@ export function createRetryPolicy(category: ErrorCategory): Partial<RetryConfig>
         exponentialBackoff: true,
         jitter: false,
       };
-    
+
     default:
       return {
         maxAttempts: 3,
@@ -388,7 +400,10 @@ export function createRetryPolicy(category: ErrorCategory): Partial<RetryConfig>
  */
 export class HealthChecker {
   private checks: Map<string, () => Promise<boolean>> = new Map();
-  private results: Map<string, { healthy: boolean; lastCheck: Date; error?: string }> = new Map();
+  private results: Map<
+    string,
+    { healthy: boolean; lastCheck: Date; error?: string }
+  > = new Map();
 
   addCheck(name: string, check: () => Promise<boolean>): void {
     this.checks.set(name, check);
@@ -419,7 +434,7 @@ export class HealthChecker {
 
   async runAllChecks(): Promise<Map<string, boolean>> {
     const results = new Map<string, boolean>();
-    
+
     for (const [name] of this.checks) {
       try {
         const healthy = await this.runCheck(name);
@@ -428,11 +443,14 @@ export class HealthChecker {
         results.set(name, false);
       }
     }
-    
+
     return results;
   }
 
-  getResults(): Map<string, { healthy: boolean; lastCheck: Date; error?: string }> {
+  getResults(): Map<
+    string,
+    { healthy: boolean; lastCheck: Date; error?: string }
+  > {
     return new Map(this.results);
   }
 

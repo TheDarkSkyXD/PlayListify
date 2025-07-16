@@ -21,7 +21,9 @@ export interface AppAPI {
   unmaximize(): Promise<void>;
   close(): Promise<void>;
   showErrorDialog(title: string, content: string): Promise<void>;
-  showMessageDialog(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue>;
+  showMessageDialog(
+    options: Electron.MessageBoxOptions,
+  ): Promise<Electron.MessageBoxReturnValue>;
   selectDirectory(options?: Electron.OpenDialogOptions): Promise<string | null>;
   selectFile(options?: Electron.OpenDialogOptions): Promise<string | null>;
   saveFile(options?: Electron.SaveDialogOptions): Promise<string | null>;
@@ -33,7 +35,11 @@ export interface FileSystemAPI {
   readJson(path: string): Promise<any>;
   writeJson(path: string, data: any): Promise<void>;
   readText(path: string, encoding?: BufferEncoding): Promise<string>;
-  writeText(path: string, content: string, encoding?: BufferEncoding): Promise<void>;
+  writeText(
+    path: string,
+    content: string,
+    encoding?: BufferEncoding,
+  ): Promise<void>;
   delete(path: string): Promise<void>;
   copy(src: string, dest: string): Promise<void>;
   move(src: string, dest: string): Promise<void>;
@@ -63,6 +69,14 @@ export interface SettingsAPI {
   export(): Promise<string>;
   import(jsonString: string): Promise<boolean>;
   initializeDownloadLocation(): Promise<void>;
+  sanitize(): Promise<void>;
+  createBackup(): Promise<{ backupPath: string }>;
+  restoreFromBackup(backupPath: string): Promise<void>;
+  getVersion(): Promise<string>;
+  needsMigration(targetVersion: string): Promise<boolean>;
+  migrate(targetVersion: string): Promise<void>;
+  listBackups(): Promise<Array<{ path: string; date: Date; version?: string }>>;
+  getValidationDetails(): Promise<any>;
 }
 
 // Playlist operations interface (for future implementation)
@@ -115,7 +129,7 @@ export interface ErrorAPI {
   report(
     error: { message: string; stack?: string; name?: string },
     context: any,
-    options?: any
+    options?: any,
   ): Promise<boolean>;
   clearOldReports(maxAge?: number): Promise<void>;
   gracefulShutdown(reason?: string): Promise<void>;
@@ -132,7 +146,7 @@ export interface ElectronAPI {
   youtube: YouTubeAPI;
   dependency: DependencyAPI;
   error: ErrorAPI;
-  
+
   // Legacy methods for backward compatibility
   getPlaylistMetadata: (url: string) => Promise<any>;
   startImport: (url: string) => Promise<any>;
@@ -172,20 +186,20 @@ export interface UserSettings {
   // General settings
   theme: 'light' | 'dark' | 'system';
   language: string;
-  
+
   // Directory settings
   downloadLocation: string;
   tempDirectory: string;
-  
+
   // Application behavior
   startMinimized: boolean;
   closeToTray: boolean;
   autoUpdate: boolean;
-  
+
   // Window state
   windowSize?: { width: number; height: number };
   windowPosition?: { x: number; y: number };
-  
+
   // Development settings (dev mode only)
   debugMode?: boolean;
   logLevel?: 'error' | 'warn' | 'info' | 'debug';
@@ -201,7 +215,7 @@ export const IPC_CHANNELS = {
   APP_IS_MAXIMIZED: 'app:isMaximized',
   APP_UNMAXIMIZE: 'app:unmaximize',
   APP_CLOSE: 'app:close',
-  
+
   // File system channels
   FS_EXISTS: 'fs:exists',
   FS_READ_JSON: 'fs:readJson',
@@ -223,7 +237,7 @@ export const IPC_CHANNELS = {
   FS_INITIALIZE_DIRECTORIES: 'fs:initializeDirectories',
   FS_CLEANUP_TEMP_FILES: 'fs:cleanupTempFiles',
   FS_SELECT_DIRECTORY: 'fs:selectDirectory',
-  
+
   // Settings channels
   SETTINGS_GET: 'settings:get',
   SETTINGS_SET: 'settings:set',
@@ -235,7 +249,7 @@ export const IPC_CHANNELS = {
   SETTINGS_EXPORT: 'settings:export',
   SETTINGS_IMPORT: 'settings:import',
   SETTINGS_INITIALIZE_DOWNLOAD_LOCATION: 'settings:initializeDownloadLocation',
-  
+
   // Dependency channels
   DEPENDENCY_CHECK_STATUS: 'dependency:checkStatus',
   DEPENDENCY_GET_STATUS: 'dependency:getStatus',
@@ -251,7 +265,7 @@ export const IPC_CHANNELS = {
   DEPENDENCY_INSTALL_STARTED: 'dependency:installStarted',
   DEPENDENCY_INSTALL_COMPLETED: 'dependency:installCompleted',
   DEPENDENCY_INSTALL_FAILED: 'dependency:installFailed',
-  
+
   // Legacy channels (for backward compatibility)
   GET_PLAYLIST_METADATA: 'playlist:getMetadata',
   START_IMPORT: 'import:start',
@@ -261,7 +275,7 @@ export const IPC_CHANNELS = {
 } as const;
 
 // Type for IPC channel names
-export type IPCChannel = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS];
+export type IPCChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
 
 // Logger types
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug';

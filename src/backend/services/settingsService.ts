@@ -1,14 +1,14 @@
-import Store from 'electron-store';
 import { app } from 'electron';
+import Store from 'electron-store';
 import * as path from 'path';
 import {
-  UserSettings,
-  ISettingsService,
-  SettingsValidationResult,
-  SettingsExportData,
-  SettingsError,
   DEFAULT_USER_SETTINGS,
+  ISettingsService,
   SETTINGS_SCHEMA,
+  SettingsError,
+  SettingsExportData,
+  SettingsValidationResult,
+  UserSettings,
 } from '../../shared/types/settings-types';
 
 // Logger interface (will be implemented in task 10)
@@ -33,7 +33,7 @@ export class SettingsService implements ISettingsService {
 
   constructor(logger?: Logger) {
     this.logger = logger || consoleLogger;
-    
+
     try {
       this.store = new Store<UserSettings>({
         defaults: DEFAULT_USER_SETTINGS,
@@ -52,7 +52,11 @@ export class SettingsService implements ISettingsService {
       });
     } catch (error) {
       this.logger.error('Failed to initialize SettingsService', { error });
-      throw new SettingsError('Failed to initialize settings store', 'INIT_ERROR', error);
+      throw new SettingsError(
+        'Failed to initialize settings store',
+        'INIT_ERROR',
+        error,
+      );
     }
   }
 
@@ -66,7 +70,11 @@ export class SettingsService implements ISettingsService {
       return value;
     } catch (error) {
       this.logger.error(`Failed to get setting: ${String(key)}`, { error });
-      throw new SettingsError(`Failed to get setting: ${String(key)}`, 'GET_ERROR', error);
+      throw new SettingsError(
+        `Failed to get setting: ${String(key)}`,
+        'GET_ERROR',
+        error,
+      );
     }
   }
 
@@ -81,18 +89,25 @@ export class SettingsService implements ISettingsService {
         throw new SettingsError(
           `Invalid value for setting ${String(key)}: ${validationResult.errors.join(', ')}`,
           'VALIDATION_ERROR',
-          { key, value, errors: validationResult.errors }
+          { key, value, errors: validationResult.errors },
         );
       }
 
       (this.store as any).set(key, value);
       this.logger.info(`Updated setting: ${String(key)}`, { value });
     } catch (error) {
-      this.logger.error(`Failed to set setting: ${String(key)}`, { error, value });
+      this.logger.error(`Failed to set setting: ${String(key)}`, {
+        error,
+        value,
+      });
       if (error instanceof SettingsError) {
         throw error;
       }
-      throw new SettingsError(`Failed to set setting: ${String(key)}`, 'SET_ERROR', error);
+      throw new SettingsError(
+        `Failed to set setting: ${String(key)}`,
+        'SET_ERROR',
+        error,
+      );
     }
   }
 
@@ -106,7 +121,11 @@ export class SettingsService implements ISettingsService {
       return settings;
     } catch (error) {
       this.logger.error('Failed to get all settings', { error });
-      throw new SettingsError('Failed to get all settings', 'GET_ALL_ERROR', error);
+      throw new SettingsError(
+        'Failed to get all settings',
+        'GET_ALL_ERROR',
+        error,
+      );
     }
   }
 
@@ -130,7 +149,9 @@ export class SettingsService implements ISettingsService {
     try {
       return (this.store as any).has(key);
     } catch (error) {
-      this.logger.error(`Failed to check setting existence: ${String(key)}`, { error });
+      this.logger.error(`Failed to check setting existence: ${String(key)}`, {
+        error,
+      });
       return false;
     }
   }
@@ -144,7 +165,11 @@ export class SettingsService implements ISettingsService {
       this.logger.info(`Deleted setting: ${String(key)}`);
     } catch (error) {
       this.logger.error(`Failed to delete setting: ${String(key)}`, { error });
-      throw new SettingsError(`Failed to delete setting: ${String(key)}`, 'DELETE_ERROR', error);
+      throw new SettingsError(
+        `Failed to delete setting: ${String(key)}`,
+        'DELETE_ERROR',
+        error,
+      );
     }
   }
 
@@ -165,21 +190,25 @@ export class SettingsService implements ISettingsService {
       Object.entries(settings).forEach(([key, value]) => {
         const settingKey = key as keyof UserSettings;
         const validation = this.validateSingleSetting(settingKey, value);
-        
+
         if (!validation.isValid) {
           result.isValid = false;
           result.errors.push(...validation.errors.map(err => `${key}: ${err}`));
         }
-        
+
         if (validation.warnings) {
-          result.warnings.push(...validation.warnings.map(warn => `${key}: ${warn}`));
+          result.warnings.push(
+            ...validation.warnings.map(warn => `${key}: ${warn}`),
+          );
         }
       });
 
       this.logger.debug('Settings validation completed', result);
     } catch (error) {
       result.isValid = false;
-      result.errors.push(`Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      result.errors.push(
+        `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       this.logger.error('Settings validation failed', { error });
     }
 
@@ -207,7 +236,10 @@ export class SettingsService implements ISettingsService {
       }
 
       // Sanitize concurrent downloads
-      if (settings.maxConcurrentDownloads < 1 || settings.maxConcurrentDownloads > 10) {
+      if (
+        settings.maxConcurrentDownloads < 1 ||
+        settings.maxConcurrentDownloads > 10
+      ) {
         (this.store as any).set('maxConcurrentDownloads', 3);
         changesMade = true;
       }
@@ -219,8 +251,14 @@ export class SettingsService implements ISettingsService {
       }
 
       // Sanitize paths
-      if (settings.downloadLocation && !path.isAbsolute(settings.downloadLocation)) {
-        (this.store as any).set('downloadLocation', path.join(app.getPath('downloads'), 'Playlistify'));
+      if (
+        settings.downloadLocation &&
+        !path.isAbsolute(settings.downloadLocation)
+      ) {
+        (this.store as any).set(
+          'downloadLocation',
+          path.join(app.getPath('downloads'), 'Playlistify'),
+        );
         changesMade = true;
       }
 
@@ -229,7 +267,11 @@ export class SettingsService implements ISettingsService {
       }
     } catch (error) {
       this.logger.error('Failed to sanitize settings', { error });
-      throw new SettingsError('Failed to sanitize settings', 'SANITIZE_ERROR', error);
+      throw new SettingsError(
+        'Failed to sanitize settings',
+        'SANITIZE_ERROR',
+        error,
+      );
     }
   }
 
@@ -248,7 +290,11 @@ export class SettingsService implements ISettingsService {
       return exportData;
     } catch (error) {
       this.logger.error('Failed to export settings', { error });
-      throw new SettingsError('Failed to export settings', 'EXPORT_ERROR', error);
+      throw new SettingsError(
+        'Failed to export settings',
+        'EXPORT_ERROR',
+        error,
+      );
     }
   }
 
@@ -259,7 +305,10 @@ export class SettingsService implements ISettingsService {
     try {
       // Validate import data structure
       if (!data.settings || typeof data.settings !== 'object') {
-        throw new SettingsError('Invalid import data structure', 'IMPORT_VALIDATION_ERROR');
+        throw new SettingsError(
+          'Invalid import data structure',
+          'IMPORT_VALIDATION_ERROR',
+        );
       }
 
       // Import each valid setting
@@ -270,7 +319,10 @@ export class SettingsService implements ISettingsService {
             this.set(key as keyof UserSettings, value as any);
             importedCount++;
           } catch (error) {
-            this.logger.warn(`Failed to import setting: ${key}`, { error, value });
+            this.logger.warn(`Failed to import setting: ${key}`, {
+              error,
+              value,
+            });
           }
         }
       });
@@ -291,7 +343,11 @@ export class SettingsService implements ISettingsService {
       return validation.isValid;
     } catch (error) {
       this.logger.error('Failed to import settings', { error });
-      throw new SettingsError('Failed to import settings', 'IMPORT_ERROR', error);
+      throw new SettingsError(
+        'Failed to import settings',
+        'IMPORT_ERROR',
+        error,
+      );
     }
   }
 
@@ -325,15 +381,234 @@ export class SettingsService implements ISettingsService {
       this.logger.info('Default settings initialized');
     } catch (error) {
       this.logger.error('Failed to initialize default settings', { error });
-      throw new SettingsError('Failed to initialize default settings', 'INIT_DEFAULTS_ERROR', error);
+      throw new SettingsError(
+        'Failed to initialize default settings',
+        'INIT_DEFAULTS_ERROR',
+        error,
+      );
+    }
+  }
+
+  /**
+   * Create a backup of current settings
+   */
+  async createBackup(): Promise<string> {
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupData = this.export();
+      const backupPath = path.join(
+        app.getPath('userData'),
+        'config',
+        `settings-backup-${timestamp}.json`,
+      );
+
+      // Ensure backup directory exists
+      const fs = require('fs-extra');
+      await fs.ensureDir(path.dirname(backupPath));
+      await fs.writeJson(backupPath, backupData, { spaces: 2 });
+
+      this.logger.info('Settings backup created', { backupPath });
+      return backupPath;
+    } catch (error) {
+      this.logger.error('Failed to create settings backup', { error });
+      throw new SettingsError(
+        'Failed to create settings backup',
+        'BACKUP_ERROR',
+        error,
+      );
+    }
+  }
+
+  /**
+   * Restore settings from backup
+   */
+  async restoreFromBackup(backupPath: string): Promise<void> {
+    try {
+      const fs = require('fs-extra');
+      const backupData = await fs.readJson(backupPath);
+
+      if (!this.import(backupData)) {
+        throw new SettingsError(
+          'Backup data validation failed',
+          'RESTORE_VALIDATION_ERROR',
+        );
+      }
+
+      this.logger.info('Settings restored from backup', { backupPath });
+    } catch (error) {
+      this.logger.error('Failed to restore settings from backup', {
+        error,
+        backupPath,
+      });
+      throw new SettingsError(
+        'Failed to restore settings from backup',
+        'RESTORE_ERROR',
+        error,
+      );
+    }
+  }
+
+  /**
+   * Get current settings version
+   */
+  getVersion(): string {
+    try {
+      return this.get('version' as any) || '1.0.0';
+    } catch {
+      return '1.0.0';
+    }
+  }
+
+  /**
+   * Set settings version
+   */
+  setVersion(version: string): void {
+    try {
+      (this.store as any).set('version', version);
+      this.logger.info('Settings version updated', { version });
+    } catch (error) {
+      this.logger.error('Failed to set settings version', { error, version });
+    }
+  }
+
+  /**
+   * Check if migration is needed
+   */
+  needsMigration(targetVersion: string): boolean {
+    const currentVersion = this.getVersion();
+    return currentVersion !== targetVersion;
+  }
+
+  /**
+   * Migrate settings to new version
+   */
+  async migrate(targetVersion: string): Promise<void> {
+    const currentVersion = this.getVersion();
+
+    try {
+      this.logger.info('Starting settings migration', {
+        currentVersion,
+        targetVersion,
+      });
+
+      // Create backup before migration
+      const backupPath = await this.createBackup();
+
+      // Apply version-specific migrations
+      await this.applyMigrations(currentVersion, targetVersion);
+
+      // Update version
+      this.setVersion(targetVersion);
+
+      // Validate after migration
+      const validation = this.validate();
+      if (!validation.isValid) {
+        this.logger.warn(
+          'Settings validation failed after migration',
+          validation,
+        );
+        this.sanitize();
+      }
+
+      this.logger.info('Settings migration completed successfully', {
+        currentVersion,
+        targetVersion,
+        backupPath,
+      });
+    } catch (error) {
+      this.logger.error('Settings migration failed', {
+        error,
+        currentVersion,
+        targetVersion,
+      });
+      throw new SettingsError(
+        'Settings migration failed',
+        'MIGRATION_ERROR',
+        error,
+      );
+    }
+  }
+
+  /**
+   * Apply version-specific migration logic
+   */
+  private async applyMigrations(
+    fromVersion: string,
+    toVersion: string,
+  ): Promise<void> {
+    // Migration logic for different version transitions
+    // This is where you would add specific migration steps for each version
+
+    if (fromVersion === '1.0.0' && toVersion === '1.1.0') {
+      // Example migration: Add new settings with defaults
+      if (!this.has('notificationsEnabled')) {
+        this.set('notificationsEnabled', true);
+      }
+    }
+
+    // Add more migration logic as needed for future versions
+    this.logger.debug('Applied migrations', { fromVersion, toVersion });
+  }
+
+  /**
+   * List available backups
+   */
+  async listBackups(): Promise<
+    Array<{ path: string; date: Date; version?: string }>
+  > {
+    try {
+      const fs = require('fs-extra');
+      const backupDir = path.join(app.getPath('userData'), 'config');
+
+      if (!(await fs.pathExists(backupDir))) {
+        return [];
+      }
+
+      const files = await fs.readdir(backupDir);
+      const backupFiles = files.filter((file: string) =>
+        file.startsWith('settings-backup-'),
+      );
+
+      const backups = await Promise.all(
+        backupFiles.map(async (file: string) => {
+          const filePath = path.join(backupDir, file);
+          const stats = await fs.stat(filePath);
+
+          try {
+            const data = await fs.readJson(filePath);
+            return {
+              path: filePath,
+              date: stats.mtime,
+              version: data.version,
+            };
+          } catch {
+            return {
+              path: filePath,
+              date: stats.mtime,
+            };
+          }
+        }),
+      );
+
+      return backups.sort((a, b) => b.date.getTime() - a.date.getTime());
+    } catch (error) {
+      this.logger.error('Failed to list backups', { error });
+      return [];
     }
   }
 
   /**
    * Validate a single setting value
    */
-  private validateSingleSetting(key: keyof UserSettings, value: any): { isValid: boolean; errors: string[]; warnings?: string[] } {
-    const result = { isValid: true, errors: [] as string[], warnings: [] as string[] };
+  private validateSingleSetting(
+    key: keyof UserSettings,
+    value: any,
+  ): { isValid: boolean; errors: string[]; warnings?: string[] } {
+    const result = {
+      isValid: true,
+      errors: [] as string[],
+      warnings: [] as string[],
+    };
 
     try {
       switch (key) {
@@ -354,31 +629,48 @@ export class SettingsService implements ISettingsService {
         case 'videoQuality':
           if (!['best', 'worst', '720p', '1080p'].includes(value)) {
             result.isValid = false;
-            result.errors.push('Video quality must be "best", "worst", "720p", or "1080p"');
+            result.errors.push(
+              'Video quality must be "best", "worst", "720p", or "1080p"',
+            );
           }
           break;
 
         case 'maxConcurrentDownloads':
           if (typeof value !== 'number' || value < 1 || value > 10) {
             result.isValid = false;
-            result.errors.push('Max concurrent downloads must be a number between 1 and 10');
+            result.errors.push(
+              'Max concurrent downloads must be a number between 1 and 10',
+            );
           }
           break;
 
         case 'windowSize':
-          if (!value || typeof value !== 'object' || 
-              typeof value.width !== 'number' || typeof value.height !== 'number' ||
-              value.width < 800 || value.height < 600) {
+          if (
+            !value ||
+            typeof value !== 'object' ||
+            typeof value.width !== 'number' ||
+            typeof value.height !== 'number' ||
+            value.width < 800 ||
+            value.height < 600
+          ) {
             result.isValid = false;
-            result.errors.push('Window size must have width >= 800 and height >= 600');
+            result.errors.push(
+              'Window size must have width >= 800 and height >= 600',
+            );
           }
           break;
 
         case 'windowPosition':
-          if (!value || typeof value !== 'object' || 
-              typeof value.x !== 'number' || typeof value.y !== 'number') {
+          if (
+            !value ||
+            typeof value !== 'object' ||
+            typeof value.x !== 'number' ||
+            typeof value.y !== 'number'
+          ) {
             result.isValid = false;
-            result.errors.push('Window position must have numeric x and y coordinates');
+            result.errors.push(
+              'Window position must have numeric x and y coordinates',
+            );
           }
           break;
 
@@ -391,7 +683,9 @@ export class SettingsService implements ISettingsService {
       }
     } catch (error) {
       result.isValid = false;
-      result.errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      result.errors.push(
+        `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
 
     return result;

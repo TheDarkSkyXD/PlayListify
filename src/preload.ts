@@ -1,7 +1,7 @@
 /**
  * Secure preload script for IPC communication between main and renderer processes
  * This script creates a controlled API surface with proper security measures and error handling
- * 
+ *
  * Security Features:
  * - Context isolation enforcement
  * - Node integration disabled
@@ -17,49 +17,124 @@ import type { ElectronAPI } from './shared/types';
 const SECURITY_CONFIG = {
   allowedChannels: new Set([
     // App channels
-    'app:getVersion', 'app:quit', 'app:minimize', 'app:maximize', 'app:isMaximized',
-    'app:unmaximize', 'app:close', 'app:showErrorDialog', 'app:showMessageDialog',
-    'app:selectDirectory', 'app:selectFile', 'app:saveFile',
-    
+    'app:getVersion',
+    'app:quit',
+    'app:minimize',
+    'app:maximize',
+    'app:isMaximized',
+    'app:unmaximize',
+    'app:close',
+    'app:showErrorDialog',
+    'app:showMessageDialog',
+    'app:selectDirectory',
+    'app:selectFile',
+    'app:saveFile',
+
     // File system channels
-    'fs:exists', 'fs:readJson', 'fs:writeJson', 'fs:readText', 'fs:writeText',
-    'fs:delete', 'fs:copy', 'fs:move', 'fs:getStats', 'fs:listFiles',
-    'fs:listDirectories', 'fs:ensureDirectory', 'fs:getSize', 'fs:formatSize',
-    'fs:sanitizeFilename', 'fs:createUniqueFilename', 'fs:getAppPaths',
-    'fs:initializeDirectories', 'fs:cleanupTempFiles', 'fs:selectDirectory',
-    
+    'fs:exists',
+    'fs:readJson',
+    'fs:writeJson',
+    'fs:readText',
+    'fs:writeText',
+    'fs:delete',
+    'fs:copy',
+    'fs:move',
+    'fs:getStats',
+    'fs:listFiles',
+    'fs:listDirectories',
+    'fs:ensureDirectory',
+    'fs:getSize',
+    'fs:formatSize',
+    'fs:sanitizeFilename',
+    'fs:createUniqueFilename',
+    'fs:getAppPaths',
+    'fs:initializeDirectories',
+    'fs:cleanupTempFiles',
+    'fs:selectDirectory',
+
     // Settings channels
-    'settings:get', 'settings:set', 'settings:getAll', 'settings:reset',
-    'settings:hasCustomValue', 'settings:getStorePath', 'settings:validate',
-    'settings:export', 'settings:import', 'settings:initializeDownloadLocation',
-    
+    'settings:get',
+    'settings:set',
+    'settings:getAll',
+    'settings:reset',
+    'settings:hasCustomValue',
+    'settings:getStorePath',
+    'settings:validate',
+    'settings:export',
+    'settings:import',
+    'settings:initializeDownloadLocation',
+    'settings:sanitize',
+    'settings:createBackup',
+    'settings:restoreFromBackup',
+    'settings:getVersion',
+    'settings:needsMigration',
+    'settings:migrate',
+    'settings:listBackups',
+    'settings:getValidationDetails',
+
     // Playlist channels (future implementation)
-    'playlist:getAll', 'playlist:getById', 'playlist:create', 'playlist:update',
-    'playlist:delete', 'playlist:searchVideos', 'playlist:addVideo', 'playlist:removeVideo',
-    'playlist:reorderVideos', 'playlist:getStats',
-    
+    'playlist:getAll',
+    'playlist:getById',
+    'playlist:create',
+    'playlist:update',
+    'playlist:delete',
+    'playlist:searchVideos',
+    'playlist:addVideo',
+    'playlist:removeVideo',
+    'playlist:reorderVideos',
+    'playlist:getStats',
+
     // YouTube channels (future implementation)
-    'youtube:getPlaylistMetadata', 'youtube:importPlaylist', 'youtube:getVideoQualities',
-    'youtube:checkAvailability', 'youtube:updateYtDlp', 'youtube:validateUrl',
+    'youtube:getPlaylistMetadata',
+    'youtube:importPlaylist',
+    'youtube:getVideoQualities',
+    'youtube:checkAvailability',
+    'youtube:updateYtDlp',
+    'youtube:validateUrl',
     'youtube:importProgress',
-    
+
     // Dependency channels
-    'dependency:checkStatus', 'dependency:getStatus', 'dependency:install',
-    'dependency:validate', 'dependency:getVersion', 'dependency:getPath',
-    'dependency:cleanup', 'dependency:areAllReady', 'dependency:isInitialized',
-    'dependency:statusUpdated', 'dependency:downloadProgress', 'dependency:installStarted',
-    'dependency:installCompleted', 'dependency:installFailed',
-    
+    'dependency:checkStatus',
+    'dependency:getStatus',
+    'dependency:install',
+    'dependency:validate',
+    'dependency:getVersion',
+    'dependency:getPath',
+    'dependency:cleanup',
+    'dependency:areAllReady',
+    'dependency:isInitialized',
+    'dependency:statusUpdated',
+    'dependency:downloadProgress',
+    'dependency:installStarted',
+    'dependency:installCompleted',
+    'dependency:installFailed',
+
     // Error handling channels
-    'error:getStatistics', 'error:getRecentReports', 'error:report',
-    'error:clearOldReports', 'error:gracefulShutdown', 'error:test',
+    'error:getStatistics',
+    'error:getRecentReports',
+    'error:report',
+    'error:clearOldReports',
+    'error:gracefulShutdown',
+    'error:test',
     'error-notification',
-    
+
     // Legacy channels for backward compatibility
-    'playlist:getMetadata', 'import:start', 'task:update', 'getPlaylistDetails', 'getPlaylists'
+    'playlist:getMetadata',
+    'import:start',
+    'task:update',
+    'getPlaylistDetails',
+    'getPlaylists',
   ]),
-  
-  blockedGlobals: ['require', 'exports', 'module', '__dirname', '__filename', 'global', 'process'],
+
+  blockedGlobals: [
+    'require',
+    'exports',
+    'module',
+    '__dirname',
+    '__filename',
+    'global',
+    'process',
+  ],
   maxRetries: 3,
   timeoutMs: 30000,
 };
@@ -70,14 +145,18 @@ const SECURITY_CONFIG = {
 function enforceSecurityMeasures(): void {
   // Validate context isolation
   if (!process.contextIsolated) {
-    const error = new Error('❌ SECURITY VIOLATION: Context isolation must be enabled');
+    const error = new Error(
+      '❌ SECURITY VIOLATION: Context isolation must be enabled',
+    );
     logSecurityViolation('CONTEXT_ISOLATION_DISABLED', error.message);
     throw error;
   }
 
   // Validate node integration is disabled (except in test environment)
   if (process.env.NODE_ENV !== 'test' && (globalThis as any).require) {
-    const error = new Error('❌ SECURITY VIOLATION: Node integration must be disabled in renderer');
+    const error = new Error(
+      '❌ SECURITY VIOLATION: Node integration must be disabled in renderer',
+    );
     logSecurityViolation('NODE_INTEGRATION_ENABLED', error.message);
     throw error;
   }
@@ -104,7 +183,11 @@ function enforceSecurityMeasures(): void {
 /**
  * Log security violations with appropriate detail
  */
-function logSecurityViolation(violationType: string, message: string, context?: any): void {
+function logSecurityViolation(
+  violationType: string,
+  message: string,
+  context?: any,
+): void {
   const timestamp = new Date().toISOString();
   const logEntry = {
     timestamp,
@@ -131,7 +214,10 @@ function logSecurityViolation(violationType: string, message: string, context?: 
  */
 function validateChannelAccess(channel: string): boolean {
   if (!SECURITY_CONFIG.allowedChannels.has(channel)) {
-    logSecurityViolation('UNAUTHORIZED_CHANNEL_ACCESS', `Attempted access to unauthorized channel: ${channel}`);
+    logSecurityViolation(
+      'UNAUTHORIZED_CHANNEL_ACCESS',
+      `Attempted access to unauthorized channel: ${channel}`,
+    );
     return false;
   }
   return true;
@@ -147,29 +233,41 @@ function createSecureInvoke<T extends any[], R>(channel: string) {
   return async (...args: T): Promise<R> => {
     // Validate channel access before making the call
     if (!validateChannelAccess(channel)) {
-      throw new Error(`❌ SECURITY VIOLATION: Unauthorized access to channel: ${channel}`);
+      throw new Error(
+        `❌ SECURITY VIOLATION: Unauthorized access to channel: ${channel}`,
+      );
     }
 
     // Validate arguments to prevent injection attacks
     if (args.some(arg => typeof arg === 'string' && arg.includes('<script>'))) {
-      logSecurityViolation('SCRIPT_INJECTION_ATTEMPT', `Script injection attempt detected in channel: ${channel}`, { args });
-      throw new Error('❌ SECURITY VIOLATION: Script injection attempt detected');
+      logSecurityViolation(
+        'SCRIPT_INJECTION_ATTEMPT',
+        `Script injection attempt detected in channel: ${channel}`,
+        { args },
+      );
+      throw new Error(
+        '❌ SECURITY VIOLATION: Script injection attempt detected',
+      );
     }
 
     try {
       // Set up timeout for IPC calls to prevent hanging
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => {
-          reject(new Error(`IPC call to ${channel} timed out after ${SECURITY_CONFIG.timeoutMs}ms`));
+          reject(
+            new Error(
+              `IPC call to ${channel} timed out after ${SECURITY_CONFIG.timeoutMs}ms`,
+            ),
+          );
         }, SECURITY_CONFIG.timeoutMs);
       });
 
       // Race between the actual IPC call and timeout
       const response = await Promise.race([
         ipcRenderer.invoke(channel, ...args),
-        timeoutPromise
+        timeoutPromise,
       ]);
-      
+
       // Handle standardized IPC responses
       if (response && typeof response === 'object' && 'success' in response) {
         if (response.success) {
@@ -178,22 +276,23 @@ function createSecureInvoke<T extends any[], R>(channel: string) {
           throw new Error(response.error || 'Unknown IPC error');
         }
       }
-      
+
       // Handle legacy responses
       return response;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
       // Log IPC errors for debugging
       if (process.env.NODE_ENV === 'development') {
         console.error(`IPC Error on channel ${channel}:`, error);
       }
-      
+
       // Don't expose internal error details in production
       if (process.env.NODE_ENV === 'production') {
         throw new Error(`Communication error occurred`);
       }
-      
+
       throw error;
     }
   };
@@ -206,31 +305,44 @@ function createSecureListener<T extends any[]>(channel: string) {
   return (callback: (event: Electron.IpcRendererEvent, ...args: T) => void) => {
     // Validate channel access
     if (!validateChannelAccess(channel)) {
-      logSecurityViolation('UNAUTHORIZED_LISTENER_REGISTRATION', `Attempted to register listener for unauthorized channel: ${channel}`);
-      throw new Error(`❌ SECURITY VIOLATION: Cannot register listener for unauthorized channel: ${channel}`);
+      logSecurityViolation(
+        'UNAUTHORIZED_LISTENER_REGISTRATION',
+        `Attempted to register listener for unauthorized channel: ${channel}`,
+      );
+      throw new Error(
+        `❌ SECURITY VIOLATION: Cannot register listener for unauthorized channel: ${channel}`,
+      );
     }
 
     const wrappedCallback = (event: Electron.IpcRendererEvent, ...args: T) => {
       try {
         // Validate event source
         if (!event.sender) {
-          logSecurityViolation('INVALID_EVENT_SOURCE', `Event received without valid sender on channel: ${channel}`);
+          logSecurityViolation(
+            'INVALID_EVENT_SOURCE',
+            `Event received without valid sender on channel: ${channel}`,
+          );
           return;
         }
 
         // Execute the callback with error handling
         callback(event, ...args);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
         console.error(`Error in IPC listener for ${channel}:`, errorMessage);
-        
+
         // Log listener errors for security monitoring
-        logSecurityViolation('LISTENER_EXECUTION_ERROR', `Error in listener for channel: ${channel}`, { error: errorMessage });
+        logSecurityViolation(
+          'LISTENER_EXECUTION_ERROR',
+          `Error in listener for channel: ${channel}`,
+          { error: errorMessage },
+        );
       }
     };
-    
+
     ipcRenderer.on(channel, wrappedCallback);
-    
+
     // Return cleanup function with additional validation
     return () => {
       try {
@@ -258,22 +370,29 @@ function validateAPIVersion(requestedVersion?: string): boolean {
   if (!requestedVersion) {
     return true; // Default to current version
   }
-  
+
   if (!SUPPORTED_VERSIONS.includes(requestedVersion)) {
-    logSecurityViolation('UNSUPPORTED_API_VERSION', `Unsupported API version requested: ${requestedVersion}`, { 
-      supported: SUPPORTED_VERSIONS,
-      current: API_VERSION 
-    });
+    logSecurityViolation(
+      'UNSUPPORTED_API_VERSION',
+      `Unsupported API version requested: ${requestedVersion}`,
+      {
+        supported: SUPPORTED_VERSIONS,
+        current: API_VERSION,
+      },
+    );
     return false;
   }
-  
+
   return true;
 }
 
 /**
  * Create a versioned API wrapper for backward compatibility
  */
-function createVersionedAPI(api: ElectronAPI): ElectronAPI & { _version: string; _validateVersion: (version?: string) => boolean } {
+function createVersionedAPI(api: ElectronAPI): ElectronAPI & {
+  _version: string;
+  _validateVersion: (version?: string) => boolean;
+} {
   return {
     ...api,
     _version: API_VERSION,
@@ -292,11 +411,24 @@ const electronAPI: ElectronAPI = {
     isMaximized: createSecureInvoke<[], boolean>('app:isMaximized'),
     unmaximize: createSecureInvoke<[], void>('app:unmaximize'),
     close: createSecureInvoke<[], void>('app:close'),
-    showErrorDialog: createSecureInvoke<[string, string], void>('app:showErrorDialog'),
-    showMessageDialog: createSecureInvoke<[Electron.MessageBoxOptions], Electron.MessageBoxReturnValue>('app:showMessageDialog'),
-    selectDirectory: createSecureInvoke<[Electron.OpenDialogOptions?], string | null>('app:selectDirectory'),
-    selectFile: createSecureInvoke<[Electron.OpenDialogOptions?], string | null>('app:selectFile'),
-    saveFile: createSecureInvoke<[Electron.SaveDialogOptions?], string | null>('app:saveFile'),
+    showErrorDialog: createSecureInvoke<[string, string], void>(
+      'app:showErrorDialog',
+    ),
+    showMessageDialog: createSecureInvoke<
+      [Electron.MessageBoxOptions],
+      Electron.MessageBoxReturnValue
+    >('app:showMessageDialog'),
+    selectDirectory: createSecureInvoke<
+      [Electron.OpenDialogOptions?],
+      string | null
+    >('app:selectDirectory'),
+    selectFile: createSecureInvoke<
+      [Electron.OpenDialogOptions?],
+      string | null
+    >('app:selectFile'),
+    saveFile: createSecureInvoke<[Electron.SaveDialogOptions?], string | null>(
+      'app:saveFile',
+    ),
   },
 
   // File system operations
@@ -304,37 +436,76 @@ const electronAPI: ElectronAPI = {
     exists: createSecureInvoke<[string], boolean>('fs:exists'),
     readJson: createSecureInvoke<[string], any>('fs:readJson'),
     writeJson: createSecureInvoke<[string, any], void>('fs:writeJson'),
-    readText: createSecureInvoke<[string, BufferEncoding?], string>('fs:readText'),
-    writeText: createSecureInvoke<[string, string, BufferEncoding?], void>('fs:writeText'),
+    readText: createSecureInvoke<[string, BufferEncoding?], string>(
+      'fs:readText',
+    ),
+    writeText: createSecureInvoke<[string, string, BufferEncoding?], void>(
+      'fs:writeText',
+    ),
     delete: createSecureInvoke<[string], void>('fs:delete'),
     copy: createSecureInvoke<[string, string], void>('fs:copy'),
     move: createSecureInvoke<[string, string], void>('fs:move'),
     getStats: createSecureInvoke<[string], any>('fs:getStats'),
     listFiles: createSecureInvoke<[string], string[]>('fs:listFiles'),
-    listDirectories: createSecureInvoke<[string], string[]>('fs:listDirectories'),
+    listDirectories: createSecureInvoke<[string], string[]>(
+      'fs:listDirectories',
+    ),
     ensureDirectory: createSecureInvoke<[string], void>('fs:ensureDirectory'),
     getSize: createSecureInvoke<[string], number>('fs:getSize'),
     formatSize: createSecureInvoke<[number], string>('fs:formatSize'),
-    sanitizeFilename: createSecureInvoke<[string], string>('fs:sanitizeFilename'),
-    createUniqueFilename: createSecureInvoke<[string], string>('fs:createUniqueFilename'),
+    sanitizeFilename: createSecureInvoke<[string], string>(
+      'fs:sanitizeFilename',
+    ),
+    createUniqueFilename: createSecureInvoke<[string], string>(
+      'fs:createUniqueFilename',
+    ),
     getAppPaths: createSecureInvoke<[], any>('fs:getAppPaths'),
-    initializeDirectories: createSecureInvoke<[], void>('fs:initializeDirectories'),
+    initializeDirectories: createSecureInvoke<[], void>(
+      'fs:initializeDirectories',
+    ),
     cleanupTempFiles: createSecureInvoke<[], void>('fs:cleanupTempFiles'),
-    selectDirectory: createSecureInvoke<[], string | null>('fs:selectDirectory'),
+    selectDirectory: createSecureInvoke<[], string | null>(
+      'fs:selectDirectory',
+    ),
   },
 
   // Settings management
   settings: {
-    get: <T>(key: string) => createSecureInvoke<[string], T>('settings:get')(key),
-    set: <T>(key: string, value: T) => createSecureInvoke<[string, T], void>('settings:set')(key, value),
+    get: <T>(key: string) =>
+      createSecureInvoke<[string], T>('settings:get')(key),
+    set: <T>(key: string, value: T) =>
+      createSecureInvoke<[string, T], void>('settings:set')(key, value),
     getAll: createSecureInvoke<[], any>('settings:getAll'),
     reset: createSecureInvoke<[], void>('settings:reset'),
-    hasCustomValue: createSecureInvoke<[string], boolean>('settings:hasCustomValue'),
+    hasCustomValue: createSecureInvoke<[string], boolean>(
+      'settings:hasCustomValue',
+    ),
     getStorePath: createSecureInvoke<[], string>('settings:getStorePath'),
     validate: createSecureInvoke<[], boolean>('settings:validate'),
     export: createSecureInvoke<[], string>('settings:export'),
     import: createSecureInvoke<[string], boolean>('settings:import'),
-    initializeDownloadLocation: createSecureInvoke<[], void>('settings:initializeDownloadLocation'),
+    initializeDownloadLocation: createSecureInvoke<[], void>(
+      'settings:initializeDownloadLocation',
+    ),
+    sanitize: createSecureInvoke<[], void>('settings:sanitize'),
+    createBackup: createSecureInvoke<[], { backupPath: string }>(
+      'settings:createBackup',
+    ),
+    restoreFromBackup: createSecureInvoke<[string], void>(
+      'settings:restoreFromBackup',
+    ),
+    getVersion: createSecureInvoke<[], string>('settings:getVersion'),
+    needsMigration: createSecureInvoke<[string], boolean>(
+      'settings:needsMigration',
+    ),
+    migrate: createSecureInvoke<[string], void>('settings:migrate'),
+    listBackups: createSecureInvoke<
+      [],
+      Array<{ path: string; date: Date; version?: string }>
+    >('settings:listBackups'),
+    getValidationDetails: createSecureInvoke<[], any>(
+      'settings:getValidationDetails',
+    ),
   },
 
   // Playlist operations (placeholder implementations for future tasks)
@@ -346,16 +517,24 @@ const electronAPI: ElectronAPI = {
     delete: createSecureInvoke<[number], void>('playlist:delete'),
     searchVideos: createSecureInvoke<[any], any[]>('playlist:searchVideos'),
     addVideo: createSecureInvoke<[number, string], void>('playlist:addVideo'),
-    removeVideo: createSecureInvoke<[number, string], void>('playlist:removeVideo'),
-    reorderVideos: createSecureInvoke<[number, any[]], void>('playlist:reorderVideos'),
+    removeVideo: createSecureInvoke<[number, string], void>(
+      'playlist:removeVideo',
+    ),
+    reorderVideos: createSecureInvoke<[number, any[]], void>(
+      'playlist:reorderVideos',
+    ),
     getStats: createSecureInvoke<[number], any>('playlist:getStats'),
   },
 
   // YouTube operations (placeholder implementations for future tasks)
   youtube: {
-    getPlaylistMetadata: createSecureInvoke<[string], any>('youtube:getPlaylistMetadata'),
+    getPlaylistMetadata: createSecureInvoke<[string], any>(
+      'youtube:getPlaylistMetadata',
+    ),
     importPlaylist: createSecureInvoke<[string], any>('youtube:importPlaylist'),
-    getVideoQualities: createSecureInvoke<[string], string[]>('youtube:getVideoQualities'),
+    getVideoQualities: createSecureInvoke<[string], string[]>(
+      'youtube:getVideoQualities',
+    ),
     checkAvailability: createSecureInvoke<[], any>('youtube:checkAvailability'),
     updateYtDlp: createSecureInvoke<[], any>('youtube:updateYtDlp'),
     validateUrl: createSecureInvoke<[string], any>('youtube:validateUrl'),
@@ -366,33 +545,61 @@ const electronAPI: ElectronAPI = {
   dependency: {
     checkStatus: createSecureInvoke<[], any>('dependency:checkStatus'),
     getStatus: createSecureInvoke<[], any>('dependency:getStatus'),
-    install: createSecureInvoke<['ytdlp' | 'ffmpeg'], any>('dependency:install'),
-    validate: createSecureInvoke<['ytdlp' | 'ffmpeg'], boolean>('dependency:validate'),
-    getVersion: createSecureInvoke<['ytdlp' | 'ffmpeg'], string | null>('dependency:getVersion'),
-    getPath: createSecureInvoke<['ytdlp' | 'ffmpeg'], string>('dependency:getPath'),
+    install: createSecureInvoke<['ytdlp' | 'ffmpeg'], any>(
+      'dependency:install',
+    ),
+    validate: createSecureInvoke<['ytdlp' | 'ffmpeg'], boolean>(
+      'dependency:validate',
+    ),
+    getVersion: createSecureInvoke<['ytdlp' | 'ffmpeg'], string | null>(
+      'dependency:getVersion',
+    ),
+    getPath: createSecureInvoke<['ytdlp' | 'ffmpeg'], string>(
+      'dependency:getPath',
+    ),
     cleanup: createSecureInvoke<[], any>('dependency:cleanup'),
     areAllReady: createSecureInvoke<[], boolean>('dependency:areAllReady'),
     isInitialized: createSecureInvoke<[], boolean>('dependency:isInitialized'),
     onStatusUpdated: createSecureListener<[any]>('dependency:statusUpdated'),
-    onDownloadProgress: createSecureListener<[any]>('dependency:downloadProgress'),
-    onInstallStarted: createSecureListener<[string]>('dependency:installStarted'),
-    onInstallCompleted: createSecureListener<[string]>('dependency:installCompleted'),
+    onDownloadProgress: createSecureListener<[any]>(
+      'dependency:downloadProgress',
+    ),
+    onInstallStarted: createSecureListener<[string]>(
+      'dependency:installStarted',
+    ),
+    onInstallCompleted: createSecureListener<[string]>(
+      'dependency:installCompleted',
+    ),
     onInstallFailed: createSecureListener<[any]>('dependency:installFailed'),
   },
 
   // Error handling and recovery
   error: {
     getStatistics: createSecureInvoke<[], any>('error:getStatistics'),
-    getRecentReports: createSecureInvoke<[number?], any[]>('error:getRecentReports'),
-    report: createSecureInvoke<[{ message: string; stack?: string; name?: string }, any, any?], boolean>('error:report'),
-    clearOldReports: createSecureInvoke<[number?], void>('error:clearOldReports'),
-    gracefulShutdown: createSecureInvoke<[string?], void>('error:gracefulShutdown'),
-    test: process.env.NODE_ENV === 'development' ? createSecureInvoke<[string], boolean>('error:test') : undefined,
+    getRecentReports: createSecureInvoke<[number?], any[]>(
+      'error:getRecentReports',
+    ),
+    report: createSecureInvoke<
+      [{ message: string; stack?: string; name?: string }, any, any?],
+      boolean
+    >('error:report'),
+    clearOldReports: createSecureInvoke<[number?], void>(
+      'error:clearOldReports',
+    ),
+    gracefulShutdown: createSecureInvoke<[string?], void>(
+      'error:gracefulShutdown',
+    ),
+    test:
+      process.env.NODE_ENV === 'development'
+        ? createSecureInvoke<[string], boolean>('error:test')
+        : undefined,
     onNotification: createSecureListener<[any]>('error-notification'),
   },
 
   // Legacy methods for backward compatibility
-  getPlaylistMetadata: createSecureInvoke<[string], any>('playlist:getMetadata'),
+  getPlaylistMetadata: createSecureInvoke<[string], any>(
+    'playlist:getMetadata',
+  ),
   startImport: createSecureInvoke<[string], any>('import:start'),
   onTaskUpdate: createSecureListener<[any]>('task:update'),
   getPlaylistDetails: createSecureInvoke<[string], any>('getPlaylistDetails'),
@@ -406,33 +613,41 @@ const versionedAPI = createVersionedAPI(electronAPI);
 try {
   // Validate that contextBridge is available
   if (!contextBridge || typeof contextBridge.exposeInMainWorld !== 'function') {
-    throw new Error('❌ SECURITY VIOLATION: contextBridge is not available or compromised');
+    throw new Error(
+      '❌ SECURITY VIOLATION: contextBridge is not available or compromised',
+    );
   }
 
   // Expose the versioned API
   contextBridge.exposeInMainWorld('electronAPI', versionedAPI);
-  
+
   // Also expose as 'api' for backward compatibility
   contextBridge.exposeInMainWorld('api', electronAPI);
-  
+
   // Log successful initialization in development
   if (process.env.NODE_ENV === 'development') {
     console.log('✅ Preload script initialized successfully');
     console.log(`🔒 API Version: ${API_VERSION}`);
     console.log('🔒 Context isolation enabled');
     console.log('🚫 Node integration disabled');
-    console.log(`🛡️  Security channels: ${SECURITY_CONFIG.allowedChannels.size} allowed`);
+    console.log(
+      `🛡️  Security channels: ${SECURITY_CONFIG.allowedChannels.size} allowed`,
+    );
     console.log(`⏱️  IPC timeout: ${SECURITY_CONFIG.timeoutMs}ms`);
   }
-  
+
   // Validate the exposed API
   if (typeof (globalThis as any).electronAPI === 'undefined') {
-    throw new Error('❌ SECURITY VIOLATION: API was not properly exposed to renderer');
+    throw new Error(
+      '❌ SECURITY VIOLATION: API was not properly exposed to renderer',
+    );
   }
-  
 } catch (error) {
   const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-  logSecurityViolation('API_EXPOSURE_FAILED', `Failed to expose API through context bridge: ${errorMessage}`);
+  logSecurityViolation(
+    'API_EXPOSURE_FAILED',
+    `Failed to expose API through context bridge: ${errorMessage}`,
+  );
   console.error('❌ Failed to expose API through context bridge:', error);
   throw error;
 }
@@ -442,13 +657,21 @@ window.addEventListener('DOMContentLoaded', () => {
   try {
     // Validate that the API is properly exposed
     if (typeof (window as any).electronAPI === 'undefined') {
-      logSecurityViolation('API_NOT_EXPOSED', 'ElectronAPI is not available on window object');
-      throw new Error('❌ SECURITY VIOLATION: ElectronAPI is not properly exposed');
+      logSecurityViolation(
+        'API_NOT_EXPOSED',
+        'ElectronAPI is not available on window object',
+      );
+      throw new Error(
+        '❌ SECURITY VIOLATION: ElectronAPI is not properly exposed',
+      );
     }
 
     // Validate API version
     if (!(window as any).electronAPI._validateVersion()) {
-      logSecurityViolation('API_VERSION_INVALID', 'API version validation failed');
+      logSecurityViolation(
+        'API_VERSION_INVALID',
+        'API version validation failed',
+      );
       throw new Error('❌ SECURITY VIOLATION: API version validation failed');
     }
 
@@ -472,22 +695,33 @@ window.addEventListener('DOMContentLoaded', () => {
       console.log('✅ DOM Content Loaded - Security validation passed');
       console.log(`🔒 API Version: ${(window as any).electronAPI._version}`);
     }
-
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('❌ DOM Content Loaded security validation failed:', errorMessage);
-    
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
+    console.error(
+      '❌ DOM Content Loaded security validation failed:',
+      errorMessage,
+    );
+
     // In production, we might want to disable the application
     if (process.env.NODE_ENV === 'production') {
-      document.body.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">Security validation failed. Please restart the application.</div>';
+      document.body.innerHTML =
+        '<div style="padding: 20px; text-align: center; color: red;">Security validation failed. Please restart the application.</div>';
     }
   }
 });
 
 // Enhanced security cleanup - Remove all dangerous globals
 const dangerousGlobals = [
-  'require', 'exports', 'module', '__dirname', '__filename', 
-  'global', 'Buffer', 'setImmediate', 'clearImmediate'
+  'require',
+  'exports',
+  'module',
+  '__dirname',
+  '__filename',
+  'global',
+  'Buffer',
+  'setImmediate',
+  'clearImmediate',
 ];
 
 dangerousGlobals.forEach(globalName => {
@@ -511,7 +745,10 @@ if (process.env.NODE_ENV === 'development') {
     // Check if dangerous globals have been re-added
     dangerousGlobals.forEach(globalName => {
       if ((globalThis as any)[globalName]) {
-        logSecurityViolation('GLOBAL_REINTRODUCTION', `Dangerous global ${globalName} was reintroduced`);
+        logSecurityViolation(
+          'GLOBAL_REINTRODUCTION',
+          `Dangerous global ${globalName} was reintroduced`,
+        );
         delete (globalThis as any)[globalName];
       }
     });
@@ -530,7 +767,9 @@ if (process.env.NODE_ENV === 'development') {
   console.log('  ✓ Timeout protection for IPC calls');
   console.log('  ✓ Prototype pollution protection');
   console.log('  ✓ Runtime security monitoring enabled');
-  console.log(`  ✓ ${SECURITY_CONFIG.allowedChannels.size} authorized IPC channels`);
+  console.log(
+    `  ✓ ${SECURITY_CONFIG.allowedChannels.size} authorized IPC channels`,
+  );
 }
 
 // Export security configuration for testing purposes (development only)
