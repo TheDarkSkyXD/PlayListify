@@ -3,21 +3,21 @@
  * Handles application lifecycle, window management, and IPC communication
  */
 
+import type { AppConfig } from '@/shared/types';
+import { app } from 'electron';
 import {
   cleanupErrorHandlers,
   initializeErrorHandlers,
 } from './backend/handlers/error-handlers';
-import { ApplicationLifecycleService } from './backend/services/application-lifecycle-service';
 import {
   cleanupIPCHandlers,
   initializeIPCHandlers,
 } from './backend/handlers/index';
+import { ApplicationLifecycleService } from './backend/services/application-lifecycle-service';
 import { createDevelopmentService } from './backend/services/development-service';
-import { WindowManagerService } from './backend/services/window-manager-service';
 import { ErrorHandlerService } from './backend/services/error-handler-service';
 import { createLogger } from './backend/services/logger-service';
-import type { AppConfig } from '@/shared/types';
-import { app } from 'electron';
+import { WindowManagerService } from './backend/services/window-manager-service';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {

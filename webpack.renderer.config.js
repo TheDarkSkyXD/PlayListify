@@ -1,5 +1,10 @@
 const path = require('path');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const { 
+  getRendererProcessOptimization, 
+  getPerformanceConfig, 
+  getCacheConfig 
+} = require('./webpack.optimization.config');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -109,51 +114,7 @@ module.exports = {
     }),
   ],
   
-  optimization: {
-    splitChunks: {
-      chunks: 'all',
-      minSize: 20000,
-      maxSize: 250000,
-      cacheGroups: {
-        default: {
-          minChunks: 2,
-          priority: -20,
-          reuseExistingChunk: true,
-        },
-        vendor: {
-          test: /[\\/]node_modules[\\/]/,
-          name: 'vendors',
-          priority: -10,
-          chunks: 'all',
-        },
-        react: {
-          test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
-          name: 'react',
-          priority: 10,
-          chunks: 'all',
-        },
-        tanstack: {
-          test: /[\\/]node_modules[\\/]@tanstack[\\/]/,
-          name: 'tanstack',
-          priority: 5,
-          chunks: 'all',
-        },
-        ui: {
-          test: /[\\/]node_modules[\\/](@radix-ui|lucide-react)[\\/]/,
-          name: 'ui',
-          priority: 5,
-          chunks: 'all',
-        },
-      },
-    },
-    minimize: isProduction,
-    ...(isProduction && {
-      minimizer: [
-        // Use default minimizers with better configuration
-        '...',
-      ],
-    }),
-  },
+  optimization: getRendererProcessOptimization(),
   
   performance: {
     hints: isProduction ? 'warning' : false,

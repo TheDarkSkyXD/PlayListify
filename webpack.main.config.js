@@ -1,5 +1,10 @@
 const path = require('path');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const { 
+  getMainProcessOptimization, 
+  getPerformanceConfig, 
+  getCacheConfig 
+} = require('./webpack.optimization.config');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -59,16 +64,7 @@ module.exports = {
     }),
   ],
   
-  optimization: {
-    nodeEnv: false, // Prevent webpack from setting NODE_ENV
-    minimize: isProduction,
-    ...(isProduction && {
-      minimizer: [
-        // Use default minimizers but with better configuration
-        '...',
-      ],
-    }),
-  },
+  optimization: getMainProcessOptimization(),
   
   externals: {
     // Mark native modules as external to prevent bundling
